@@ -94,21 +94,28 @@
       var btnOpenVrecko = document.getElementById('btnOpenVrecko');
       var btnOpenFolia = document.getElementById('btnOpenFolia');
       var btnOpenPC = document.getElementById('btnOpenPC');
+      function basePath(){
+        var p = window.location.pathname;
+        return p.endsWith('/') ? p : p.replace(/\/[^/]*$/, '/');
+      }
+      function toUrl(file){
+        return window.location.origin + basePath() + file;
+      }
       if (btnOpenVrecko) {
         btnOpenVrecko.addEventListener('click', function(){
           var val = document.getElementById('vreckoSelect').value;
-          window.location.href = new URL(val, window.location.origin).toString();
+          window.location.href = toUrl(val);
         });
       }
       if (btnOpenFolia) {
         btnOpenFolia.addEventListener('click', function(){
           var val = document.getElementById('foliaSelect').value;
-          window.location.href = new URL(val, window.location.origin).toString();
+          window.location.href = toUrl(val);
         });
       }
       if (btnOpenPC) {
         btnOpenPC.addEventListener('click', function(){
-          window.location.href = 'indexPC.html';
+          window.location.href = toUrl('indexPC.html');
         });
       }
     }
