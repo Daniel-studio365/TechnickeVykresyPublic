@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Technicke vykresy - web</title>
+  <link rel="stylesheet" href="css/main.css">
+    <style>
+    body{margin:0;font-family:"Roboto","Noto Sans",system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:#f6f7f9;color:#0f172a;}
+    .wrap{max-width:960px;margin:0 auto;padding:24px;}
+    .hero{display:flex;align-items:center;gap:16px;margin-bottom:20px;}
+    .hero img{height:56px;}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px;box-shadow:0 4px 12px rgba(15,23,42,0.06);}
+    h1{margin:0 0 6px 0;font-size:22px;}
+    p{margin:0 0 12px 0;}
+    .list{display:grid;gap:10px;}
+    .item{display:flex;align-items:center;justify-content:space-between;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#f9fafb;}
+    .item span{font-weight:600;}
+    .btn{padding:8px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:600;}
+    .primary{background:#0ea5e9;color:#fff;}
+    select{padding:8px 10px;border:1px solid #cbd5e1;border-radius:10px;font-size:14px;}
+    .row{display:flex;gap:12px;align-items:center;}  </style>
+</head>
+<body>
+  <div class="wrap" id="app">
+    <div class="hero">
+      <img src="img/logo.svg" alt="Chemosvit Folie logo">
+      <div>
+        <h1>Technicke vykresy - web</h1>
+        <p>Priama volba vykresu. Firmy/DB sa tu nevyberaju; len otvorenie vykresu.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="list">
+        <div class="item">
+          <div>
+            <div>Vrecko</div>
+            <div class="row" style="margin-top:6px;">
+              <select id="vreckoSelect">
+                <option value="vz22.html">Vz-22</option>
+                <option value="vz31.html" selected>Vz-31</option>
+                <option value="vz34.html">Vz-34</option>
+                <option value="vz51_pdf.html" disabled>Vz-51 (v priprave)</option>
+                <option value="vz107_pdf.html" disabled>Vz-107 (v priprave)</option>
+                <option value="vz108_pdf.html" disabled>Vz-108 (v priprave)</option>
+              </select>
+              <button class="btn primary" id="btnOpenVrecko">Otvoriť</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="item">
+          <div>
+            <div>Fólia</div>
+            <div class="row" style="margin-top:6px;">
+              <select id="foliaSelect">
+                <option value="folia.html" selected>Folia</option>
+                <option value="folia_test.html">Folia test</option>
+              </select>
+              <button class="btn primary" id="btnOpenFolia">Otvoriť</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="item">
+          <div>
+            <div>PC verzia (pôvodný vstupný formulár)</div>
+          </div>
+          <button class="btn" id="btnOpenPC">Otvoriť indexPC</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var pass = 'test123';
+      var ok = false;
+      try{ ok = sessionStorage.getItem('auth_ok') === '1'; }catch(_){}
+      if(!ok){
+        var input = prompt('Zadaj heslo:');
+        if(input === pass){
+          try{ sessionStorage.setItem('auth_ok','1'); }catch(_){}
+        } else {
+          alert('Nespravne heslo.');
+          document.body.innerHTML = '';
+          return;
+        }
+      }
+    })();
+
+    function bindNav(){
+      var btnOpenVrecko = document.getElementById('btnOpenVrecko');
+      var btnOpenFolia = document.getElementById('btnOpenFolia');
+      var btnOpenPC = document.getElementById('btnOpenPC');
+      if (btnOpenVrecko) {
+        btnOpenVrecko.addEventListener('click', function(){
+          var val = document.getElementById('vreckoSelect').value;
+          window.location.href = new URL(val, window.location.origin).toString();
+        });
+      }
+      if (btnOpenFolia) {
+        btnOpenFolia.addEventListener('click', function(){
+          var val = document.getElementById('foliaSelect').value;
+          window.location.href = new URL(val, window.location.origin).toString();
+        });
+      }
+      if (btnOpenPC) {
+        btnOpenPC.addEventListener('click', function(){
+          window.location.href = 'indexPC.html';
+        });
+      }
+    }
+    bindNav();
+  </script>
+</body>
+</html>

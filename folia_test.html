@@ -1,0 +1,207 @@
+﻿<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8">
+  <title>folia</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="css/folia_test.css">
+</head>
+<body>
+  <div id="app">
+    <aside id="controls">
+      <label>Hrubka ciary:
+        <input type="number" id="strokeWidth" value="1" step="0.2" min="0.2" max="5">
+      </label>
+      <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:4px;">
+        <label style="flex:1;">Jednotky:
+          <select id="units">
+            <option value="none">Ziadne</option>
+            <option value="mm" selected>mm</option>
+          </select>
+        </label>
+        <label style="flex:1;">Desatinne miesta:
+          <select id="decimals">
+            <option value="0" selected>0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+          </select>
+        </label>
+      </div>
+
+      <label>Vyska: <input type="number" id="W" value="400"></label>
+      <div class="section-title">Rozdelenie vysky</div>
+      <div style="margin:4px 0 8px 0; display:flex; align-items:center; gap:8px;">
+        <button id="segH-add" type="button" aria-label="Pridat" style="width:32px;padding:6px 0;font-size:16px;">+</button>
+        <button id="segH-remove" type="button" aria-label="Odobrat" style="width:32px;padding:6px 0;font-size:16px;">-</button>
+        <select id="lineStyleH" title="Styl ciar vysky" style="flex:1;">
+          <option value="solid" selected>plna</option>
+          <option value="dashed">prerusovana</option>
+        </select>
+      </div>
+      <div id="segmentsH" style="display:grid; gap:6px;"></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:4px;">
+        <label style="flex:1;">Koty vysky:
+          <select id="dimPosH" title="Strana kot vysky">
+            <option value="right" selected>vpravo</option>
+            <option value="left">vlavo</option>
+          </select>
+        </label>
+        <label style="flex:1;">Odsadenie vysky:
+          <input type="number" id="dimOffsetH" value="25" step="2" min="0">
+        </label>
+      </div>
+
+      <label>Sirka: <input type="number" id="L" value="600"></label>
+      <div class="section-title">Rozdelenie sirky</div>
+      <div style="margin:4px 0 4px 0; display:flex; align-items:center; gap:8px;">
+        <button id="seg-add" type="button" aria-label="Pridat" style="width:32px;padding:6px 0;font-size:16px;">+</button>
+        <button id="seg-remove" type="button" aria-label="Odobrat" style="width:32px;padding:6px 0;font-size:16px;">-</button>
+        <select id="lineStyle" title="Styl ciar" style="flex:1;">
+          <option value="solid" selected>plna</option>
+          <option value="dashed">prerusovana</option>
+        </select>
+      </div>
+      <div id="segments" style="display:grid; gap:6px; margin-bottom:6px;"></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap;">
+        <label style="flex:1;">Koty sirky:
+          <select id="dimPos">
+            <option value="bottom" selected>dole</option>
+            <option value="top">hore</option>
+          </select>
+        </label>
+        <label style="flex:1;">Odsadenie koty:
+          <input type="number" id="dimOffset" value="25" step="2" min="0">
+        </label>
+      </div>
+
+      <span class="sep"></span>
+      <div class="section-title">Tlac</div>
+      <label>Pocet operacii:
+        <select id="printOps">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+        </select>
+      </label>
+      <div class="row" style="gap:12px;margin:4px 0 8px 0;">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="radio" name="printSide" value="bottom" id="printSideBottom" checked>
+          <span>Spodna</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="radio" name="printSide" value="top" id="printSideTop">
+          <span>Vrchna</span>
+        </label>
+      </div>
+
+      <span class="sep"></span>
+      <div style="display:grid; gap:8px;">
+        <div class="section-title">Zobrazit navin</div>
+        <label><input type="checkbox" id="rollEnabled" checked> Finalny navin</label>
+        <label><input type="checkbox" id="rollPrint"> Navin pri tlaci</label>
+        <label><input type="checkbox" id="rollAssembly"> Navin pri montazi</label>
+        <label>Finalny navin:
+          <select id="rollType" style="width:130px;">
+            <option value="1" selected>1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+          </select>
+        </label>
+        <label>Varianta navinu:
+          <select id="rollVariant" style="width:130px;">
+            <option value="A" selected>A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+            <option value="E">E</option>
+          </select>
+        </label>
+        <label style="font-weight:700; font-size:15px;">Navin pri tlaci: <span id="rollPrintInfo" style="font-weight:700; font-size:15px;"></span></label>
+        <label style="font-weight:700; font-size:15px;">Navin pri montazi: <span id="rollAssemblyInfo" style="font-weight:700; font-size:15px;"></span></label>
+        <div class="section-title">Rozmer fotoznaku</div>
+        <div class="row" style="gap:6px;flex-wrap:wrap;">
+          <label style="flex:1;">Sirka (mm): <input type="number" id="photoW" value="15" min="1"></label>
+          <label style="flex:1;">Vyska (mm): <input type="number" id="photoH" value="7" min="1"></label>
+        </div>
+      </div>
+      <span class="sep"></span>
+        <label>Velkost textu:
+          <div class="row">
+            <input type="range" id="fontPx" min="6" max="28" value="14">
+            <span id="fontPxVal">14 px</span>
+          </div>
+        </label>
+        <label>Meranie (H/V):
+          <select id="measureMode">
+            <option value="off" selected>vypnute</option>
+            <option value="h">horizontalne</option>
+            <option value="v">vertikalne</option>
+          </select>
+        </label>
+        <div class="row" style="gap:6px;">
+          <button id="measure-cancel" type="button" class="secondary btn-compact">Zrusit meranie</button>
+          <button id="measure-clear" type="button" class="warn btn-compact">Vymazat merania</button>
+        </div>
+        <label><input type="checkbox" id="toggle-grid"> Mriezka</label>
+      <span class="sep"></span>
+      <label>Podkladovy obrazok (PNG/JPG):
+        <input type="file" id="bgFile" accept="image/png,image/jpeg,image/webp,image/gif">
+      </label>
+      <div class="row" style="gap:6px;flex-wrap:wrap;">
+        <label style="flex:1;">Sirka podkladu (mm): <input type="number" id="bgWidth" min="0"></label>
+        <label style="flex:1;">Vyska podkladu (mm): <input type="number" id="bgHeight" min="0"></label>
+      </div>
+      <div class="row" style="gap:6px;flex-wrap:wrap;">
+        <button type="button" id="bg-rot-left" class="secondary" style="flex:1;">Otocit -90</button>
+        <button type="button" id="bg-rot-180" class="secondary" style="flex:1;">Otocit 180</button>
+        <button type="button" id="bg-flip" class="secondary" style="flex:1;">Zrkadlit horiz.</button>
+      </div>
+      <label>Priehladnost podkladu:
+        <div class="row">
+          <input type="range" id="bgOpacity" min="0" max="1" step="0.05" value="0.6">
+          <span id="bgOpacityVal">60 %</span>
+        </div>
+      </label>
+      <div class="row" style="gap:6px;flex-wrap:wrap;">
+        <button id="bg-calib" type="button" class="secondary">Kalibracia podkladu</button>
+        <button id="bg-calib-cancel" type="button" class="warn" style="display:none;">Zrusit kalibraciu</button>
+        <button id="bg-clear" type="button" class="secondary">Vymazat obrazok</button>
+      </div>
+      <span class="sep"></span>
+      <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:4px;">
+        <label style="display:flex;align-items:center;gap:6px;">Tlac A3 orientacia:
+          <select id="exportOrient">
+            <option value="portrait" selected>na vysku</option>
+            <option value="landscape">na sirku</option>
+          </select>
+        </label>
+      </div>
+      <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:6px;">
+        <button id="btn-reset" class="secondary">Reset</button>
+        <button id="btn-export">Export PDF 1:1</button>
+        <button id="btn-export-png">Export PNG</button>
+        <button id="btn-save" type="button">Ulozit (JSON)</button>
+        <button id="btn-load" type="button">Nacitat</button>
+        <input type="file" id="loadFile" accept="application/json" style="display:none;">
+      </div>
+    </aside>
+
+    <section id="canvas-wrap">
+      <div id="svgHolder">
+        <svg id="svgRoot" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" aria-label="nahlad"></svg>
+      </div>
+    </section>
+  </div>
+
+  <script src="js/folia_test.js"></script>
+</body>
+</html>
+
