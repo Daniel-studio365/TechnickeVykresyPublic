@@ -1,0 +1,364 @@
+[
+  {
+    "firmId": "epicom-sp",
+    "firmName": "EPICOM SP",
+    "vz": "vz31",
+    "typ": "default",
+    "notes": [
+      "Plastove spony 150 ks/blok",
+      "Z rez musi byt prevedeny do konca chlopne"
+    ],
+    "techNotes": [],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": null,
+      "K": null,
+      "Cpitch": null,
+      "AxisInK": null
+    },
+    "clip": {
+      "count": 6,
+      "offsetX": null,
+      "offsetY": null,
+      "pitch": null,
+      "packageCount": 150,
+      "type": "plast",
+      "easyOpen": false,
+      "notes": []
+    },
+    "air": {
+      "count": 6,
+      "diameter": 3,
+      "offsetFromEdge": 30,
+      "offsetY": null,
+      "pitch": null,
+      "notes": [
+        "nezasiahnut EAN kod"
+      ]
+    },
+    "clipImages": []
+  },
+  {
+    "firmId": "epicom-sp",
+    "firmName": "EPICOM SP",
+    "vz": "vz34",
+    "typ": "default",
+    "notes": [
+      "Plastove spony 150 ks/blok",
+      "Z rez musi byt prevedeny do konca chlopne"
+    ],
+    "techNotes": [],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": null,
+      "K": null,
+      "Cpitch": null,
+      "AxisInK": null
+    },
+    "clip": {
+      "count": 6,
+      "offsetX": null,
+      "offsetY": null,
+      "pitch": null,
+      "packageCount": 150,
+      "type": "plast",
+      "easyOpen": false,
+      "notes": []
+    },
+    "air": {
+      "count": 6,
+      "diameter": 3,
+      "offsetFromEdge": 30,
+      "offsetY": null,
+      "pitch": null,
+      "notes": [
+        "nezasiahnut EAN kod"
+      ]
+    },
+    "clipImages": []
+  },
+  {
+    "firmId": "shp",
+    "firmName": "SHP",
+    "vz": "vz31",
+    "typ": "default",
+    "notes": [
+      "Plastove spony 150 ks/blok",
+      "Z rez musi byt prevedeny do konca chlopne"
+    ],
+    "techNotes": [],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": null,
+      "K": null,
+      "notchLen": null,
+      "Cpitch": 180,
+      "AxisInK": 20
+    },
+    "clip": {
+      "count": 6,
+      "offsetX": null,
+      "offsetY": null,
+      "packageCount": null,
+      "type": "plast"
+    },
+    "air": {
+      "count": 6,
+      "diameter": 3,
+      "offsetFromEdge": 30,
+      "pitch": null
+    },
+    "clipImages": [
+      "zdola"
+    ]
+  },
+  {
+    "firmId": "metsa",
+    "firmName": "METSA",
+    "vz": "vz31",
+    "typ": "default",
+    "notes": [],
+    "techNotes": [],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": null,
+      "K": null,
+      "Cpitch": null,
+      "AxisInK": null
+    },
+    "clip": {
+      "count": 6,
+      "offsetX": null,
+      "offsetY": null,
+      "pitch": null,
+      "packageCount": null,
+      "type": "plast",
+      "easyOpen": false,
+      "notes": []
+    },
+    "air": {
+      "count": null,
+      "diameter": null,
+      "offsetFromEdge": null,
+      "offsetY": null,
+      "pitch": null,
+      "notes": []
+    },
+    "clipImages": []
+  },
+  {
+    "firmId": "metsa",
+    "firmName": "METSA",
+    "vz": "vz34",
+    "typ": "default",
+    "notes": [],
+    "techNotes": [],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": null,
+      "K": null,
+      "Cpitch": null,
+      "AxisInK": null
+    },
+    "clip": {
+      "count": 6,
+      "offsetX": null,
+      "offsetY": null,
+      "pitch": null,
+      "packageCount": null,
+      "type": "plast",
+      "easyOpen": false,
+      "notes": []
+    },
+    "air": {
+      "count": null,
+      "diameter": null,
+      "offsetFromEdge": null,
+      "offsetY": null,
+      "pitch": null,
+      "notes": []
+    },
+    "clipImages": []
+  },
+  {
+    "firmId": "velvet",
+    "firmName": "VELVET",
+    "vz": "vz31",
+    "typ": "default",
+    "notes": [],
+    "techNotes": [],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": null,
+      "K": null,
+      "Cpitch": null,
+      "AxisInK": null
+    },
+    "clip": {
+      "count": 6,
+      "offsetX": null,
+      "offsetY": null,
+      "pitch": null,
+      "packageCount": null,
+      "type": "plast",
+      "easyOpen": false,
+      "notes": []
+    },
+    "air": {
+      "count": null,
+      "diameter": null,
+      "offsetFromEdge": null,
+      "offsetY": null,
+      "pitch": null,
+      "notes": []
+    },
+    "clipImages": []
+  },
+  {
+    "firmId": "velvet",
+    "firmName": "VELVET",
+    "vz": "vz34",
+    "typ": "default",
+    "notes": [],
+    "techNotes": [],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": null,
+      "K": null,
+      "Cpitch": null,
+      "AxisInK": null
+    },
+    "clip": {
+      "count": 6,
+      "offsetX": null,
+      "offsetY": null,
+      "pitch": null,
+      "packageCount": null,
+      "type": "plast",
+      "easyOpen": false,
+      "notes": []
+    },
+    "air": {
+      "count": null,
+      "diameter": null,
+      "offsetFromEdge": null,
+      "offsetY": null,
+      "pitch": null,
+      "notes": []
+    },
+    "clipImages": []
+  },
+  {
+    "firmId": "metsa031(6)",
+    "firmName": "METSA TISSUE SLOVAKIA",
+    "vz": "vz31",
+    "typ": "A",
+    "notes": [],
+    "techNotes": [],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": 50,
+      "K": 45,
+      "Cpitch": 160,
+      "AxisInK": 20
+    },
+    "clip": {
+      "count": 150,
+      "offsetX": null,
+      "offsetY": null,
+      "packageCount": null,
+      "type": null
+    },
+    "air": {
+      "count": 3,
+      "diameter": 1,
+      "offsetFromEdge": 30,
+      "pitch": 120
+    },
+    "clipImages": [
+      "zhora"
+    ]
+  },
+  {
+    "firmId": "123",
+    "firmName": "DanielNagy",
+    "vz": "vz31",
+    "typ": "123",
+    "notes": [
+      "nieviem, kde to presne tieto poznamky prenesie"
+    ],
+    "techNotes": [
+      "ydfghbasdfgbnh&cv"
+    ],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": 50,
+      "K": 45,
+      "notchLen": null,
+      "Cpitch": 160,
+      "AxisInK": 22.5
+    },
+    "clip": {
+      "count": 150,
+      "offsetX": null,
+      "offsetY": null,
+      "packageCount": null,
+      "type": null
+    },
+    "air": {
+      "count": 3,
+      "diameter": 1,
+      "offsetFromEdge": 30,
+      "pitch": 120
+    },
+    "clipImages": [
+      "zdola"
+    ]
+  },
+  {
+    "firmId": "KC",
+    "firmName": "Kimberly Clark",
+    "vz": "vz22",
+    "typ": "č.špec.27320",
+    "notes": [
+      "Plastove spony 150ks/blok"
+    ],
+    "techNotes": [
+      "Vzduchové otvory len v záložke 20/ 7,5"
+    ],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": null,
+      "K": null,
+      "notchLen": 6.5,
+      "Cpitch": null,
+      "AxisInK": null
+    },
+    "clip": {
+      "count": null,
+      "offsetX": null,
+      "offsetY": null,
+      "packageCount": null,
+      "type": null
+    },
+    "air": {
+      "count": null,
+      "diameter": null,
+      "offsetFromEdge": null,
+      "pitch": null
+    },
+    "clipImages": [
+      "zhora"
+    ]
+  }
+]

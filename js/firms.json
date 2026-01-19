@@ -1,0 +1,116 @@
+[
+  {
+    "firmId": "epicom-sp",
+    "firmName": "EPICOM SP",
+    "vz": "vz31",
+    "zyp": "default",
+    "notes": [
+      "Plastove spony 150 ks/blok",
+      "Z rez musi byt prevedeny do konca chlopne"
+    ],
+    "assets": [],
+    "dimensions": { "W": null, "L": null, "G": null, "K": null, "Cpitch": null, "AxisInK": null },
+    "clip": { "count": 6, "offsetX": null, "offsetY": null, "pitch": null, "packageCount": 150, "type": "plast", "easyOpen": false, "notes": [] },
+    "cut": { "fromCutWidth": 6, "fromNonCutWidth": 9, "toFlapEnd": true },
+    "air": { "count": 6, "diameter": 3, "offsetFromEdge": 30, "offsetY": null, "pitch": null, "notes": [ "nezasiahnut EAN kod" ] },
+    "perforation": { "shape": null, "side": null, "offset": null, "halfLen": null },
+    "fingerHole": { "diameter": null, "posX": null, "posY": null },
+    "warnings": []
+  },
+  {
+    "firmId": "epicom-sp",
+    "firmName": "EPICOM SP",
+    "vz": "vz34",
+    "zyp": "default",
+    "notes": [
+      "Plastove spony 150 ks/blok",
+      "Z rez musi byt prevedeny do konca chlopne"
+    ],
+    "assets": [],
+    "dimensions": { "W": null, "L": null, "G": null, "K": null, "Cpitch": null, "AxisInK": null },
+    "clip": { "count": 6, "offsetX": null, "offsetY": null, "pitch": null, "packageCount": 150, "type": "plast", "easyOpen": false, "notes": [] },
+    "cut": { "fromCutWidth": 6, "fromNonCutWidth": 9, "toFlapEnd": true },
+    "air": { "count": 6, "diameter": 3, "offsetFromEdge": 30, "offsetY": null, "pitch": null, "notes": [ "nezasiahnut EAN kod" ] },
+    "perforation": { "shape": null, "side": null, "offset": null, "halfLen": null },
+    "fingerHole": { "diameter": null, "posX": null, "posY": null },
+    "warnings": []
+  },
+  {
+    "firmId": "shp",
+    "firmName": "SHP",
+    "vz": "vz31",
+    "zyp": "default",
+    "notes": [
+      "Plastove spony 150 ks/blok",
+      "Z rez musi byt prevedeny do konca chlopne"
+    ],
+    "assets": [],
+    "dimensions": { "W": null, "L": null, "G": null, "K": null, "Cpitch": null, "AxisInK": null },
+    "clip": { "count": 6, "offsetX": null, "offsetY": null, "pitch": null, "packageCount": 150, "type": "plast", "easyOpen": false, "notes": [] },
+    "cut": { "fromCutWidth": 6, "fromNonCutWidth": 9, "toFlapEnd": true },
+    "air": { "count": 6, "diameter": 3, "offsetFromEdge": 30, "offsetY": null, "pitch": null, "notes": [] },
+    "perforation": { "shape": null, "side": null, "offset": null, "halfLen": null },
+    "fingerHole": { "diameter": null, "posX": null, "posY": null },
+    "warnings": []
+  },
+  {
+    "firmId": "metsa",
+    "firmName": "METSA",
+    "vz": "vz31",
+    "zyp": "default",
+    "notes": [],
+    "assets": [],
+    "dimensions": { "W": null, "L": null, "G": null, "K": null, "Cpitch": null, "AxisInK": null },
+    "clip": { "count": 6, "offsetX": null, "offsetY": null, "pitch": null, "packageCount": null, "type": "plast", "easyOpen": false, "notes": [] },
+    "cut": { "fromCutWidth": null, "fromNonCutWidth": null, "toFlapEnd": null },
+    "air": { "count": null, "diameter": null, "offsetFromEdge": null, "offsetY": null, "pitch": null, "notes": [] },
+    "perforation": { "shape": null, "side": null, "offset": null, "halfLen": null },
+    "fingerHole": { "diameter": null, "posX": null, "posY": null },
+    "warnings": []
+  },
+  {
+    "firmId": "metsa",
+    "firmName": "METSA",
+    "vz": "vz34",
+    "zyp": "default",
+    "notes": [],
+    "assets": [],
+    "dimensions": { "W": null, "L": null, "G": null, "K": null, "Cpitch": null, "AxisInK": null },
+    "clip": { "count": 6, "offsetX": null, "offsetY": null, "pitch": null, "packageCount": null, "type": "plast", "easyOpen": false, "notes": [] },
+    "cut": { "fromCutWidth": null, "fromNonCutWidth": null, "toFlapEnd": null },
+    "air": { "count": null, "diameter": null, "offsetFromEdge": null, "offsetY": null, "pitch": null, "notes": [] },
+    "perforation": { "shape": null, "side": null, "offset": null, "halfLen": null },
+    "fingerHole": { "diameter": null, "posX": null, "posY": null },
+    "warnings": []
+  },
+  {
+    "firmId": "velvet",
+    "firmName": "VELVET",
+    "vz": "vz31",
+    "zyp": "default",
+    "notes": [],
+    "assets": [],
+    "dimensions": { "W": null, "L": null, "G": null, "K": null, "Cpitch": null, "AxisInK": null },
+    "clip": { "count": 6, "offsetX": null, "offsetY": null, "pitch": null, "packageCount": null, "type": "plast", "easyOpen": false, "notes": [] },
+    "cut": { "fromCutWidth": null, "fromNonCutWidth": null, "toFlapEnd": null },
+    "air": { "count": null, "diameter": null, "offsetFromEdge": null, "offsetY": null, "pitch": null, "notes": [] },
+    "perforation": { "shape": null, "side": null, "offset": null, "halfLen": null },
+    "fingerHole": { "diameter": null, "posX": null, "posY": null },
+    "warnings": []
+  },
+  {
+    "firmId": "velvet",
+    "firmName": "VELVET",
+    "vz": "vz34",
+    "zyp": "default",
+    "notes": [],
+    "assets": [],
+    "dimensions": { "W": null, "L": null, "G": null, "K": null, "Cpitch": null, "AxisInK": null },
+    "clip": { "count": 6, "offsetX": null, "offsetY": null, "pitch": null, "packageCount": null, "type": "plast", "easyOpen": false, "notes": [] },
+    "cut": { "fromCutWidth": null, "fromNonCutWidth": null, "toFlapEnd": null },
+    "air": { "count": null, "diameter": null, "offsetFromEdge": null, "offsetY": null, "pitch": null, "notes": [] },
+    "perforation": { "shape": null, "side": null, "offset": null, "halfLen": null },
+    "fingerHole": { "diameter": null, "posX": null, "posY": null },
+    "warnings": []
+  }
+]
