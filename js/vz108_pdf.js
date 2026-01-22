@@ -245,6 +245,7 @@ function reset(){
 
 function collectState(){
   return {
+    vz: 'vz108',
     len: $('inp-len').value,
     width: $('inp-width').value,
     flap: $('inp-flap').value,
@@ -282,6 +283,10 @@ function handleLoadFile(file){
   r.onload = (ev)=>{
     try{
       const data = JSON.parse(ev.target.result);
+      if (data.vz && data.vz !== 'vz108'){
+        alert('Tento JSON je pre iny vzor: ' + data.vz);
+        return;
+      }
       loadData(data);
     }catch(_){ }
   };

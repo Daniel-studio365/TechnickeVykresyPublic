@@ -89,8 +89,9 @@
     }
   ];
 
-  const state = { firms: [], custom: [] };
+  const state = { firms: [], custom: [], deleted: [] };
   const LS_KEY = 'customFirms';
+  const LS_DELETED = 'deletedFirms';
   let baseFirms = [];
   let editingKey = null;
 
@@ -140,9 +141,27 @@
     }
   };
 
+  const loadDeleted = () => {
+    try {
+      const raw = localStorage.getItem(LS_DELETED);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      return [];
+    }
+  };
+
   const saveCustom = () => {
     try {
       localStorage.setItem(LS_KEY, JSON.stringify(state.custom));
+    } catch (_) {
+      /* ignore */
+    }
+  };
+
+  const saveDeleted = () => {
+    try {
+      localStorage.setItem(LS_DELETED, JSON.stringify(state.deleted));
     } catch (_) {
       /* ignore */
     }
@@ -256,7 +275,9 @@
   };
 
   const rebuild = () => {
-    state.firms = mergeFirms([...(baseFirms || []), ...(state.custom || [])]);
+    const deletedSet = new Set(state.deleted || []);
+    state.firms = mergeFirms([...(baseFirms || []), ...(state.custom || [])])
+      .filter(f => !deletedSet.has(firmKey(f)));
     renderFirmOptions();
   };
 
@@ -264,12 +285,17 @@
     const targetKey = replaceKey || firmKey(firm);
     state.custom = (state.custom || []).filter(f => firmKey(f) !== targetKey);
     state.custom.push(firm);
+    if (state.deleted && state.deleted.includes(targetKey)) {
+      state.deleted = state.deleted.filter(k => k !== targetKey);
+      saveDeleted();
+    }
     saveCustom();
     rebuild();
   };
 
   const init = async () => {
     state.custom = loadCustom();
+    state.deleted = loadDeleted();
     baseFirms = await fetchBase();
     rebuild();
     syncWorkType();
@@ -510,6 +536,11 @@
 
   if (btnGo) {
     btnGo.addEventListener('click', () => {
+      const basePath = () => {
+        const p = window.location.pathname;
+        return p.endsWith('/') ? p : p.replace(/\/[^/]*$/, '/');
+      };
+      const toUrl = (file) => window.location.origin + basePath() + file;
       const selected = radios.find(r => r.checked)?.value;
       const vz = getSelectedVz();
       const firmId = firmSelect.value;
@@ -524,15 +555,15 @@
       }
 
       if (selected === 'folia') {
-        window.location.href = 'folia.html';
+        window.location.href = toUrl('folia.html');
         return;
       }
       if (vz === 'vz31') {
-        window.location.href = 'vz31.html';
+        window.location.href = toUrl('vz31.html');
       } else if (vz === 'vz34') {
-        window.location.href = 'vz34_pdf.html';
+        window.location.href = toUrl('vz34.html');
       } else if (vz === 'vz22') {
-        window.location.href = 'vz22.html';
+        window.location.href = toUrl('vz22.html');
       } else {
         alert('Pre vybrany vzor zatial nie je preklik.');
       }
@@ -554,10 +585,11 @@
       const before = state.custom.length;
       state.custom = state.custom.filter(f => firmKey(f) !== editingKey);
       if (before === state.custom.length) {
-        alert('Zaznam sa nenasiel medzi ulozenymi (predvolene firmy zmazat nejde).');
-        return;
+        state.deleted = Array.from(new Set([...(state.deleted || []), editingKey]));
+        saveDeleted();
+      } else {
+        saveCustom();
       }
-      saveCustom();
       rebuild();
       editingKey = null;
       closePanel();

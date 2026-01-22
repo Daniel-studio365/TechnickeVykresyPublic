@@ -338,6 +338,7 @@
     const widths = [L,G,G,L,K];
     const totalWidth = widths.reduce((a,b)=>a+b,0);
     const handleH = 60;
+    const sek = W + handleH;
     const rightCut=185, leftCut=(185-K);
     const leftOuter=50, rightOuter=50+totalWidth;
     const offsetX = leftOuter;
@@ -346,7 +347,9 @@
     const handleW=handleEndX-handleOffsetX;
     const offsetYTop=120, offsetY=offsetYTop+handleH;
     const yTopBody=offsetY, yBottomBody=offsetY+W;
-    state.cachedDims = {yTop:yTopBody, yBottom:yBottomBody, width: totalWidth, height: W, offsetX, offsetY};
+    const sekEl = $('Sek');
+    if(sekEl){ sekEl.value = fmtVal(sek); }
+    state.cachedDims = {yTop:yTopBody, yBottom:yBottomBody, width: totalWidth, height: sek, offsetX, offsetY};
 
     clearSvg();
 
@@ -354,7 +357,7 @@
       const bw = num(bgWidthEl) || state.cachedDims.width;
       const bh = num(bgHeightEl) || state.cachedDims.height;
       const x = offsetX + bgState.offset.x;
-      const y = offsetY + bgState.offset.y;
+      const y = offsetYTop + bgState.offset.y;
       const img = create('image',{href:bgState.data,x,y,width:bw,height:bh,opacity:bgState.opacity});
       const cx = x + bw/2;
       const cy = y + bh/2;
@@ -460,6 +463,8 @@
 
     if(!state.lineOnly){
       const magenta='#d0007a';
+      const greenStroke = '#166534';
+      const greenFill = '#86efac';
       const topBandH = 5;
       const bottomBandH = 10;
       const sideBandW = 5;
@@ -472,12 +477,25 @@
       create('rect',{x:leftOuter,y:offsetY,width:totalWidth,height:bodyTopBandH,fill:magenta,'fill-opacity':0.2,stroke:'none'});
       const bodyBotY = offsetY + W - bodyBotBandH;
       create('rect',{x:leftOuter,y:bodyBotY,width:totalWidth,height:bodyBotBandH,fill:magenta,'fill-opacity':0.2,stroke:'none'});
-    }
 
-    const legendX = leftOuter;
-    const legendY = offsetYTop - 30;
-    create('rect',{x:legendX,y:legendY,width:16,height:16,fill:'#d0007a','fill-opacity':0.25,stroke:'#d0007a','stroke-width':1});
-    create('text',{x:legendX+22,y:legendY+8,'text-anchor':'start','dominant-baseline':'middle','font-size':state.fontPx,fill:'#d0007a'}).textContent='NO PRINT AREA';
+      const boxH = Math.max(16, Math.round(state.fontPx * 1.2));
+      const padX = 6;
+      const legendY = Math.round(offsetYTop - 26);
+
+      const textLeft = 'NO PRINT AREA';
+      const textLeftW = Math.round(state.fontPx * 0.6 * textLeft.length);
+      const boxLeftW = textLeftW + padX * 2;
+      const legendX = leftOuter;
+      create('rect',{x:legendX,y:legendY,width:boxLeftW,height:boxH,fill:magenta,'fill-opacity':0.25,stroke:magenta,'stroke-width':1});
+      create('text',{x:legendX+padX,y:legendY+boxH/2,'text-anchor':'start','dominant-baseline':'middle','font-size':state.fontPx,fill:magenta}).textContent=textLeft;
+
+      const textRight = 'BEZ KORONOVEJ UPRAVY';
+      const textRightW = Math.round(state.fontPx * 0.6 * textRight.length);
+      const boxRightW = textRightW + padX * 2;
+      const rightLegendX = rightOuter - boxRightW;
+      create('rect',{x:rightLegendX,y:legendY,width:boxRightW,height:boxH,fill:greenFill,'fill-opacity':0.25,stroke:greenStroke,'stroke-width':1});
+      create('text',{x:rightLegendX+padX,y:legendY+boxH/2,'text-anchor':'start','dominant-baseline':'middle','font-size':state.fontPx,fill:greenStroke}).textContent=textRight;
+    }
 
     if(showNotches){
       const notchLenPx = notchLen;
@@ -868,6 +886,7 @@
 
   function collectStateForSave(){
     return {
+      vz: 'vz34',
       inputs: {
         W:$('W').value, L:$('L').value, G:$('G').value, K:$('K').value,
         P:$('P').value, Ph:$('Ph').value,
@@ -976,6 +995,10 @@
     r.onload = (ev)=>{
       try{
         const data = JSON.parse(ev.target.result);
+        if (data.vz && data.vz !== 'vz34'){
+          alert('Tento JSON je pre iny vzor: ' + data.vz);
+          return;
+        }
         applyLoadedState(data);
       }catch(err){
         alert('Neplatny JSON.');

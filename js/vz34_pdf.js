@@ -580,6 +580,7 @@
   });
 function collectStateForSave(){
     return {
+      vz: 'vz34',
       inputs: {
         W:$('W').value, L:$('L').value, G:$('G').value, K:$('K').value,
         P:$('P').value, Ph:$('Ph').value,
@@ -661,7 +662,7 @@ function collectStateForSave(){
     if(!file) return;
     const r = new FileReader();
     r.onload = (ev)=>{
-      try{ const data = JSON.parse(ev.target.result); applyLoadedState(data); }
+      try{ const data = JSON.parse(ev.target.result); if (data.vz && data.vz !== 'vz34'){ alert('Tento JSON je pre iny vzor: ' + data.vz); return; } applyLoadedState(data); }
       catch(err){ alert('Neplatny JSON.'); }
     };
     r.readAsText(file);

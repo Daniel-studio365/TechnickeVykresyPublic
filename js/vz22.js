@@ -624,6 +624,7 @@
 
   function collectStateForSave(){
     return {
+      vz: 'vz22',
       inputs: {
         W:$('W').value, L:$('L').value, G:$('G').value, K:$('K').value,
         BagWidth:$('BagWidth').value,
@@ -731,6 +732,10 @@
     r.onload = (ev)=>{
       try{
         const data = JSON.parse(ev.target.result);
+        if (data.vz && data.vz !== 'vz22'){
+          alert('Tento JSON je pre iny vzor: ' + data.vz);
+          return;
+        }
         applyLoadedState(data);
       }catch(err){
         alert('NeplatnĂ˝ JSON.');

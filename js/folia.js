@@ -11,6 +11,10 @@ const state = {
   rollCode:'1',
   rollType:'std',
   rollEnabled:true,
+  rollPrintEnabled:false,
+  rollAssemblyEnabled:false,
+  printOps:1,
+  printSide:'bottom',
   rollVariant:'A',
   photoW:15,
   photoH:7,
@@ -196,14 +200,74 @@ function draw(){
   state.units = $('units')?.value || 'none';
   state.decimals = parseInt($('decimals')?.value,10) || 0;
   const dimPos = $('dimPos')?.value || 'bottom';
+  const dimPosEff = (state.rollPrintEnabled || state.rollAssemblyEnabled) ? 'top' : dimPos;
   const dimOffsetVal = Math.max(0, num($('dimOffset'), 80));
   const dimPosH = $('dimPosH')?.value || 'right';
   const dimOffsetH = Math.max(0, num($('dimOffsetH'), 25));
   state.rollEnabled = !!$('rollEnabled')?.checked;
+  state.rollPrintEnabled = !!$('rollPrint')?.checked;
+  state.rollAssemblyEnabled = !!$('rollAssembly')?.checked;
+  state.printOps = parseInt($('printOps')?.value,10) || 1;
+  state.printSide = document.querySelector('input[name="printSide"]:checked')?.value || 'bottom';
   state.rollCode = $('rollType')?.value || '1';
   state.rollVariant = $('rollVariant')?.value || 'A';
   state.photoW = num($('photoW'),15);
   state.photoH = num($('photoH'),7);
+  // vypocet efektivneho navinu podla tlace/montaze
+  const finalCode = state.rollCode;
+  const finalVariant = state.rollVariant;
+  const printMap = {
+    '1A':{code:'2',variant:'A'}, '1B':{code:'2',variant:'C'}, '1C':{code:'2',variant:'B'}, '1D':{code:'2',variant:'D'}, '1E':{code:'2',variant:'E'},
+    '2A':{code:'1',variant:'A'}, '2B':{code:'1',variant:'C'}, '2C':{code:'1',variant:'B'}, '2D':{code:'1',variant:'D'}, '2E':{code:'1',variant:'E'},
+    '3A':{code:'4',variant:'A'}, '3B':{code:'4',variant:'C'}, '3C':{code:'4',variant:'B'}, '3D':{code:'4',variant:'D'}, '3E':{code:'4',variant:'D'},
+    '4A':{code:'3',variant:'A'}, '4B':{code:'3',variant:'C'}, '4C':{code:'3',variant:'B'}, '4D':{code:'3',variant:'D'}, '4E':{code:'4',variant:'E'},
+    '5A':{code:'6',variant:'A'}, '5B':{code:'6',variant:'C'}, '5C':{code:'6',variant:'B'}, '5D':{code:'6',variant:'D'}, '5E':{code:'6',variant:'E'},
+    '6A':{code:'5',variant:'A'}, '6B':{code:'6',variant:'C'}, '6C':{code:'5',variant:'B'}, '6D':{code:'5',variant:'D'}, '6E':{code:'5',variant:'E'},
+    '7A':{code:'8',variant:'A'}, '7B':{code:'7',variant:'C'}, '7C':{code:'8',variant:'B'}, '7D':{code:'8',variant:'D'}, '7E':{code:'8',variant:'E'},
+    '8A':{code:'7',variant:'A'}, '8B':{code:'7',variant:'C'}, '8C':{code:'7',variant:'B'}, '8D':{code:'7',variant:'D'}, '8E':{code:'7',variant:'E'}
+  };
+  let effectiveCode = finalCode;
+  let effectiveVariant = finalVariant;
+  let navinMode = 'finalny';
+  if(state.rollPrintEnabled){
+    navinMode = 'tlac';
+    const isEven = (state.printOps % 2) === 0;
+    if(!isEven){
+      const mapped = printMap[`${finalCode}${finalVariant}`];
+      if(mapped){
+        effectiveCode = mapped.code;
+        effectiveVariant = mapped.variant;
+      }
+    }
+    $('rollPrintInfo').textContent = `${effectiveCode}${effectiveVariant}`;
+    $('rollAssemblyInfo').textContent = '';
+  } else if(state.rollAssemblyEnabled){
+    navinMode = 'montaz';
+    const isEven = (state.printOps % 2) === 0;
+    if(!isEven){
+      const mapped = printMap[`${finalCode}${finalVariant}`];
+      if(mapped){
+        effectiveCode = mapped.code;
+        effectiveVariant = mapped.variant;
+      }
+    }
+    const sideLetter = state.printSide === 'top' ? 'V' : 'S';
+    $('rollAssemblyInfo').textContent = `${sideLetter}${effectiveCode}`;
+    $('rollPrintInfo').textContent = '';
+  } else {
+    $('rollPrintInfo').textContent = '';
+    $('rollAssemblyInfo').textContent = '';
+  }
+  const rollTypeEffective = (['1','2','5','6'].includes(effectiveCode) ? 'std' : 'alt');
+  const rollCodeDraw = effectiveCode;
+  const rollVariantDraw = effectiveVariant;
+  const rollTypeDraw = rollTypeEffective;
+  let navinLabelText = `Navin: ${rollCodeDraw}${rollVariantDraw} (${navinMode})`;
+  if(navinMode==='montaz'){
+    const info = $('rollAssemblyInfo')?.textContent || '';
+    navinLabelText = `Navin: ${info} (montaz)`;
+  }
+  const mirrorABC = (navinMode==='montaz' && state.printSide==='bottom');
   state.rollType = (['1','2','5','6'].includes(state.rollCode) ? 'std' : 'alt');
   state.bgOpacity = clamp(num($('bgOpacity'), 0.6),0,1);
   $('bgOpacityVal').textContent = `${Math.round(state.bgOpacity*100)} %`;
@@ -275,7 +339,7 @@ function draw(){
 
   // koty sirky
   const segOffset = Number.isFinite(baseDimOffset) ? baseDimOffset : 25;
-  const segY = dimPos === 'top' ? yTop - segOffset : yBottom + segOffset;
+  const segY = dimPosEff === 'top' ? yTop - segOffset : yBottom + segOffset;
   let cursor = offsetX;
   parts.forEach((len, idx)=>{
     const next = cursor + len;
@@ -285,7 +349,7 @@ function draw(){
     }
     cursor = next;
   });
-  hDim(offsetX, segY + (dimPos==='top' ? -20 : 20), offsetX+L, L, 10, '#0f172a', 1.1, null, true, contentGroup);
+  hDim(offsetX, segY + (dimPosEff==='top' ? -20 : 20), offsetX+L, L, 10, '#0f172a', 1.1, null, true, contentGroup);
 
   // koty vysky
   const segOffsetH = dimOffsetH || Math.max(50, Math.round(state.fontPx*3.2));
@@ -303,38 +367,42 @@ function draw(){
 
   let rollBounds = null;
   // navin (preberene z predchadzajucej verzie)
-  if(state.rollEnabled){
+  const rollActive = state.rollEnabled || state.rollPrintEnabled || state.rollAssemblyEnabled;
+  const mirrorPrint = (navinMode==='tlac');
+  const mirrorMontage = (navinMode==='montaz');
+  if(rollActive){
     ensureDefs();
     const rollR = Math.max(40, (W/10));
     const innerR = rollR/2;
     const baseYRoll = yTop - 20 - rollR;
-    const yRoll = state.rollType === 'alt' ? baseYRoll - 65 : baseYRoll;
+    const yRoll = rollTypeDraw === 'alt' ? baseYRoll - 65 : baseYRoll;
+    const navParent = create('g',{class:'roll'}, contentGroup);
 
-    if(state.rollType === 'alt'){
+    if(rollTypeDraw === 'alt'){
       const leftCx = offsetX + rollR;
       const rightCx = offsetX + L;
-      create('circle',{cx:leftCx, cy:yRoll, r:rollR, fill:'none', stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
+      create('circle',{cx:leftCx, cy:yRoll, r:rollR, fill:'none', stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
       const topRightY = yRoll - rollR;
       const bottomRightY = yRoll + rollR;
       const rightHalfPath = `M ${rightCx} ${topRightY} A ${rollR} ${rollR} 0 0 1 ${rightCx} ${bottomRightY}`;
-      create('path',{d:rightHalfPath, fill:'none', stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
-      create('circle',{cx:leftCx, cy:yRoll, r:innerR, fill:'none', stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
+      create('path',{d:rightHalfPath, fill:'none', stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
+      create('circle',{cx:leftCx, cy:yRoll, r:innerR, fill:'none', stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
       const topY = yRoll - rollR;
       const bottomY = yRoll + rollR;
-      create('line',{x1:leftCx,y1:topY,x2:rightCx,y2:topY,stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
-      create('line',{x1:leftCx,y1:bottomY,x2:rightCx,y2:bottomY,stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
+      create('line',{x1:leftCx,y1:topY,x2:rightCx,y2:topY,stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
+      create('line',{x1:leftCx,y1:bottomY,x2:rightCx,y2:bottomY,stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
       const leftLinkX = leftCx - rollR;
       const leftLinkY = yRoll;
       const leftCornerY = yTop - 5;
-      create('line',{x1:leftLinkX,y1:leftLinkY,x2:offsetX,y2:leftCornerY,stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
+      create('line',{x1:leftLinkX,y1:leftLinkY,x2:offsetX,y2:leftCornerY,stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
       const rightCornerX = offsetX + L;
       const rightCornerY = yTop - 5;
-      create('line',{x1:rightCornerX,y1:rightCornerY,x2:rightCx,y2:bottomY,stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
-      create('line',{x1:offsetX,y1:leftCornerY,x2:rightCornerX,y2:rightCornerY,stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
+      create('line',{x1:rightCornerX,y1:rightCornerY,x2:rightCx,y2:bottomY,stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
+      create('line',{x1:offsetX,y1:leftCornerY,x2:rightCornerX,y2:rightCornerY,stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
       const arrowX = offsetX + L/2;
       const arrowEndY = leftCornerY - 5;
       const arrowStartY = arrowEndY - rollR;
-      create('line',{x1:arrowX,y1:arrowStartY,x2:arrowX,y2:arrowEndY,stroke:'#0f172a','stroke-width':state.strokeWidth,'marker-end':'url(#arrow-roll)'}, contentGroup);
+      create('line',{x1:arrowX,y1:arrowStartY,x2:arrowX,y2:arrowEndY,stroke:'#0f172a','stroke-width':state.strokeWidth,'marker-end':'url(#arrow-roll)'}, navParent);
       rollBounds = {
         minX: leftCx - rollR,
         maxX: rightCx + rollR,
@@ -343,12 +411,12 @@ function draw(){
       };
     } else {
       const leftCx = offsetX - rollR;
-      create('circle',{cx:leftCx, cy:yRoll, r:rollR, fill:'none', stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
-      create('circle',{cx:leftCx, cy:yRoll, r:innerR, fill:'none', stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
+      create('circle',{cx:leftCx, cy:yRoll, r:rollR, fill:'none', stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
+      create('circle',{cx:leftCx, cy:yRoll, r:innerR, fill:'none', stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
       const leftTouchX = leftCx + rollR;
       const leftCornerX = offsetX;
       const leftCornerY = yTop - 5;
-      create('line',{x1:leftTouchX,y1:yRoll,x2:leftCornerX,y2:leftCornerY,stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
+      create('line',{x1:leftTouchX,y1:yRoll,x2:leftCornerX,y2:leftCornerY,stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
 
       const rightCornerX = offsetX + L;
       const rightCornerY = yTop - 5;
@@ -356,14 +424,14 @@ function draw(){
       const arcStartY = yRoll - rollR;
       const arcEndX = rightCornerX;
       const arcEndY = yRoll;
-      create('line',{x1:leftCx,y1:yRoll-rollR,x2:arcStartX,y2:arcStartY,stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
+      create('line',{x1:leftCx,y1:yRoll-rollR,x2:arcStartX,y2:arcStartY,stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
       const arcPath = `M ${arcStartX} ${arcStartY} A ${rollR} ${rollR} 0 0 1 ${arcEndX} ${arcEndY}`;
-      create('path',{d:arcPath, fill:'none', stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
+      create('path',{d:arcPath, fill:'none', stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
       const lowerEndY = rightCornerY;
-      create('line',{x1:arcEndX,y1:arcEndY,x2:rightCornerX,y2:lowerEndY,stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
-      create('line',{x1:leftCornerX,y1:leftCornerY,x2:rightCornerX,y2:rightCornerY,stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
+      create('line',{x1:arcEndX,y1:arcEndY,x2:rightCornerX,y2:lowerEndY,stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
+      create('line',{x1:leftCornerX,y1:leftCornerY,x2:rightCornerX,y2:rightCornerY,stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
       const leftBottomY = yRoll + rollR;
-      create('line',{x1:leftCx,y1:leftBottomY,x2:leftCornerX,y2:leftBottomY,stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
+      create('line',{x1:leftCx,y1:leftBottomY,x2:leftCornerX,y2:leftBottomY,stroke:'#0f172a','stroke-width':state.strokeWidth}, navParent);
       const arrowX = (leftCornerX + rightCornerX) / 2;
       const arrowStartX = arrowX - rollR;
       const arrowStartY = yRoll - rollR;
@@ -371,7 +439,7 @@ function draw(){
       const arrowMidY = yRoll;
       const arrowBottomY = yRoll + rollR;
       const arrowPath = `M ${arrowStartX} ${arrowStartY} A ${rollR} ${rollR} 0 0 1 ${arrowMidX} ${arrowMidY} L ${arrowMidX} ${arrowBottomY}`;
-      create('path',{d:arrowPath, fill:'none', stroke:'#0f172a','stroke-width':state.strokeWidth,'marker-end':'url(#arrow-roll)'}, contentGroup);
+      create('path',{d:arrowPath, fill:'none', stroke:'#0f172a','stroke-width':state.strokeWidth,'marker-end':'url(#arrow-roll)'}, navParent);
 
       rollBounds = {
         minX: Math.min(leftCx - rollR, arcStartX - rollR),
@@ -393,7 +461,7 @@ function draw(){
       '7': {y: yTop - 45, dx: 25, rot: 90},
       '8': {y: yTop - 45, dx: -25, rot: -90}
     };
-    const labelCfg = rollLabelConfig[state.rollCode];
+    const labelCfg = rollLabelConfig[rollCodeDraw];
     if(labelCfg){
       const lx = labelX + (labelCfg.dx || 0);
       const ly = labelCfg.y;
@@ -401,43 +469,82 @@ function draw(){
         anchor:'middle',
         baseline:'middle',
         color:'#0f172a',
-        parent:contentGroup,
+        parent:navParent,
         fontSize: 40,
         fontWeight:'700',
         boxWidth:70,
         boxHeight:30
       });
-      if(labelCfg.rot){
-        g.setAttribute('transform', `rotate(${labelCfg.rot} ${lx} ${ly})`);
+      const tParts = [];
+      // mirror musi byt aplikovany po rotacii (poradie transformov je sprava dolava)
+      if(mirrorABC){
+        tParts.push(`translate(${2*lx} 0) scale(-1 1)`);
       }
+      if(labelCfg.rot){
+        tParts.push(`rotate(${labelCfg.rot} ${lx} ${ly})`);
+      }
+      if(tParts.length) g.setAttribute('transform', tParts.join(' '));
     }
 
     // varianty fotoznakov v navine
-    if(['A','B','C','E'].includes(state.rollVariant)){
+    if(['A','B','C','E'].includes(rollVariantDraw)){
       const markW = Math.max(1, Number.isFinite(state.photoW) ? state.photoW : 15);
       const markH = Math.max(1, Number.isFinite(state.photoH) ? state.photoH : 7);
       const topY = yTop - 5 - markH;
-      const drawMark = (x)=> create('rect',{x, y:topY, width:markW, height:markH, fill:'#000'}, contentGroup);
-      if(state.rollVariant==='A' || state.rollVariant==='B'){
+      const drawMark = (x)=> create('rect',{x, y:topY, width:markW, height:markH, fill:'#000'}, navParent);
+      if(rollVariantDraw==='A' || rollVariantDraw==='B'){
         drawMark(offsetX);
       }
-      if(state.rollVariant==='A' || state.rollVariant==='C'){
+      if(rollVariantDraw==='A' || rollVariantDraw==='C'){
         drawMark(offsetX + L - markW);
       }
-      if(state.rollVariant==='E'){
+      if(rollVariantDraw==='E'){
         const centerX = offsetX + L/2;
-        if(['1','2','3','4'].includes(state.rollCode)){
+        if(['1','2','3','4'].includes(rollCodeDraw)){
           drawMark(centerX + markW/2 + 5);
         }else{
           let posX = centerX;
-          if(state.rollCode==='5') posX = centerX - 25;
-          else if(state.rollCode==='6') posX = centerX + 25;
-          else if(state.rollCode==='7') posX = centerX - 25;
-          else if(state.rollCode==='8') posX = centerX + 25;
+          if(rollCodeDraw==='5') posX = centerX - 25;
+          else if(rollCodeDraw==='6') posX = centerX + 25;
+          else if(rollCodeDraw==='7') posX = centerX - 25;
+          else if(rollCodeDraw==='8') posX = centerX + 25;
           drawMark(posX - markW/2);
         }
       }
     }
+
+    // rollBounds: ak nie je nastavene, pokryje navin
+    if(!rollBounds){
+      const bb = navParent.getBBox();
+      rollBounds = {minX:bb.x, maxX:bb.x+bb.width, minY:bb.y, maxY:bb.y+bb.height};
+    }
+
+    if(mirrorPrint || mirrorMontage){
+      // otocime okolo stredu vlastneho bboxu, potom posunieme o dx/dy podla typu
+      const bb = navParent.getBBox();
+      const cx = bb.x + bb.width/2;
+      const cy = bb.y + bb.height/2;
+      navParent.setAttribute('transform', `rotate(180 ${cx} ${cy})`);
+      const bbRot = navParent.getBBox();
+      const dx = (['1','2','5','6'].includes(rollCodeDraw) ? rollR*2 : -rollR);
+      const dy = (yBottom + 5) - bbRot.y;
+      navParent.setAttribute('transform', `translate(${dx} ${dy}) rotate(180 ${cx} ${cy})`);
+      const bb2 = navParent.getBBox();
+      rollBounds = {minX:bb2.x, maxX:bb2.x+bb2.width, minY:bb2.y, maxY:bb2.y+bb2.height};
+    }
+  }
+
+  // popis pouziteho navinu
+  // hlavicka nad platnom: dva obdlzniky a text navinu v prvom, dynamicky podla navin bounds
+  if(rollBounds){
+    const headerH = 32;
+    const headerW = 220;
+    const margin = 10;
+    const headerY = rollBounds.minY - headerH - margin;
+    const headerGroup = create('g',{class:'header-ui'}, svgRoot);
+    create('rect',{x:0,y:headerY,width:headerW,height:headerH,fill:'#f8fafc',stroke:'#cbd5e1','stroke-width':1}, headerGroup);
+    create('rect',{x:headerW+8,y:headerY,width:headerW,height:headerH,fill:'#f8fafc',stroke:'#cbd5e1','stroke-width':1}, headerGroup);
+    textWithBg(navinLabelText, 10, headerY + headerH/2, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#dc2626', fontWeight:'700', fontSize:20});
   }
 
   // merania
@@ -470,7 +577,8 @@ function reset(){
   $('W').value=400; $('L').value=600; $('fontPx').value=14; $('fontPxVal').textContent='14 px'; $('toggle-grid').checked=false; $('lineStyle').value='solid';
   $('strokeWidth').value=1; $('dimPos').value='bottom'; $('dimOffset').value=25; $('dimPosH').value='right'; $('dimOffsetH').value=25; $('lineStyleH').value='solid';
   $('units').value='mm'; $('decimals').value='0';
-  $('rollEnabled').checked=true; $('rollType').value='1'; $('rollVariant').value='A';
+  $('rollEnabled').checked=true; $('rollPrint').checked=false; $('rollAssembly').checked=false; $('rollType').value='1'; $('rollVariant').value='A';
+  $('printOps').value='1'; $('printSideBottom').checked=true;
   $('photoW').value = 15; $('photoH').value = 7;
   $('exportOrient').value='portrait';
   $('bgFile').value=''; state.bgImageData=null; $('bgWidth').value=''; $('bgHeight').value=''; state.bgWidth=null; state.bgHeight=null; state.bgOpacity=0.6; $('bgOpacity').value=0.6; $('bgOpacityVal').textContent='60 %'; state.bgRot=0; state.bgFlip=false; state.bgOffsetX=0; state.bgOffsetY=0;
@@ -492,6 +600,8 @@ function exportPDF(){
   clone.setAttribute('viewBox', `${bb.x} ${bb.y} ${bb.width} ${bb.height}`);
   clone.setAttribute('width', `${width}mm`);
   clone.setAttribute('height', `${height}mm`);
+  // odstranit hlavicku UI
+  clone.querySelectorAll('.header-ui').forEach(n=> n.remove());
   const svgMarkup = new XMLSerializer().serializeToString(clone);
   const html = `<!doctype html>
 <html>
@@ -581,6 +691,10 @@ function collectState(){
     units:state.units,
     decimals:state.decimals,
     rollEnabled:state.rollEnabled,
+    rollPrintEnabled:state.rollPrintEnabled,
+    rollAssemblyEnabled:state.rollAssemblyEnabled,
+    printOps: state.printOps,
+    printSide: state.printSide,
     rollType:state.rollCode,
     rollVariant:state.rollVariant,
     photoW: state.photoW,
@@ -625,8 +739,13 @@ function loadData(data){
   $('units').value = data.units ?? 'mm';
   $('decimals').value = data.decimals ?? 0;
   $('rollEnabled').checked = !!data.rollEnabled;
+  $('rollPrint').checked = !!data.rollPrintEnabled;
+  $('rollAssembly').checked = !!data.rollAssemblyEnabled;
   $('rollType').value = data.rollType ?? '1';
   $('rollVariant').value = data.rollVariant ?? 'A';
+  $('printOps').value = data.printOps ?? 1;
+  const side = data.printSide ?? 'bottom';
+  if(side==='top'){ $('printSideTop').checked = true; } else { $('printSideBottom').checked = true; }
   $('photoW').value = data.photoW ?? 15;
   $('photoH').value = data.photoH ?? 7;
   state.photoW = num($('photoW'),15);
@@ -652,12 +771,38 @@ function loadData(data){
   draw();
 }
 
+function syncRollChecks(changedId){
+  const boxes = [
+    {id:'rollEnabled', key:'rollEnabled'},
+    {id:'rollPrint', key:'rollPrintEnabled'},
+    {id:'rollAssembly', key:'rollAssemblyEnabled'}
+  ];
+  const changed = $(changedId);
+  if(!changed) return;
+  if(changed.checked){
+    boxes.forEach(b=>{
+      if(b.id !== changedId){
+        const el = $(b.id);
+        if(el) el.checked = false;
+      }
+    });
+  }
+  state.rollEnabled = !!$('rollEnabled')?.checked;
+  state.rollPrintEnabled = !!$('rollPrint')?.checked;
+  state.rollAssemblyEnabled = !!$('rollAssembly')?.checked;
+  draw();
+}
+
 function handleLoadFile(file){
   if(!file) return;
   const r = new FileReader();
   r.onload = (ev)=>{
     try{
       const data = JSON.parse(ev.target.result);
+      if (data.vz && data.vz !== 'folia'){
+        alert('Tento JSON je pre iny vzor: ' + data.vz);
+        return;
+      }
       loadData(data);
     }catch(_){ }
   };
@@ -751,6 +896,11 @@ $('seg-add')?.addEventListener('click', ()=> addSegmentInput(''));
 $('seg-remove')?.addEventListener('click', removeSegmentInput);
 $('segH-add')?.addEventListener('click', ()=> addSegmentInputH(''));
 $('segH-remove')?.addEventListener('click', removeSegmentInputH);
+$('printOps')?.addEventListener('change', draw);
+document.querySelectorAll('input[name="printSide"]').forEach(el=> el.addEventListener('change', draw));
+$('rollEnabled')?.addEventListener('change', ()=> syncRollChecks('rollEnabled'));
+$('rollPrint')?.addEventListener('change', ()=> syncRollChecks('rollPrint'));
+$('rollAssembly')?.addEventListener('change', ()=> syncRollChecks('rollAssembly'));
 
 $('bgFile')?.addEventListener('change', (e)=>{
   const file = e.target.files && e.target.files[0];

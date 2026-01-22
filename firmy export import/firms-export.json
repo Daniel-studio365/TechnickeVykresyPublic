@@ -1,257 +1,89 @@
 [
   {
-    "firmId": "epicom-sp",
-    "firmName": "EPICOM SP",
-    "vz": "vz31",
-    "typ": "default",
-    "notes": [
-      "Plastove spony 150 ks/blok"
-    ],
-    "dimensions": {
-      "W": null,
-      "L": null,
-      "G": null,
-      "K": null,
-      "Cpitch": null,
-      "AxisInK": null
-    },
-    "clip": {
-      "count": 6,
-      "offsetX": null,
-      "offsetY": null,
-      "packageCount": 150,
-      "type": "plast"
-    },
-    "air": {
-      "count": null,
-      "diameter": null,
-      "offsetFromEdge": null,
-      "pitch": null
-    },
-    "clipImages": []
-  },
-  {
-    "firmId": "epicom-sp",
-    "firmName": "EPICOM SP",
+    "firmId": "Dano",
+    "firmName": "Dano34",
     "vz": "vz34",
-    "typ": "default",
-    "notes": [
-      "Plastove spony 150 ks/blok"
-    ],
-    "dimensions": {
-      "W": null,
-      "L": null,
-      "G": null,
-      "K": null,
-      "Cpitch": null,
-      "AxisInK": null
-    },
-    "clip": {
-      "count": 6,
-      "offsetX": null,
-      "offsetY": null,
-      "packageCount": 150,
-      "type": "plast"
-    },
-    "air": {
-      "count": null,
-      "diameter": null,
-      "offsetFromEdge": null,
-      "pitch": null
-    },
-    "clipImages": []
-  },
-  {
-    "firmId": "shp",
-    "firmName": "SHP",
-    "vz": "vz31",
-    "typ": "default",
+    "typ": "AbC",
     "notes": [],
-    "dimensions": {
-      "W": null,
-      "L": null,
-      "G": null,
-      "K": null,
-      "Cpitch": null,
-      "AxisInK": null
-    },
-    "clip": {
-      "count": null,
-      "offsetX": null,
-      "offsetY": null,
-      "packageCount": null,
-      "type": null
-    },
-    "air": {
-      "count": null,
-      "diameter": null,
-      "offsetFromEdge": null,
-      "pitch": null
-    },
-    "clipImages": []
-  },
-  {
-    "firmId": "metsa",
-    "firmName": "METSA",
-    "vz": "vz31",
-    "typ": "default",
-    "notes": [],
-    "dimensions": {
-      "W": null,
-      "L": null,
-      "G": null,
-      "K": null,
-      "Cpitch": null,
-      "AxisInK": null
-    },
-    "clip": {
-      "count": null,
-      "offsetX": null,
-      "offsetY": null,
-      "packageCount": null,
-      "type": null
-    },
-    "air": {
-      "count": null,
-      "diameter": null,
-      "offsetFromEdge": null,
-      "pitch": null
-    },
-    "clipImages": []
-  },
-  {
-    "firmId": "metsa",
-    "firmName": "METSA",
-    "vz": "vz34",
-    "typ": "default",
-    "notes": [],
-    "dimensions": {
-      "W": null,
-      "L": null,
-      "G": null,
-      "K": null,
-      "Cpitch": null,
-      "AxisInK": null
-    },
-    "clip": {
-      "count": null,
-      "offsetX": null,
-      "offsetY": null,
-      "packageCount": null,
-      "type": null
-    },
-    "air": {
-      "count": null,
-      "diameter": null,
-      "offsetFromEdge": null,
-      "pitch": null
-    },
-    "clipImages": []
-  },
-  {
-    "firmId": "velvet",
-    "firmName": "VELVET",
-    "vz": "vz31",
-    "typ": "default",
-    "notes": [],
-    "dimensions": {
-      "W": null,
-      "L": null,
-      "G": null,
-      "K": null,
-      "Cpitch": null,
-      "AxisInK": null
-    },
-    "clip": {
-      "count": null,
-      "offsetX": null,
-      "offsetY": null,
-      "packageCount": null,
-      "type": null
-    },
-    "air": {
-      "count": null,
-      "diameter": null,
-      "offsetFromEdge": null,
-      "pitch": null
-    },
-    "clipImages": []
-  },
-  {
-    "firmId": "velvet",
-    "firmName": "VELVET",
-    "vz": "vz34",
-    "typ": "default",
-    "notes": [],
-    "dimensions": {
-      "W": null,
-      "L": null,
-      "G": null,
-      "K": null,
-      "Cpitch": null,
-      "AxisInK": null
-    },
-    "clip": {
-      "count": null,
-      "offsetX": null,
-      "offsetY": null,
-      "packageCount": null,
-      "type": null
-    },
-    "air": {
-      "count": null,
-      "diameter": null,
-      "offsetFromEdge": null,
-      "pitch": null
-    },
-    "clipImages": []
-  },
-  {
-    "firmId": "metsa031(6)",
-    "firmName": "METSA TISSUE SLOVAKIA",
-    "vz": "vz31",
-    "typ": "A",
-    "notes": [],
+    "techNotes": [],
     "dimensions": {
       "W": null,
       "L": null,
       "G": 50,
       "K": 45,
-      "Cpitch": 160,
-      "AxisInK": 20
+      "notchLen": 7.7,
+      "Cpitch": 180,
+      "AxisInK": null
     },
     "clip": {
-      "count": 150,
+      "count": null,
       "offsetX": null,
       "offsetY": null,
       "packageCount": null,
-      "type": null
+      "type": "plast"
     },
     "air": {
       "count": 3,
-      "diameter": 1,
+      "diameter": 3,
       "offsetFromEdge": 30,
-      "pitch": 120
+      "pitch": 125
     },
     "clipImages": [
-      "zhora"
+      "zdola"
     ]
   },
   {
-    "firmId": "123",
-    "firmName": "DanielNagy",
+    "firmId": "testovacia1",
+    "firmName": "danova",
     "vz": "vz31",
-    "typ": "123",
+    "typ": "abc",
     "notes": [
-      "nieviem, kde to presne tieto poznamky prenesie"
+      "tu by sa mohli písať nejaké poznámky, ktoré nie sú v ostatných poznámkach."
     ],
+    "techNotes": [
+      "presny rozmer vrecka. POZOR!"
+    ],
+    "dimensions": {
+      "W": 320,
+      "L": 459,
+      "G": 50,
+      "K": 45,
+      "notchLen": 6.5,
+      "Cpitch": 180,
+      "AxisInK": 22
+    },
+    "clip": {
+      "count": 150,
+      "offsetX": null,
+      "offsetY": null,
+      "packageCount": null,
+      "type": "plastove klasicke"
+    },
+    "air": {
+      "count": 3,
+      "diameter": 3,
+      "offsetFromEdge": 30,
+      "pitch": 125
+    },
+    "clipImages": [
+      "zdola"
+    ]
+  },
+  {
+    "firmId": "kimberly",
+    "firmName": "kimberly clark",
+    "vz": "vz22",
+    "typ": "č. čpec. 27320 š173",
+    "notes": [],
+    "techNotes": [],
     "dimensions": {
       "W": null,
       "L": null,
-      "G": 50,
-      "K": 45,
-      "Cpitch": 160,
-      "AxisInK": 22.5
+      "G": null,
+      "K": null,
+      "notchLen": 6.5,
+      "Cpitch": null,
+      "AxisInK": null
     },
     "clip": {
       "count": 150,
@@ -261,10 +93,10 @@
       "type": null
     },
     "air": {
-      "count": 3,
-      "diameter": 1,
-      "offsetFromEdge": 30,
-      "pitch": 120
+      "count": null,
+      "diameter": 4,
+      "offsetFromEdge": 15,
+      "pitch": null
     },
     "clipImages": [
       "zhora"

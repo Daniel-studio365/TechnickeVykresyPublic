@@ -75,10 +75,35 @@
       </div>
 
       <span class="sep"></span>
+      <div class="section-title">Tlac</div>
+      <label>Pocet operacii:
+        <select id="printOps">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+        </select>
+      </label>
+      <div class="row" style="gap:12px;margin:4px 0 8px 0;">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="radio" name="printSide" value="bottom" id="printSideBottom" checked>
+          <span>Spodna</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="radio" name="printSide" value="top" id="printSideTop">
+          <span>Vrchna</span>
+        </label>
+      </div>
+
+      <span class="sep"></span>
       <div style="display:grid; gap:8px;">
-        <div class="section-title">Navin folie</div>
-        <label><input type="checkbox" id="rollEnabled" checked> Zobrazit navin</label>
-        <label>Typ navinu:
+        <div class="section-title">Zobrazit navin</div>
+        <label><input type="checkbox" id="rollEnabled" checked> Finalny navin</label>
+        <label><input type="checkbox" id="rollPrint"> Navin pri tlaci</label>
+        <label><input type="checkbox" id="rollAssembly"> Navin pri montazi</label>
+        <label>Finalny navin:
           <select id="rollType" style="width:130px;">
             <option value="1" selected>1</option>
             <option value="2">2</option>
@@ -99,6 +124,8 @@
             <option value="E">E</option>
           </select>
         </label>
+        <label style="font-weight:700; font-size:15px;">Navin pri tlaci: <span id="rollPrintInfo" style="font-weight:700; font-size:15px;"></span></label>
+        <label style="font-weight:700; font-size:15px;">Navin pri montazi: <span id="rollAssemblyInfo" style="font-weight:700; font-size:15px;"></span></label>
         <div class="section-title">Rozmer fotoznaku</div>
         <div class="row" style="gap:6px;flex-wrap:wrap;">
           <label style="flex:1;">Sirka (mm): <input type="number" id="photoW" value="15" min="1"></label>
