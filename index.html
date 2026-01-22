@@ -184,5 +184,21 @@
   </section>
 
   <script src="js/index.js"></script>
+  <script>
+    (function(){
+      var pass = 'test123';
+      var ok = false;
+      try{ ok = sessionStorage.getItem('auth_ok') === '1'; }catch(_){}
+      if(!ok){
+        var input = prompt('Zadaj heslo:');
+        if(input === pass){
+          try{ sessionStorage.setItem('auth_ok','1'); }catch(_){}
+        } else {
+          alert('Nespravne heslo.');
+          document.body.innerHTML = '';
+        }
+      }
+    })();
+  </script>
 </body>
 </html>
