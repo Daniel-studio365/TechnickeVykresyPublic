@@ -40,3 +40,19 @@ svg{display:block;width:auto;height:auto;}
 .bottom-box{border:1px dashed #cbd5e1;border-radius:8px;min-height:200px;max-height:240px;display:flex;align-items:center;justify-content:center;background:#f8fafc;padding:8px;overflow:hidden;}
 #bottomImgPreview{max-height:240px;display:none;object-fit:contain;width:100%;height:auto;}
 .bottom-textarea{width:100%;height:140px;border:none;resize:vertical;background:transparent;font-size:13px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sans";outline:none;}
+
+/* Force visible scrollbars (work/managed browsers may hide overlay scrollbars) */
+.svg-wrap {
+  scrollbar-gutter: stable both-edges;
+}
+.svg-wrap::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+}
+.svg-wrap::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.35);
+  border-radius: 8px;
+}
+.svg-wrap::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.08);
+}

@@ -81,3 +81,19 @@ svg{display:block;width:auto;height:auto;}
   #top-panels{grid-template-columns:1fr;}
   #bottom-notes{grid-template-columns:1fr;}
 }
+
+/* Force visible scrollbars (work/managed browsers may hide overlay scrollbars) */
+.svg-wrap {
+  scrollbar-gutter: stable both-edges;
+}
+.svg-wrap::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+}
+.svg-wrap::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.35);
+  border-radius: 8px;
+}
+.svg-wrap::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.08);
+}
