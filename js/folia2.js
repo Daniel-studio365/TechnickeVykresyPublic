@@ -172,20 +172,21 @@ function vDim(x,y1,y2,val,ext=10,color='#0f172a', fontScale=1, textOffset=null, 
   state.fontPx = original;
 }
 
-function drawMeasurements(){
+function drawMeasurements(parent){
+  const tgt = parent || svgRoot;
   for(const m of state.measures){
     if(m.type==='h'){
-      hDim(m.x1, m.y1, m.x2, Math.abs(m.x2-m.x1), 8, '#16a34a', 0.95, null, true);
+      hDim(m.x1, m.y1, m.x2, Math.abs(m.x2-m.x1), 8, '#16a34a', 0.95, null, true, tgt);
     }else if(m.type==='v'){
-      vDim(m.x1, m.y1, m.y2, Math.abs(m.y2-m.y1), 8, '#16a34a', 0.95, null, true);
+      vDim(m.x1, m.y1, m.y2, Math.abs(m.y2-m.y1), 8, '#16a34a', 0.95, null, true, tgt);
     }
   }
   if(state.measurePreview){
     const m = state.measurePreview;
     if(m.type==='h'){
-      hDim(m.x1, m.y1, m.x2, Math.abs(m.x2-m.x1), 8, '#22c55e', 0.95, null, true);
+      hDim(m.x1, m.y1, m.x2, Math.abs(m.x2-m.x1), 8, '#22c55e', 0.95, null, true, tgt);
     }else if(m.type==='v'){
-      vDim(m.x1, m.y1, m.y2, Math.abs(m.y2-m.y1), 8, '#22c55e', 0.95, null, true);
+      vDim(m.x1, m.y1, m.y2, Math.abs(m.y2-m.y1), 8, '#22c55e', 0.95, null, true, tgt);
     }
   }
 }
@@ -201,7 +202,7 @@ function draw(){
   state.units = $('units')?.value || 'none';
   state.decimals = parseInt($('decimals')?.value,10) || 0;
   const dimPos = $('dimPos')?.value || 'bottom';
-  const dimPosEff = (state.rollPrintEnabled || state.rollAssemblyEnabled) ? 'top' : dimPos;
+  let dimPosEff = (state.rollPrintEnabled || state.rollAssemblyEnabled) ? 'top' : dimPos;
   const dimOffsetVal = Math.max(0, num($('dimOffset'), 80));
   const dimPosH = $('dimPosH')?.value || 'right';
   const dimOffsetH = Math.max(0, num($('dimOffsetH'), 25));
@@ -232,6 +233,10 @@ function draw(){
   let effectiveVariant = finalVariant;
   let navinMode = 'finalny';
   const opsEffective = state.printOps + (state.lacquerNext ? 1 : 0);
+  const rotatePrint = (state.rollPrintEnabled && (opsEffective % 2 === 0));
+  if (rotatePrint) {
+    dimPosEff = (dimPosEff === 'top') ? 'bottom' : 'top';
+  }
   if(state.rollPrintEnabled){
     navinMode = 'tlac';
     const isEven = (opsEffective % 2) === 0;
@@ -288,7 +293,9 @@ function draw(){
   const yTop=offsetY, yBottom=offsetY+W;
 
   clearSvg();
-  const contentGroup = create('g',{class:'content-bbox'});
+  const allGroup = create('g',{class:'content-bbox'});
+  const contentGroup = create('g',{class:'content-core'}, allGroup);
+  const rollGroup = create('g',{class:'roll-group'}, allGroup);
 
   if($('toggle-grid')?.checked){
     const gridPad = 200;
@@ -385,7 +392,7 @@ function draw(){
     const innerR = rollR/2;
     const baseYRoll = yTop - 20 - rollR;
     const yRoll = rollTypeDraw === 'alt' ? baseYRoll - 65 : baseYRoll;
-    const navParent = create('g',{class:'roll'}, contentGroup);
+    const navParent = create('g',{class:'roll'}, rollGroup);
 
     if(rollTypeDraw === 'alt'){
       const leftCx = offsetX + rollR;
@@ -554,15 +561,26 @@ function draw(){
     create('rect',{x:0,y:headerY,width:headerW,height:headerH,fill:'#f8fafc',stroke:'#cbd5e1','stroke-width':1}, headerGroup);
     create('rect',{x:headerW+8,y:headerY,width:headerW,height:headerH,fill:'#f8fafc',stroke:'#cbd5e1','stroke-width':1}, headerGroup);
     textWithBg(navinLabelText, 10, headerY + headerH/2, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#dc2626', fontWeight:'700', fontSize:20});
+    const headerNote = (navinMode === 'tlac' && state.printSide === 'bottom') ? 'Pohlad cez foliu' : '';
+    if (headerNote) {
+      textWithBg(headerNote, headerW + 18, headerY + headerH/2, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#0f172a', fontWeight:'700', fontSize:16});
+    }
   }
 
   // merania
-  drawMeasurements();
+  drawMeasurements(contentGroup);
 
   ensureDefs();
 
+  // rotacia celeho vykresu pri navine 1 a duplex (iba tlac)
+  if (rotatePrint) {
+    const cx = offsetX + L / 2;
+    const cy = offsetY + W / 2;
+    contentGroup.setAttribute('transform', `rotate(180 ${cx} ${cy})`);
+  }
+
   // viewBox to content (bez mriezky) pre zachovanie mierky
-  const bb = contentGroup.getBBox();
+  const bb = allGroup.getBBox();
   const pad = 60;
   let minX = Math.floor(bb.x - pad);
   let minY = Math.floor(bb.y - pad);
@@ -585,9 +603,10 @@ function draw(){
 function reset(){
   $('W').value=400; $('L').value=600; $('fontPx').value=14; $('fontPxVal').textContent='14 px'; $('toggle-grid').checked=false; $('lineStyle').value='solid';
   $('strokeWidth').value=1; $('dimPos').value='bottom'; $('dimOffset').value=25; $('dimPosH').value='right'; $('dimOffsetH').value=25; $('lineStyleH').value='solid';
-  $('units').value='mm'; $('decimals').value='0';
+  $('units').value='none'; $('decimals').value='0';
   $('rollEnabled').checked=true; $('rollPrint').checked=false; $('rollAssembly').checked=false; $('rollType').value='1'; $('rollVariant').value='A';
   $('printOps').value='1'; $('printSideBottom').checked=true;
+  $('strokeWidth').value='0.8';
   if ($('lacquerNo')) $('lacquerNo').checked = true;
   $('photoW').value = 15; $('photoH').value = 7;
   $('exportOrient').value='portrait';

@@ -533,6 +533,10 @@
         window.location.href = toUrl('folia.html');
         return;
       }
+      if (selected === 'folia2') {
+        window.location.href = toUrl('folia2.html');
+        return;
+      }
       if (vz === 'vz31') {
         window.location.href = toUrl('vz31.html');
       } else if (vz === 'vz34') {
