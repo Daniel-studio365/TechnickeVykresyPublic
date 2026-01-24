@@ -1,4 +1,3 @@
-
 [
   {
     "firmId": "Dano",
@@ -97,6 +96,43 @@
       "count": null,
       "diameter": 4,
       "offsetFromEdge": 15,
+      "pitch": null
+    },
+    "clipImages": [
+      "zhora"
+    ]
+  },
+  {
+    "firmId": "123",
+    "firmName": "testovanieFunkcnosti",
+    "vz": "vz22",
+    "typ": "1",
+    "notes": [
+      "testovanie ulozenia firmy"
+    ],
+    "techNotes": [
+      "testovanie"
+    ],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": null,
+      "K": null,
+      "notchLen": 7,
+      "Cpitch": 160,
+      "AxisInK": null
+    },
+    "clip": {
+      "count": null,
+      "offsetX": null,
+      "offsetY": null,
+      "packageCount": null,
+      "type": null
+    },
+    "air": {
+      "count": null,
+      "diameter": null,
+      "offsetFromEdge": null,
       "pitch": null
     },
     "clipImages": [

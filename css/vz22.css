@@ -30,8 +30,11 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sa
 #right-notes .field label{font-weight:600;}
 #right-notes input[type=text]{padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;}
 #right-notes .note{color:#dc2626;font-weight:700;}
-#canvas-wrap{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;min-height:0;}
-#svgHolder{min-height:600px;height:100%;overflow:auto;position:relative;}
+#canvas-wrap{background:#fff;border:1px solid var(--border);border-radius:12px;overflow: hidden;min-height: 0;  display: flex;
+  flex-direction: column;
+}
+#svgHolder{min-height: 100%;height: 100%;overflow: scroll;position:relative;  padding-bottom: 12px;\n  padding-right: 12px;\n  box-sizing: border-box;\n  flex: 1 1 auto;
+}
 svg{display:block;width:auto;height:auto;}
 .hint{position:absolute;right:12px;bottom:12px;background:rgba(15,23,42,.85);color:#fff;padding:8px 10px;border-radius:10px;font-size:12px;}
 #bottom-notes{display:grid;grid-template-columns:1fr 0.8fr 0.8fr;gap:8px;align-items:start;}
@@ -41,10 +44,6 @@ svg{display:block;width:auto;height:auto;}
 #bottomImgPreview{max-height:240px;display:none;object-fit:contain;width:100%;height:auto;}
 .bottom-textarea{width:100%;height:140px;border:none;resize:vertical;background:transparent;font-size:13px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sans";outline:none;}
 
-/* Force visible scrollbars (work/managed browsers may hide overlay scrollbars) */
-.svg-wrap {
-  scrollbar-gutter: stable both-edges;
-}
 .svg-wrap::-webkit-scrollbar {
   height: 12px;
   width: 12px;
@@ -56,3 +55,21 @@ svg{display:block;width:auto;height:auto;}
 .svg-wrap::-webkit-scrollbar-track {
   background: rgba(0,0,0,0.08);
 }
+
+
+/* Force visible scrollbars (work/managed browsers may hide overlay scrollbars) */
+#svgHolder {
+  scrollbar-gutter: stable both-edges;
+  padding-bottom: 12px;\n  padding-right: 12px;\n  box-sizing: border-box;\n}
+#svgHolder::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+}
+#svgHolder::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.35);
+  border-radius: 8px;
+}
+#svgHolder::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.08);
+}
+

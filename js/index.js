@@ -9,8 +9,6 @@
   const btnViewFirm = document.getElementById('btnViewFirm');
   const btnExport = document.getElementById('btnExportFirms');
   const btnExportModal = document.getElementById('btnExportFirmsModal');
-  const btnImport = document.getElementById('btnImportFirms');
-  const importFile = document.getElementById('importFile');
   const btnGo = document.getElementById('btnGo');
   const firmPreview = document.getElementById('firmPreview');
   const firmPreviewMeta = document.getElementById('firmPreviewMeta');
@@ -444,29 +442,6 @@
       }
     });
   }
-  if (btnImport && importFile) {
-    btnImport.addEventListener('click', () => importFile.click());
-    importFile.addEventListener('change', async (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
-      try {
-        const text = await file.text();
-        const parsed = JSON.parse(text);
-        if (Array.isArray(parsed)) {
-          state.custom = mergeFirms([...state.custom, ...parsed]);
-          saveCustom();
-          rebuild();
-        } else {
-          alert('Subor neobsahuje pole JSON.');
-        }
-      } catch (err) {
-        alert('Import zlyhal: ' + err);
-      } finally {
-        importFile.value = '';
-      }
-    });
-  }
-
   if (btnClosePanel) btnClosePanel.addEventListener('click', closePanel);
   if (btnCancelPanel) btnCancelPanel.addEventListener('click', closePanel);
   firmModal.addEventListener('click', (e) => {
@@ -580,7 +555,7 @@
         alert('Vyber firmu na upravu, potom ju mozes zmazat.');
         return;
       }
-       const ok = window.confirm('Chces zmazat ulozenu firmu?');
+      const ok = window.confirm('Chces zmazat ulozenu firmu?');
       if (!ok) return;
       const before = state.custom.length;
       state.custom = state.custom.filter(f => firmKey(f) !== editingKey);
@@ -595,6 +570,8 @@
       closePanel();
     });
   }
-
-  init();
+init();
 })();
+
+
+
