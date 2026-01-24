@@ -1,116 +1,106 @@
+
 [
   {
-    "firmId": "epicom-sp",
-    "firmName": "EPICOM SP",
-    "vz": "vz31",
-    "zyp": "default",
-    "notes": [
-      "Plastove spony 150 ks/blok",
-      "Z rez musi byt prevedeny do konca chlopne"
-    ],
-    "assets": [],
-    "dimensions": { "W": null, "L": null, "G": null, "K": null, "Cpitch": null, "AxisInK": null },
-    "clip": { "count": 6, "offsetX": null, "offsetY": null, "pitch": null, "packageCount": 150, "type": "plast", "easyOpen": false, "notes": [] },
-    "cut": { "fromCutWidth": 6, "fromNonCutWidth": 9, "toFlapEnd": true },
-    "air": { "count": 6, "diameter": 3, "offsetFromEdge": 30, "offsetY": null, "pitch": null, "notes": [ "nezasiahnut EAN kod" ] },
-    "perforation": { "shape": null, "side": null, "offset": null, "halfLen": null },
-    "fingerHole": { "diameter": null, "posX": null, "posY": null },
-    "warnings": []
-  },
-  {
-    "firmId": "epicom-sp",
-    "firmName": "EPICOM SP",
+    "firmId": "Dano",
+    "firmName": "Dano34",
     "vz": "vz34",
-    "zyp": "default",
+    "typ": "AbC",
+    "notes": [],
+    "techNotes": [],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": 50,
+      "K": 45,
+      "notchLen": 7.7,
+      "Cpitch": 180,
+      "AxisInK": null
+    },
+    "clip": {
+      "count": null,
+      "offsetX": null,
+      "offsetY": null,
+      "packageCount": null,
+      "type": "plast"
+    },
+    "air": {
+      "count": 3,
+      "diameter": 3,
+      "offsetFromEdge": 30,
+      "pitch": 125
+    },
+    "clipImages": [
+      "zdola"
+    ]
+  },
+  {
+    "firmId": "testovacia1",
+    "firmName": "danova",
+    "vz": "vz31",
+    "typ": "abc",
     "notes": [
-      "Plastove spony 150 ks/blok",
-      "Z rez musi byt prevedeny do konca chlopne"
+      "tu by sa mohli písať nejaké poznámky, ktoré nie sú v ostatných poznámkach."
     ],
-    "assets": [],
-    "dimensions": { "W": null, "L": null, "G": null, "K": null, "Cpitch": null, "AxisInK": null },
-    "clip": { "count": 6, "offsetX": null, "offsetY": null, "pitch": null, "packageCount": 150, "type": "plast", "easyOpen": false, "notes": [] },
-    "cut": { "fromCutWidth": 6, "fromNonCutWidth": 9, "toFlapEnd": true },
-    "air": { "count": 6, "diameter": 3, "offsetFromEdge": 30, "offsetY": null, "pitch": null, "notes": [ "nezasiahnut EAN kod" ] },
-    "perforation": { "shape": null, "side": null, "offset": null, "halfLen": null },
-    "fingerHole": { "diameter": null, "posX": null, "posY": null },
-    "warnings": []
-  },
-  {
-    "firmId": "shp",
-    "firmName": "SHP",
-    "vz": "vz31",
-    "zyp": "default",
-    "notes": [
-      "Plastove spony 150 ks/blok",
-      "Z rez musi byt prevedeny do konca chlopne"
+    "techNotes": [
+      "presny rozmer vrecka. POZOR!"
     ],
-    "assets": [],
-    "dimensions": { "W": null, "L": null, "G": null, "K": null, "Cpitch": null, "AxisInK": null },
-    "clip": { "count": 6, "offsetX": null, "offsetY": null, "pitch": null, "packageCount": 150, "type": "plast", "easyOpen": false, "notes": [] },
-    "cut": { "fromCutWidth": 6, "fromNonCutWidth": 9, "toFlapEnd": true },
-    "air": { "count": 6, "diameter": 3, "offsetFromEdge": 30, "offsetY": null, "pitch": null, "notes": [] },
-    "perforation": { "shape": null, "side": null, "offset": null, "halfLen": null },
-    "fingerHole": { "diameter": null, "posX": null, "posY": null },
-    "warnings": []
+    "dimensions": {
+      "W": 320,
+      "L": 459,
+      "G": 50,
+      "K": 45,
+      "notchLen": 6.5,
+      "Cpitch": 180,
+      "AxisInK": 22
+    },
+    "clip": {
+      "count": 150,
+      "offsetX": null,
+      "offsetY": null,
+      "packageCount": null,
+      "type": "plastove klasicke"
+    },
+    "air": {
+      "count": 3,
+      "diameter": 3,
+      "offsetFromEdge": 30,
+      "pitch": 125
+    },
+    "clipImages": [
+      "zdola"
+    ]
   },
   {
-    "firmId": "metsa",
-    "firmName": "METSA",
-    "vz": "vz31",
-    "zyp": "default",
+    "firmId": "kimberly",
+    "firmName": "kimberly clark",
+    "vz": "vz22",
+    "typ": "č. čpec. 27320 š173",
     "notes": [],
-    "assets": [],
-    "dimensions": { "W": null, "L": null, "G": null, "K": null, "Cpitch": null, "AxisInK": null },
-    "clip": { "count": 6, "offsetX": null, "offsetY": null, "pitch": null, "packageCount": null, "type": "plast", "easyOpen": false, "notes": [] },
-    "cut": { "fromCutWidth": null, "fromNonCutWidth": null, "toFlapEnd": null },
-    "air": { "count": null, "diameter": null, "offsetFromEdge": null, "offsetY": null, "pitch": null, "notes": [] },
-    "perforation": { "shape": null, "side": null, "offset": null, "halfLen": null },
-    "fingerHole": { "diameter": null, "posX": null, "posY": null },
-    "warnings": []
-  },
-  {
-    "firmId": "metsa",
-    "firmName": "METSA",
-    "vz": "vz34",
-    "zyp": "default",
-    "notes": [],
-    "assets": [],
-    "dimensions": { "W": null, "L": null, "G": null, "K": null, "Cpitch": null, "AxisInK": null },
-    "clip": { "count": 6, "offsetX": null, "offsetY": null, "pitch": null, "packageCount": null, "type": "plast", "easyOpen": false, "notes": [] },
-    "cut": { "fromCutWidth": null, "fromNonCutWidth": null, "toFlapEnd": null },
-    "air": { "count": null, "diameter": null, "offsetFromEdge": null, "offsetY": null, "pitch": null, "notes": [] },
-    "perforation": { "shape": null, "side": null, "offset": null, "halfLen": null },
-    "fingerHole": { "diameter": null, "posX": null, "posY": null },
-    "warnings": []
-  },
-  {
-    "firmId": "velvet",
-    "firmName": "VELVET",
-    "vz": "vz31",
-    "zyp": "default",
-    "notes": [],
-    "assets": [],
-    "dimensions": { "W": null, "L": null, "G": null, "K": null, "Cpitch": null, "AxisInK": null },
-    "clip": { "count": 6, "offsetX": null, "offsetY": null, "pitch": null, "packageCount": null, "type": "plast", "easyOpen": false, "notes": [] },
-    "cut": { "fromCutWidth": null, "fromNonCutWidth": null, "toFlapEnd": null },
-    "air": { "count": null, "diameter": null, "offsetFromEdge": null, "offsetY": null, "pitch": null, "notes": [] },
-    "perforation": { "shape": null, "side": null, "offset": null, "halfLen": null },
-    "fingerHole": { "diameter": null, "posX": null, "posY": null },
-    "warnings": []
-  },
-  {
-    "firmId": "velvet",
-    "firmName": "VELVET",
-    "vz": "vz34",
-    "zyp": "default",
-    "notes": [],
-    "assets": [],
-    "dimensions": { "W": null, "L": null, "G": null, "K": null, "Cpitch": null, "AxisInK": null },
-    "clip": { "count": 6, "offsetX": null, "offsetY": null, "pitch": null, "packageCount": null, "type": "plast", "easyOpen": false, "notes": [] },
-    "cut": { "fromCutWidth": null, "fromNonCutWidth": null, "toFlapEnd": null },
-    "air": { "count": null, "diameter": null, "offsetFromEdge": null, "offsetY": null, "pitch": null, "notes": [] },
-    "perforation": { "shape": null, "side": null, "offset": null, "halfLen": null },
-    "fingerHole": { "diameter": null, "posX": null, "posY": null },
-    "warnings": []
+    "techNotes": [],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": null,
+      "K": null,
+      "notchLen": 6.5,
+      "Cpitch": null,
+      "AxisInK": null
+    },
+    "clip": {
+      "count": 150,
+      "offsetX": null,
+      "offsetY": null,
+      "packageCount": null,
+      "type": null
+    },
+    "air": {
+      "count": null,
+      "diameter": 4,
+      "offsetFromEdge": 15,
+      "pitch": null
+    },
+    "clipImages": [
+      "zhora"
+    ]
   }
 ]
