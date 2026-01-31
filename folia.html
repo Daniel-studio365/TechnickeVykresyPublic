@@ -10,13 +10,13 @@
   <div id="app">
     <aside id="controls">
       <label>Hrubka ciary:
-        <input type="number" id="strokeWidth" value="1" step="0.2" min="0.2" max="5">
+        <input type="number" id="strokeWidth" value="0.8" step="0.2" min="0.2" max="5">
       </label>
       <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:4px;">
         <label style="flex:1;">Jednotky:
           <select id="units">
-            <option value="none">Ziadne</option>
-            <option value="mm" selected>mm</option>
+            <option value="none" selected>Ziadne</option>
+            <option value="mm">mm</option>
           </select>
         </label>
         <label style="flex:1;">Desatinne miesta:
@@ -109,7 +109,7 @@
 
       <span class="sep"></span>
       <div style="display:grid; gap:8px;">
-        <div class="section-title">Zobrazit navin</div>
+      <div class="section-title">Zobrazit navin</div>
         <label><input type="checkbox" id="rollEnabled" checked> Finalny navin</label>
         <label><input type="checkbox" id="rollPrint"> Navin pri tlaci</label>
         <label><input type="checkbox" id="rollAssembly"> Navin pri montazi</label>
@@ -141,6 +141,9 @@
           <label style="flex:1;">Sirka (mm): <input type="number" id="photoW" value="15" min="1"></label>
           <label style="flex:1;">Vyska (mm): <input type="number" id="photoH" value="7" min="1"></label>
         </div>
+        <label>Poznamka pod vykres:
+          <input type="text" id="photoNote" placeholder="text pod vykres" maxlength="10">
+        </label>
       </div>
       <span class="sep"></span>
         <label>Velkost textu:
@@ -205,6 +208,10 @@
     </aside>
 
     <section id="canvas-wrap">
+      <div id="canvas-inputs">
+        <input type="text" id="orderNo" maxlength="15" placeholder="cislo zakazky">
+        <input type="text" id="orderNote" maxlength="50" placeholder="poznamka">
+      </div>
       <div id="svgHolder">
         <svg id="svgRoot" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" aria-label="nahlad"></svg>
       </div>
