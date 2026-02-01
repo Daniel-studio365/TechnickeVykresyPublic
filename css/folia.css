@@ -12,7 +12,10 @@ body{margin:0;font-family:"Roboto","Noto Sans",system-ui,-apple-system,Segoe UI,
 #controls button.btn-compact{padding:6px 10px;font-size:12px;}
 #controls .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 #controls .sep{height:1px;background:var(--border);margin:10px 0;}
-#canvas-wrap{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;min-height:0;display:flex;}
+#canvas-wrap{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;min-height:0;display:flex;position:relative;}
+#canvas-inputs{position:absolute;top:8px;left:8px;display:flex;gap:8px;z-index:5;}
+#canvas-inputs input{width:140px;padding:4px 6px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;}
+#canvas-inputs #orderNote{width:360px;}
 #svgHolder{flex:1;min-height:600px;}
 svg{display:block;width:100%;height:100%;}
 .photo-title{font-weight:700;font-size:13px;letter-spacing:0.04em;}

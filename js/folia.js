@@ -19,6 +19,9 @@ const state = {
   rollVariant:'A',
   photoW:15,
   photoH:7,
+  photoNote:'',
+  orderNo:'',
+  orderNote:'',
   bgImageData:null,
   bgOpacity:0.6,
   bgWidth:null,
@@ -38,7 +41,7 @@ const state = {
 const inputs = [
   'W','L','fontPx','toggle-grid','lineStyle','lineStyleH','strokeWidth',
   'dimPos','dimOffset','dimPosH','dimOffsetH','units','decimals',
-  'rollEnabled','rollType','rollVariant','photoW','photoH','exportOrient','bgWidth','bgHeight','bgOpacity','measureMode'
+'rollEnabled','rollType','rollVariant','photoW','photoH','photoNote','orderNo','orderNote','exportOrient','bgWidth','bgHeight','bgOpacity','measureMode'
 ].map(id=>$(id));
 
 function num(el, fallback=0){ const v=parseFloat(el?.value); return Number.isFinite(v)?v:fallback; }
@@ -172,20 +175,21 @@ function vDim(x,y1,y2,val,ext=10,color='#0f172a', fontScale=1, textOffset=null, 
   state.fontPx = original;
 }
 
-function drawMeasurements(){
+function drawMeasurements(parent){
+  const tgt = parent || svgRoot;
   for(const m of state.measures){
     if(m.type==='h'){
-      hDim(m.x1, m.y1, m.x2, Math.abs(m.x2-m.x1), 8, '#16a34a', 0.95, null, true);
+      hDim(m.x1, m.y1, m.x2, Math.abs(m.x2-m.x1), 8, '#16a34a', 0.95, null, true, tgt);
     }else if(m.type==='v'){
-      vDim(m.x1, m.y1, m.y2, Math.abs(m.y2-m.y1), 8, '#16a34a', 0.95, null, true);
+      vDim(m.x1, m.y1, m.y2, Math.abs(m.y2-m.y1), 8, '#16a34a', 0.95, null, true, tgt);
     }
   }
   if(state.measurePreview){
     const m = state.measurePreview;
     if(m.type==='h'){
-      hDim(m.x1, m.y1, m.x2, Math.abs(m.x2-m.x1), 8, '#22c55e', 0.95, null, true);
+      hDim(m.x1, m.y1, m.x2, Math.abs(m.x2-m.x1), 8, '#22c55e', 0.95, null, true, tgt);
     }else if(m.type==='v'){
-      vDim(m.x1, m.y1, m.y2, Math.abs(m.y2-m.y1), 8, '#22c55e', 0.95, null, true);
+      vDim(m.x1, m.y1, m.y2, Math.abs(m.y2-m.y1), 8, '#22c55e', 0.95, null, true, tgt);
     }
   }
 }
@@ -201,7 +205,7 @@ function draw(){
   state.units = $('units')?.value || 'none';
   state.decimals = parseInt($('decimals')?.value,10) || 0;
   const dimPos = $('dimPos')?.value || 'bottom';
-  const dimPosEff = (state.rollPrintEnabled || state.rollAssemblyEnabled) ? 'top' : dimPos;
+  let dimPosEff = (state.rollPrintEnabled || state.rollAssemblyEnabled) ? 'top' : dimPos;
   const dimOffsetVal = Math.max(0, num($('dimOffset'), 80));
   const dimPosH = $('dimPosH')?.value || 'right';
   const dimOffsetH = Math.max(0, num($('dimOffsetH'), 25));
@@ -209,12 +213,15 @@ function draw(){
   state.rollPrintEnabled = !!$('rollPrint')?.checked;
   state.rollAssemblyEnabled = !!$('rollAssembly')?.checked;
   state.printOps = parseInt($('printOps')?.value,10) || 1;
-  state.lacquerNext = document.querySelector('input[name="lacquerStep"]:checked')?.value === 'yes';
+    state.lacquerNext = document.querySelector('input[name="lacquerStep"]:checked')?.value === 'yes';
   state.printSide = document.querySelector('input[name="printSide"]:checked')?.value || 'bottom';
   state.rollCode = $('rollType')?.value || '1';
   state.rollVariant = $('rollVariant')?.value || 'A';
   state.photoW = num($('photoW'),15);
   state.photoH = num($('photoH'),7);
+  state.photoNote = $('photoNote')?.value || '';
+  state.orderNo = $('orderNo')?.value || '';
+  state.orderNote = $('orderNote')?.value || '';
   // vypocet efektivneho navinu podla tlace/montaze
   const finalCode = state.rollCode;
   const finalVariant = state.rollVariant;
@@ -232,6 +239,10 @@ function draw(){
   let effectiveVariant = finalVariant;
   let navinMode = 'finalny';
   const opsEffective = state.printOps + (state.lacquerNext ? 1 : 0);
+  const rotatePrint = (state.rollPrintEnabled && (opsEffective % 2 === 0));
+  if (rotatePrint) {
+    dimPosEff = (dimPosEff === 'top') ? 'bottom' : 'top';
+  }
   if(state.rollPrintEnabled){
     navinMode = 'tlac';
     const isEven = (opsEffective % 2) === 0;
@@ -262,10 +273,18 @@ function draw(){
     $('rollPrintInfo').textContent = '';
     $('rollAssemblyInfo').textContent = '';
   }
-  const rollTypeEffective = (['1','2','5','6'].includes(effectiveCode) ? 'std' : 'alt');
+    const rollTypeEffective = (['1','2','5','6'].includes(effectiveCode) ? 'std' : 'alt');
   const rollCodeDraw = effectiveCode;
   const rollVariantDraw = effectiveVariant;
-  const rollTypeDraw = rollTypeEffective;
+    const rollTypeDraw = rollTypeEffective;
+    const lacquerBadge = $('lacquerBadge');
+    if(lacquerBadge){
+      if(state.lacquerNext){
+        lacquerBadge.style.display = 'block';
+      } else {
+        lacquerBadge.style.display = 'none';
+      }
+    }
   let navinLabelText = `Navin: ${rollCodeDraw}${rollVariantDraw} (${navinMode})`;
   if(navinMode==='tlac'){
     const info = $('rollPrintInfo')?.textContent || '';
@@ -276,7 +295,7 @@ function draw(){
   } else if(navinMode==='finalny'){
     navinLabelText = `Finalny navin: ${rollCodeDraw}${rollVariantDraw}`;
   }
-  const mirrorABC = (navinMode==='montaz' && state.printSide==='bottom');
+  const mirrorABC = (navinMode==='montaz' && state.printSide==='bottom') || (navinMode==='tlac' && state.printSide==='bottom');
   state.rollType = (['1','2','5','6'].includes(state.rollCode) ? 'std' : 'alt');
   state.bgOpacity = clamp(num($('bgOpacity'), 0.6),0,1);
   $('bgOpacityVal').textContent = `${Math.round(state.bgOpacity*100)} %`;
@@ -288,7 +307,9 @@ function draw(){
   const yTop=offsetY, yBottom=offsetY+W;
 
   clearSvg();
-  const contentGroup = create('g',{class:'content-bbox'});
+  const allGroup = create('g',{class:'content-bbox'});
+  const contentGroup = create('g',{class:'content-core'}, allGroup);
+  const rollGroup = create('g',{class:'roll-group'}, allGroup);
 
   if($('toggle-grid')?.checked){
     const gridPad = 200;
@@ -318,6 +339,7 @@ function draw(){
     const transforms = [];
     if(state.bgRot % 360 !== 0){ transforms.push(`rotate(${state.bgRot} ${cx} ${cy})`); }
     if(state.bgFlip){ transforms.push(`translate(${2*cx} 0) scale(-1 1)`); }
+    if(navinMode==='tlac' && state.printSide==='bottom'){ transforms.push(`translate(${2*cx} 0) scale(-1 1)`); }
     const img = create('image',{
       href: state.bgImageData,
       x: offsetX + state.bgOffsetX,
@@ -385,7 +407,7 @@ function draw(){
     const innerR = rollR/2;
     const baseYRoll = yTop - 20 - rollR;
     const yRoll = rollTypeDraw === 'alt' ? baseYRoll - 65 : baseYRoll;
-    const navParent = create('g',{class:'roll'}, contentGroup);
+    const navParent = create('g',{class:'roll'}, rollGroup);
 
     if(rollTypeDraw === 'alt'){
       const leftCx = offsetX + rollR;
@@ -500,7 +522,11 @@ function draw(){
       const markW = Math.max(1, Number.isFinite(state.photoW) ? state.photoW : 15);
       const markH = Math.max(1, Number.isFinite(state.photoH) ? state.photoH : 7);
       const topY = yTop - 5 - markH;
-      const drawMark = (x)=> create('rect',{x, y:topY, width:markW, height:markH, fill:'#000'}, navParent);
+    const mirrorMark = (navinMode === 'tlac' && state.printSide === 'bottom');
+    const drawMark = (x)=> {
+      const mx = mirrorMark ? (2 * (offsetX + L/2) - (x + markW)) : x;
+      create('rect',{x: mx, y:topY, width:markW, height:markH, fill:'#000'}, navParent);
+    };
       if(rollVariantDraw==='A' || rollVariantDraw==='B'){
         drawMark(offsetX);
       }
@@ -545,24 +571,67 @@ function draw(){
 
   // popis pouziteho navinu
   // hlavicka nad platnom: dva obdlzniky a text navinu v prvom, dynamicky podla navin bounds
-  if(rollBounds){
-    const headerH = 32;
-    const headerW = 220;
-    const margin = 10;
-    const headerY = rollBounds.minY - headerH - margin;
-    const headerGroup = create('g',{class:'header-ui'}, svgRoot);
-    create('rect',{x:0,y:headerY,width:headerW,height:headerH,fill:'#f8fafc',stroke:'#cbd5e1','stroke-width':1}, headerGroup);
-    create('rect',{x:headerW+8,y:headerY,width:headerW,height:headerH,fill:'#f8fafc',stroke:'#cbd5e1','stroke-width':1}, headerGroup);
+  // spodny textovy blok (mimo kresliace platno, pod vykresom)
+  const baseBottom = Math.max(offsetY + W, rollBounds ? rollBounds.maxY : 0);
+  const noteY = baseBottom + 120;
+  const photoText = `Rozmer fotobunky: ${state.photoW} x ${state.photoH}`;
+  const noteText = state.photoNote || '';
+  const stamp = new Date().toLocaleString('sk-SK');
+  const footerGroup = create('g',{class:'footer-ui'}, allGroup);
+  textWithBg(photoText, offsetX, noteY, {anchor:'start', baseline:'middle', parent:footerGroup, color:'#0f172a', fontWeight:'700', fontSize:14});
+  textWithBg(noteText, offsetX + 260, noteY, {anchor:'start', baseline:'middle', parent:footerGroup, color:'#0f172a', fontWeight:'400', fontSize:14});
+  textWithBg(stamp, offsetX, noteY + 18, {anchor:'start', baseline:'middle', parent:footerGroup, color:'#64748b', fontWeight:'400', fontSize:12});
+
+  // hlavicka nad vykresom (vlozene do allGroup, aby bola viditelna)
+    if(rollBounds){
+      const headerH = 32;
+      const headerW = 220;
+      const dimOffsetVal = num($('dimOffset'), 25);
+      const topPad = (dimPosEff === 'top') ? (dimOffsetVal + 24) : 24;
+      const aboveDrawingY = yTop - headerH - topPad;
+      const aboveRollY = rollBounds.minY - headerH - 10;
+      const headerY = Math.min(aboveDrawingY, aboveRollY);
+      const headerGroup = create('g',{class:'header-ui'}, allGroup);
+      const titleY = headerY - 18;
+    const orderNoTxt = state.orderNo || '';
+    const orderNoteTxt = state.orderNote || '';
+    if (orderNoTxt || orderNoteTxt) {
+      textWithBg(orderNoTxt, 10, titleY, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#0f172a', fontWeight:'700', fontSize:16});
+      textWithBg(orderNoteTxt, 170, titleY, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#0f172a', fontWeight:'400', fontSize:16});
+    }
+    const sideText = state.printSide === 'top' ? 'vrchna' : 'spodna';
+    const lacquerText = state.lacquerNext ? 'Lak na inom oddeleni (inseter/kasirka)' : '';
+    const lacquerColor = state.lacquerNext ? '#dc2626' : '#0f172a';
     textWithBg(navinLabelText, 10, headerY + headerH/2, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#dc2626', fontWeight:'700', fontSize:20});
+    const headerNote = (navinMode === 'tlac' && state.printSide === 'bottom') ? 'Pohlad cez foliu' : '';
+    if (headerNote) {
+      textWithBg(headerNote, headerW + 18, headerY + headerH/2, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#0f172a', fontWeight:'700', fontSize:16});
+      textWithBg(`Sposob tlace: ${sideText}`, 10, headerY + headerH/2 + 18, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#0f172a', fontWeight:'700', fontSize:16});
+      if(lacquerText){
+        textWithBg(lacquerText, 230, headerY + headerH/2 + 18, {anchor:'start', baseline:'middle', parent:headerGroup, color:lacquerColor, fontWeight:'700', fontSize:16});
+      }
+    } else {
+      textWithBg(`Sposob tlace: ${sideText}`, 10, headerY + headerH/2 + 18, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#0f172a', fontWeight:'700', fontSize:16});
+      if(lacquerText){
+        textWithBg(lacquerText, 230, headerY + headerH/2 + 18, {anchor:'start', baseline:'middle', parent:headerGroup, color:lacquerColor, fontWeight:'700', fontSize:16});
+      }
+    }
   }
 
   // merania
-  drawMeasurements();
+  drawMeasurements(contentGroup);
 
   ensureDefs();
 
+  // rotacia celeho vykresu pri navine 1 a duplex (iba tlac)
+  if (rotatePrint) {
+    const cx = offsetX + L / 2;
+    const cy = offsetY + W / 2;
+    contentGroup.setAttribute('transform', `rotate(180 ${cx} ${cy})`);
+  }
+
   // viewBox to content (bez mriezky) pre zachovanie mierky
-  const bb = contentGroup.getBBox();
+  const bb = allGroup.getBBox();
   const pad = 60;
   let minX = Math.floor(bb.x - pad);
   let minY = Math.floor(bb.y - pad);
@@ -585,11 +654,14 @@ function draw(){
 function reset(){
   $('W').value=400; $('L').value=600; $('fontPx').value=14; $('fontPxVal').textContent='14 px'; $('toggle-grid').checked=false; $('lineStyle').value='solid';
   $('strokeWidth').value=1; $('dimPos').value='bottom'; $('dimOffset').value=25; $('dimPosH').value='right'; $('dimOffsetH').value=25; $('lineStyleH').value='solid';
-  $('units').value='mm'; $('decimals').value='0';
+  $('units').value='none'; $('decimals').value='0';
   $('rollEnabled').checked=true; $('rollPrint').checked=false; $('rollAssembly').checked=false; $('rollType').value='1'; $('rollVariant').value='A';
   $('printOps').value='1'; $('printSideBottom').checked=true;
+  $('strokeWidth').value='0.8';
   if ($('lacquerNo')) $('lacquerNo').checked = true;
-  $('photoW').value = 15; $('photoH').value = 7;
+  $('photoW').value = 15; $('photoH').value = 7; if ($('photoNote')) $('photoNote').value = '';
+  if ($('orderNo')) $('orderNo').value = '';
+  if ($('orderNote')) $('orderNote').value = '';
   $('exportOrient').value='portrait';
   $('bgFile').value=''; state.bgImageData=null; $('bgWidth').value=''; $('bgHeight').value=''; state.bgWidth=null; state.bgHeight=null; state.bgOpacity=0.6; $('bgOpacity').value=0.6; $('bgOpacityVal').textContent='60 %'; state.bgRot=0; state.bgFlip=false; state.bgOffsetX=0; state.bgOffsetY=0;
   $('measureMode').value='off'; state.measureMode='off'; state.measurePick=null; state.measures=[]; state.measurePreview=null;
@@ -601,23 +673,24 @@ function reset(){
 
 function exportPDF(){
   draw();
-  const contentGroup = svgRoot.querySelector('g.content-bbox') || svgRoot;
-  const bb = contentGroup.getBBox();
+  const liveGroup = svgRoot.querySelector('g.content-bbox') || svgRoot;
+  const bb = liveGroup.getBBox();
+  const clone = svgRoot.cloneNode(true);
+  // remove headers/footers for PDF export (keep technical drawing + navin)
+  clone.querySelectorAll('.header-ui, .footer-ui').forEach(n=> n.remove());
   const width = bb.width || state.bounds.width || 800;
   const height = bb.height || state.bounds.height || 800;
+  const baseName = (state.orderNo || 'folia2').trim();
 
-  const clone = svgRoot.cloneNode(true);
   clone.setAttribute('viewBox', `${bb.x} ${bb.y} ${bb.width} ${bb.height}`);
   clone.setAttribute('width', `${width}mm`);
   clone.setAttribute('height', `${height}mm`);
-  // odstranit hlavicku UI
-  clone.querySelectorAll('.header-ui').forEach(n=> n.remove());
   const svgMarkup = new XMLSerializer().serializeToString(clone);
   const html = `<!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>folia PDF</title>
+  <title>${baseName} PDF</title>
   <style>
     @page { size: ${width}mm ${height}mm; margin: 0; }
     body { margin: 0; display:flex; justify-content:center; align-items:center; }
@@ -637,52 +710,117 @@ ${svgMarkup}
 }
 
 function exportPNG(){
-  const vb = svgRoot.viewBox.baseVal;
-  const width = vb.width || state.bounds.width;
-  const height = vb.height || state.bounds.height;
   const orient = $('exportOrient')?.value || 'portrait';
-  const pxW = orient==='portrait' ? 2480 : 3508; // A4 at 300dpi ~ ok
-  const pxH = orient==='portrait' ? 3508 : 2480;
-  const marginPx = 0.05 * Math.min(pxW, pxH);
+  const pxW = orient==='portrait' ? 3508 : 4961; // A3 at 300dpi
+  const pxH = orient==='portrait' ? 4961 : 3508;
+  const marginPx = Math.round(0.04 * Math.min(pxW, pxH));
+
+  const svgFull = svgRoot.cloneNode(true);
+  // remove header boxes, keep only text
+  svgFull.querySelectorAll('.header-ui rect').forEach(n=> n.remove());
+  svgFull.removeAttribute('style');
+  const bbFull = svgRoot.getBBox();
+  svgFull.setAttribute('width', bbFull.width);
+  svgFull.setAttribute('height', bbFull.height);
+  svgFull.setAttribute('viewBox', `${bbFull.x} ${bbFull.y} ${bbFull.width} ${bbFull.height}`);
+  svgFull.setAttribute('preserveAspectRatio','xMidYMid meet');
+
+  const svgDraw = svgRoot.cloneNode(true);
+  svgDraw.querySelectorAll('.header-ui, .footer-ui').forEach(n=> n.remove());
+  svgDraw.querySelectorAll('.header-ui rect').forEach(n=> n.remove());
+  svgDraw.removeAttribute('style');
+  const liveGroup = svgRoot.querySelector('g.content-bbox') || svgRoot;
+  const bbDraw = liveGroup.getBBox();
+  svgDraw.setAttribute('width', bbDraw.width);
+  svgDraw.setAttribute('height', bbDraw.height);
+  svgDraw.setAttribute('viewBox', `${bbDraw.x} ${bbDraw.y} ${bbDraw.width} ${bbDraw.height}`);
+  svgDraw.setAttribute('preserveAspectRatio','xMidYMid meet');
+
+  const headerEl = svgRoot.querySelector('.header-ui');
+  const footerEl = svgRoot.querySelector('.footer-ui');
+  const headerBB = headerEl ? headerEl.getBBox() : null;
+  const footerBB = footerEl ? footerEl.getBBox() : null;
+  const headerH = headerBB ? headerBB.height : 0;
+  const footerH = footerBB ? footerBB.height : 0;
+  const gapPx = 10;
+
   const usableW = pxW - marginPx*2;
   const usableH = pxH - marginPx*2;
-  const bb = svgRoot.getBBox();
-  const bbW = bb.width;
-  const bbH = bb.height;
-  const scale = Math.min(usableW / bbW, usableH / bbH);
-  const drawW = bbW * scale;
-  const drawH = bbH * scale;
-  const offsetX = marginPx + (usableW - drawW) / 2;
-  const offsetY = marginPx + (usableH - drawH) / 2;
+  const scaleW = usableW / bbDraw.width;
+  const scaleH = (usableH - (headerH + footerH) * scaleW - gapPx*2) / bbDraw.height;
+  const scale = Math.min(scaleW, scaleH > 0 ? scaleH : scaleW);
 
-  const svgCopy = svgRoot.cloneNode(true);
-  svgCopy.removeAttribute('style');
-  svgCopy.setAttribute('width', bbW);
-  svgCopy.setAttribute('height', bbH);
-  svgCopy.setAttribute('viewBox', `${bb.x} ${bb.y} ${bbW} ${bbH}`);
-  svgCopy.setAttribute('preserveAspectRatio','xMidYMid meet');
-  const svgMarkup = new XMLSerializer().serializeToString(svgCopy);
-  const svgBlob = new Blob([svgMarkup], {type:'image/svg+xml'});
-  const url = URL.createObjectURL(svgBlob);
-  const img = new Image();
-  img.onload = ()=>{
+  const drawW = bbDraw.width * scale;
+  const drawH = bbDraw.height * scale;
+  const headerPxH = headerH * scale;
+  const footerPxH = footerH * scale;
+  const midAvailH = usableH - headerPxH - footerPxH - gapPx*2;
+  const drawX = marginPx + (usableW - drawW) / 2;
+  const drawY = marginPx + headerPxH + gapPx + Math.max(0, (midAvailH - drawH) / 2);
+
+  const fullMarkup = new XMLSerializer().serializeToString(svgFull);
+  const fullBlob = new Blob([fullMarkup], {type:'image/svg+xml'});
+  const fullUrl = URL.createObjectURL(fullBlob);
+  const fullImg = new Image();
+
+  const drawMarkup = new XMLSerializer().serializeToString(svgDraw);
+  const drawBlob = new Blob([drawMarkup], {type:'image/svg+xml'});
+  const drawUrl = URL.createObjectURL(drawBlob);
+  const drawImg = new Image();
+
+  const baseName = (state.orderNo || 'folia2').trim();
+  let fullReady = false;
+  let drawReady = false;
+  const tryRender = ()=>{
+    if(!fullReady || !drawReady) return;
     const canvas = document.createElement('canvas');
     canvas.width = pxW;
     canvas.height = pxH;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0,0,pxW,pxH);
-    ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+
+    // draw header (pinned to top)
+    if(headerBB){
+      const sx = headerBB.x - bbFull.x;
+      const sy = headerBB.y - bbFull.y;
+      ctx.drawImage(
+        fullImg,
+        sx, sy, headerBB.width, headerBB.height,
+        marginPx, marginPx, headerBB.width * scale, headerBB.height * scale
+      );
+    }
+
+    // draw drawing centered between header/footer
+    ctx.drawImage(drawImg, drawX, drawY, drawW, drawH);
+
+    // draw footer (pinned to bottom)
+    if(footerBB){
+      const sx = footerBB.x - bbFull.x;
+      const sy = footerBB.y - bbFull.y;
+      const fy = pxH - marginPx - footerBB.height * scale;
+      ctx.drawImage(
+        fullImg,
+        sx, sy, footerBB.width, footerBB.height,
+        marginPx, fy, footerBB.width * scale, footerBB.height * scale
+      );
+    }
+
     canvas.toBlob((blob)=>{
       if(!blob) return;
       const link = document.createElement('a');
-      link.download = 'folia.png';
+      link.download = `${baseName}.png`;
       link.href = URL.createObjectURL(blob);
       link.click();
       URL.revokeObjectURL(link.href);
     }, 'image/png');
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(fullUrl);
+    URL.revokeObjectURL(drawUrl);
   };
-  img.src = url;
+
+  fullImg.onload = ()=>{ fullReady = true; tryRender(); };
+  drawImg.onload = ()=>{ drawReady = true; tryRender(); };
+  fullImg.src = fullUrl;
+  drawImg.src = drawUrl;
 }
 
 function collectState(){
@@ -710,6 +848,9 @@ function collectState(){
     rollVariant:state.rollVariant,
     photoW: state.photoW,
     photoH: state.photoH,
+    photoNote: state.photoNote,
+    orderNo: state.orderNo,
+    orderNote: state.orderNote,
     exportOrient:$('exportOrient')?.value || 'portrait',
     bgWidth:$('bgWidth')?.value || '',
     bgHeight:$('bgHeight')?.value || '',
@@ -731,7 +872,8 @@ function saveJSON(){
   const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'folia.json'; a.click();
+  const baseName = (data.orderNo || 'folia2').trim();
+  a.href = url; a.download = `${baseName}.json`; a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -764,8 +906,14 @@ function loadData(data){
   if(side==='top'){ $('printSideTop').checked = true; } else { $('printSideBottom').checked = true; }
   $('photoW').value = data.photoW ?? 15;
   $('photoH').value = data.photoH ?? 7;
+  if ($('photoNote')) $('photoNote').value = data.photoNote ?? '';
+  if ($('orderNo')) $('orderNo').value = data.orderNo ?? '';
+  if ($('orderNote')) $('orderNote').value = data.orderNote ?? '';
   state.photoW = num($('photoW'),15);
   state.photoH = num($('photoH'),7);
+  state.photoNote = $('photoNote')?.value || '';
+  state.orderNo = $('orderNo')?.value || '';
+  state.orderNote = $('orderNote')?.value || '';
   $('exportOrient').value = data.exportOrient ?? 'portrait';
   $('bgWidth').value = data.bgWidth ?? '';
   $('bgHeight').value = data.bgHeight ?? '';
