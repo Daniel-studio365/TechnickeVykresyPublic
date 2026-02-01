@@ -1,0 +1,142 @@
+[
+  {
+    "firmId": "Dano",
+    "firmName": "Dano34",
+    "vz": "vz34",
+    "typ": "AbC",
+    "notes": [],
+    "techNotes": [],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": 50,
+      "K": 45,
+      "notchLen": 7.7,
+      "Cpitch": 180,
+      "AxisInK": null
+    },
+    "clip": {
+      "count": null,
+      "offsetX": null,
+      "offsetY": null,
+      "packageCount": null,
+      "type": "plast"
+    },
+    "air": {
+      "count": 3,
+      "diameter": 3,
+      "offsetFromEdge": 30,
+      "pitch": 125
+    },
+    "clipImages": [
+      "zdola"
+    ]
+  },
+  {
+    "firmId": "testovacia1",
+    "firmName": "danova",
+    "vz": "vz31",
+    "typ": "abc",
+    "notes": [
+      "tu by sa mohli písať nejaké poznámky, ktoré nie sú v ostatných poznámkach."
+    ],
+    "techNotes": [
+      "presny rozmer vrecka. POZOR!"
+    ],
+    "dimensions": {
+      "W": 320,
+      "L": 459,
+      "G": 50,
+      "K": 45,
+      "notchLen": 6.5,
+      "Cpitch": 180,
+      "AxisInK": 22
+    },
+    "clip": {
+      "count": 150,
+      "offsetX": null,
+      "offsetY": null,
+      "packageCount": null,
+      "type": "plastove klasicke"
+    },
+    "air": {
+      "count": 3,
+      "diameter": 3,
+      "offsetFromEdge": 30,
+      "pitch": 125
+    },
+    "clipImages": [
+      "zdola"
+    ]
+  },
+  {
+    "firmId": "kimberly",
+    "firmName": "kimberly clark",
+    "vz": "vz22",
+    "typ": "č. čpec. 27320 š173",
+    "notes": [],
+    "techNotes": [],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": null,
+      "K": null,
+      "notchLen": 6.5,
+      "Cpitch": null,
+      "AxisInK": null
+    },
+    "clip": {
+      "count": 150,
+      "offsetX": null,
+      "offsetY": null,
+      "packageCount": null,
+      "type": null
+    },
+    "air": {
+      "count": null,
+      "diameter": 4,
+      "offsetFromEdge": 15,
+      "pitch": null
+    },
+    "clipImages": [
+      "zhora"
+    ]
+  },
+  {
+    "firmId": "123",
+    "firmName": "testovanieFunkcnosti",
+    "vz": "vz22",
+    "typ": "1",
+    "notes": [
+      "testovanie ulozenia firmy"
+    ],
+    "techNotes": [
+      "testovanie"
+    ],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": null,
+      "K": null,
+      "notchLen": 7,
+      "Cpitch": 160,
+      "AxisInK": null
+    },
+    "clip": {
+      "count": null,
+      "offsetX": null,
+      "offsetY": null,
+      "packageCount": null,
+      "type": null
+    },
+    "air": {
+      "count": null,
+      "diameter": null,
+      "offsetFromEdge": null,
+      "pitch": null
+    },
+    "clipImages": [
+      "zhora"
+    ]
+  }
+]
