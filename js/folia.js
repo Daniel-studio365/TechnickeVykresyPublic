@@ -1,11 +1,12 @@
 ﻿const $ = (id)=>document.getElementById(id);
 const svgRoot = $('svgRoot');
 
-const state = {
-  fontPx:14,
-  bounds:{width:800,height:800},
-  segments:[],
-  segmentsH:[],
+  const state = {
+    fontPx:14,
+    bounds:{width:800,height:800},
+    zoom:1,
+    segments:[],
+    segmentsH:[],
   units:'mm',
   decimals:0,
   rollCode:'1',
@@ -645,7 +646,13 @@ function draw(){
   }
   const width = maxX - minX;
   const height = maxY - minY;
-  svgRoot.setAttribute('viewBox', `${minX} ${minY} ${width} ${height}`);
+    svgRoot.setAttribute('viewBox', `${minX} ${minY} ${width} ${height}`);
+    const zw = width * state.zoom;
+    const zh = height * state.zoom;
+    svgRoot.setAttribute('width', zw);
+    svgRoot.setAttribute('height', zh);
+    svgRoot.style.width = `${zw}px`;
+    svgRoot.style.height = `${zh}px`;
   svgRoot.setAttribute('width', width);
   svgRoot.setAttribute('height', height);
   state.bounds = {width,height};
@@ -1111,8 +1118,26 @@ svgRoot.addEventListener('pointermove',(e)=>{
   state.bgOffsetY = dragStart.oy + dy / scaleY;
   draw();
 });
-svgRoot.addEventListener('pointerup', ()=>{ draggingBg=false; });
-svgRoot.addEventListener('pointercancel', ()=>{ draggingBg=false; });
+  svgRoot.addEventListener('pointerup', ()=>{ draggingBg=false; });
+  svgRoot.addEventListener('pointercancel', ()=>{ draggingBg=false; });
+  const svgHolder = $('svgHolder');
+  const onWheelZoom = (e)=>{
+    e.preventDefault();
+    const factor = Math.exp(-e.deltaY * 0.0015);
+    const newZoom = clamp(state.zoom * factor, 0.25, 6);
+    state.zoom = newZoom;
+    draw();
+  };
+  svgHolder?.addEventListener('wheel', onWheelZoom, {passive:false});
+  svgRoot.addEventListener('wheel', onWheelZoom, {passive:false});
+  const canvasWrap = $('canvas-wrap');
+  canvasWrap?.addEventListener('wheel', onWheelZoom, {passive:false});
+  document.addEventListener('wheel', (e)=>{
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (el && (svgRoot.contains(el) || svgHolder?.contains(el) || canvasWrap?.contains(el))) {
+      onWheelZoom(e);
+    }
+  }, {passive:false});
 
 window.addEventListener('paste',(e)=>{
   const items = Array.from(e.clipboardData?.items||[]);
@@ -1129,3 +1154,5 @@ window.addEventListener('paste',(e)=>{
 addSegmentInput('');
 addSegmentInputH('');
 reset();
+if (window.applyEpsPayload) { window.applyEpsPayload('folia'); }
+draw();
