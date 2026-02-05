@@ -1,11 +1,11 @@
 (() => {
   const firmSelect = document.getElementById('firmSelect');
   const typeSelect = document.getElementById('typeSelect');
+  const vzSelect = document.getElementById('vzSelect');
   const btnAddFirm = document.getElementById('btnAddFirm');
   const btnEditFirm = document.getElementById('btnEditFirm');
   const btnViewFirm = document.getElementById('btnViewFirm');
-  const btnExportSafe = document.getElementById('btnExportFirmsSafe');
-  const btnImportFirms = document.getElementById('btnImportFirms');
+  const btnExport = document.getElementById('btnExportFirms');
   const btnExportModal = document.getElementById('btnExportFirmsModal');
   const btnGo = document.getElementById('btnGo');
   const firmPreview = document.getElementById('firmPreview');
@@ -87,9 +87,8 @@
     }
   ];
 
-  const state = { firms: [], custom: [], deleted: [] };
+  const state = { firms: [], custom: [] };
   const LS_KEY = 'customFirms';
-  const LS_DELETED = 'deletedFirms';
   const LS_VZ = 'index2_vz';
   let baseFirms = [];
   let editingKey = null;
@@ -101,9 +100,10 @@
     const val = (fromParam || fromStorage || 'vz22').replace('vz-', 'vz');
     return val;
   };
-  const currentVz = getVz();
+  let currentVz = getVz();
   if (currentVzLabel) currentVzLabel.textContent = currentVz;
   if (newFirmVz) newFirmVz.value = currentVz;
+  if (vzSelect) vzSelect.value = currentVz;
   try { localStorage.setItem(LS_VZ, currentVz); } catch (_) {}
 
   const firmKey = (f) => `${f.firmId || ''}__${f.vz || ''}__${f.typ || ''}`;
@@ -111,7 +111,7 @@
   const normalizeFirm = (f) => {
     if (!f) return null;
     const typVal = f.typ || f.zyp || 'default';
-    const vzVal = (f.vz || '').replace('vz-', 'vz');
+    const vzVal = (f.vz || '').toLowerCase().replace('vz-', 'vz');
     return {
       firmId: f.firmId,
       firmName: f.firmName || f.name || f.firmId,
@@ -136,27 +136,9 @@
     }
   };
 
-  const loadDeleted = () => {
-    try {
-      const raw = localStorage.getItem(LS_DELETED);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (_) {
-      return [];
-    }
-  };
-
   const saveCustom = () => {
     try {
       localStorage.setItem(LS_KEY, JSON.stringify(state.custom));
-    } catch (_) {
-      /* ignore */
-    }
-  };
-
-  const saveDeleted = () => {
-    try {
-      localStorage.setItem(LS_DELETED, JSON.stringify(state.deleted));
     } catch (_) {
       /* ignore */
     }
@@ -268,9 +250,7 @@
   };
 
   const rebuild = () => {
-    const deletedSet = new Set(state.deleted || []);
-    state.firms = mergeFirms([...(baseFirms || []), ...(state.custom || [])])
-      .filter(f => !deletedSet.has(firmKey(f)));
+    state.firms = mergeFirms([...(baseFirms || []), ...(state.custom || [])]);
     renderFirmOptions();
   };
 
@@ -278,22 +258,26 @@
     const targetKey = replaceKey || firmKey(firm);
     state.custom = (state.custom || []).filter(f => firmKey(f) !== targetKey);
     state.custom.push(firm);
-    if (state.deleted && state.deleted.includes(targetKey)) {
-      state.deleted = state.deleted.filter(k => k !== targetKey);
-      saveDeleted();
-    }
     saveCustom();
     rebuild();
   };
 
   const init = async () => {
     state.custom = loadCustom();
-    state.deleted = loadDeleted();
     baseFirms = await fetchBase();
     rebuild();
   };
 
   firmSelect.addEventListener('change', renderTypeOptions);
+  if (vzSelect) {
+    vzSelect.addEventListener('change', () => {
+      currentVz = vzSelect.value;
+      if (currentVzLabel) currentVzLabel.textContent = currentVz;
+      if (newFirmVz) newFirmVz.value = currentVz;
+      try { localStorage.setItem(LS_VZ, currentVz); } catch (_) {}
+      renderFirmOptions();
+    });
+  }
 
   if (btnAddFirm) btnAddFirm.addEventListener('click', () => {
     editingKey = null;
@@ -441,7 +425,7 @@
     });
   }
 
-  const exportFirmsSafe = () => {
+  const exportFirms = () => {
     const stamp = new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
     const blob = new Blob([JSON.stringify(state.firms, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -452,36 +436,8 @@
     URL.revokeObjectURL(url);
   };
 
-  if (btnExportSafe) {
-    btnExportSafe.addEventListener('click', exportFirmsSafe);
-  }
-  if (btnImportFirms) {
-    btnImportFirms.addEventListener('click', () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'application/json';
-      input.addEventListener('change', (e) => {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-        const r = new FileReader();
-        r.onload = (ev) => {
-          try {
-            const data = JSON.parse(ev.target.result);
-            if (!Array.isArray(data)) {
-              alert('Subor nema ocakavany format (pole firiem).');
-              return;
-            }
-            state.custom = data.map(normalizeFirm).filter(Boolean);
-            saveCustom();
-            rebuild();
-          } catch (_) {
-            alert('Nepodarilo sa nacitat JSON.');
-          }
-        };
-        r.readAsText(file);
-      });
-      input.click();
-    });
+  if (btnExport) {
+    btnExport.addEventListener('click', exportFirms);
   }
 
   if (btnGo) {
@@ -537,8 +493,7 @@
       const before = state.custom.length;
       state.custom = state.custom.filter(f => firmKey(f) !== editingKey);
       if (before === state.custom.length) {
-        state.deleted = Array.from(new Set([...(state.deleted || []), editingKey]));
-        saveDeleted();
+        alert('Zakladnu firmu z firms.json nie je mozne zmazat.');
       } else {
         saveCustom();
       }
