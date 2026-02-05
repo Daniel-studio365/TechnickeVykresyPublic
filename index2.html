@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sprava firiem</title>
+  <link rel="stylesheet" href="css/main.css" />
+</head>
+<body class="entry">
+  <main class="page">
+    <section class="form-card">
+      <div class="brand">
+        <img class="logo-img" src="img/logo.svg" alt="Chemosvit Folie logo" />
+        <div class="brand-copy">
+          <div class="brand-name">Chemosvit Folie</div>
+          <div class="brand-sub">Sprava firiem pre <span id="currentVz">vz</span></div>
+        </div>
+      </div>
+
+      <div class="pairs">
+        <div class="pair">
+          <label for="firmSelect">Firma</label>
+          <select id="firmSelect"></select>
+        </div>
+        <div class="pair">
+          <label for="typeSelect">Typ</label>
+          <select id="typeSelect"></select>
+        </div>
+      </div>
+
+      <div id="firmPreview" class="firm-preview" hidden>
+        <div class="firm-preview-header">
+          <div>
+            <div class="firm-preview-title">Zobrazena firma</div>
+            <div class="firm-preview-sub" id="firmPreviewMeta"></div>
+          </div>
+          <button type="button" class="icon-btn" id="btnClosePreview" aria-label="Zavriet zobrazenie">&times;</button>
+        </div>
+        <div class="firm-preview-body" id="firmPreviewBody"></div>
+      </div>
+
+      <div class="actions">
+        <button id="btnAddFirm" type="button">Pridaj firmu</button>
+        <button id="btnEditFirm" type="button" class="ghost">Opravit firmu</button>
+        <button id="btnViewFirm" type="button" class="ghost">Zobrazit firmu</button>
+        <button id="btnExportFirmsSafe" type="button" class="ghost">Export (datum/cas)</button>
+        <button id="btnImportFirms" type="button" class="ghost">Import firiem</button>
+        <button id="btnGo" type="button" class="primary">Prejst na vybrany vykres</button>
+      </div>
+    </section>
+  </main>
+
+  <section class="firm-modal" id="firmModal" aria-hidden="true" hidden>
+    <div class="firm-modal-backdrop" data-close="modal"></div>
+    <div class="firm-modal-dialog">
+      <div class="panel-header">
+        <div>
+          <div class="modal-title">Nova firma / variant (typ)</div>
+          <div class="modal-sub">Vypln aspon ID, nazov a typ. Ostatne polozky su volitelne.</div>
+        </div>
+        <button type="button" class="icon-btn" id="btnClosePanel" aria-label="Zavriet">&times;</button>
+      </div>
+      <form id="formAddFirm" class="panel-body">
+        <input id="newFirmVz" type="hidden" />
+        <div class="field-grid">
+          <label>
+            <span>ID (slug)</span>
+            <input id="newFirmId" type="text" placeholder="napr. epicom-sp" required />
+          </label>
+          <label>
+            <span>Nazov firmy</span>
+            <input id="newFirmName" type="text" placeholder="EPICOM SP" required />
+          </label>
+          <label>
+            <span>Typ (variant)</span>
+            <input id="newFirmTyp" type="text" placeholder="default alebo a/b/c..." required />
+          </label>
+        </div>
+
+        <div class="field-grid">
+          <label><span>W (sirka)</span><input id="newFirmW" type="number" step="0.1" /></label>
+          <label><span>L (dlzka)</span><input id="newFirmL" type="number" step="0.1" /></label>
+          <label><span>G (spodna zalozka)</span><input id="newFirmG" type="number" step="0.1" /></label>
+          <label><span>K (chlopna)</span><input id="newFirmK" type="number" step="0.1" /></label>
+          <label><span>Dlzka zaseku v K</span><input id="newNotchLen" type="number" step="0.1" /></label>
+        </div>
+
+        <div class="field-grid">
+          <label><span>Pocet vzduchovych otvorov</span><input id="newAirCount" type="number" step="1" /></label>
+          <label><span>Priemer otvorov</span><input id="newAirDiameter" type="number" step="0.1" /></label>
+          <label><span>Vzduch. otvory od okraja</span><input id="newAirOffsetEdge" type="number" step="0.1" /></label>
+          <label><span>Roztec vzduch. otvorov</span><input id="newAirPitch" type="number" step="0.1" /></label>
+        </div>
+
+        <div class="field-grid">
+          <label><span>C-roztec zavesnych otvorov</span><input id="newFirmCpitch" type="number" step="0.1" /></label>
+          <label><span>Os C od vrecka</span><input id="newFirmAxisInK" type="number" step="0.1" /></label>
+          <label><span>Spony pocet</span><input id="newClipCount" type="number" step="1" /></label>
+          <label><span>Spony typ</span><input id="newClipType" type="text" placeholder="plast" /></label>
+        </div>
+
+        <div class="field-grid">
+          <label class="check-row"><input name="clipImage" id="clipImgNone" type="radio" value="" checked /> <span>Bez nakresu</span></label>
+          <label class="check-row"><input name="clipImage" id="clipImgTop" type="radio" value="zhora" /> <span>Nakres spony - zhora</span></label>
+          <label class="check-row"><input name="clipImage" id="clipImgBottom" type="radio" value="zdola" /> <span>Nakres spony - zdola</span></label>
+        </div>
+
+        <div class="field-grid image-preview-row">
+          <div class="img-preview">
+            <div class="img-title">Nahlad zhora</div>
+            <img id="imgPreviewTop" alt="Nakres spony zhora" src="img/zhora.png" onerror="this.style.display='none';" />
+            <div class="muted small">Ak subor chyba, nahlad sa nezobrazi.</div>
+          </div>
+          <div class="img-preview">
+            <div class="img-title">Nahlad zdola</div>
+            <img id="imgPreviewBottom" alt="Nakres spony zdola" src="img/zdola.png" onerror="this.style.display='none';" />
+            <div class="muted small">Ak subor chyba, nahlad sa nezobrazi.</div>
+          </div>
+        </div>
+
+        <label class="block">
+          <span>Poznamky (riadky)</span>
+          <textarea id="newNotes" rows="2" placeholder="napr. Plastove spony 150 ks/blok"></textarea>
+        </label>
+        <label class="block">
+          <span>Poznamky technologa (riadky)</span>
+          <textarea id="newTechNotes" rows="2" placeholder="napr. specialne instrukcie k navinu"></textarea>
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" id="btnCancelPanel">Zrusit</button>
+          <button type="button" id="btnExportFirmsModal">Export firiem</button>
+          <button type="button" id="btnDeleteFirm" class="danger" style="display:none">Zmazat firmu</button>
+          <button type="submit" class="primary">Ulozit firmu</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <script src="js/index2.js"></script>
+</body>
+</html>

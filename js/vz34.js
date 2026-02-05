@@ -1,18 +1,24 @@
-"use strict";
+﻿"use strict";
 (function(){
   const $ = (id)=>document.getElementById(id);
   const svgRoot = $('svgRoot');
   const refPartA = $('refPartA');
   const refPartB = $('refPartB');
+  const refCodeText = $('refCodeText');
   const finalNavinNumber = $('finalNavinNumber');
   const finalNavinLetter = $('finalNavinLetter');
   const rezanieYes = $('rezanie-ano');
   const rezanieNo = $('rezanie-nie');
   const navinTlacText = $('navinTlacText');
+  const finalNavinText = $('finalNavinText');
+  const btnOpenFirmManager = $('btnOpenFirmManager');
   function buildRefLabel(){
     const a = (refPartA && refPartA.value ? refPartA.value.trim() : '') || 'vz-34';
     const b = (refPartB && refPartB.value ? refPartB.value.trim() : '');
     return b ? `${a}/${b}` : a;
+  }
+  function updateRefDisplay(){
+    if (refCodeText) refCodeText.textContent = buildRefLabel();
   }
   function buildRefSlug(){
     return buildRefLabel().replace(/[^a-zA-Z0-9_-]+/g, '-');
@@ -20,6 +26,8 @@
   const stampEl = $('stamp');
   const printSide = $('printSide');
   const lblNavinTlac = $('lblNavinTlac');
+  const printSideText = $('printSideText');
+  const rezanieText = $('rezanieText');
   const vzCodeEl = $('vzCode');
   const bgFile = $('bgFile');
   const bgWidthEl = $('bgWidth');
@@ -30,7 +38,6 @@
   const bgCalibBtn = $('bg-calib');
   const bgCalibCancelBtn = $('bg-calib-cancel');
   const bgRotLeftBtn = $('bg-rot-left');
-  const bgRotRightBtn = $('bg-rot-right');
   const bgRot180Btn = $('bg-rot-180');
   const bgFlipBtn = $('bg-flip');
   const svgHolder = $('svgHolder');
@@ -82,6 +89,14 @@
   if (finalNavinLetter) finalNavinLetter.addEventListener('change', updateNavinTlac);
   if (rezanieYes) rezanieYes.addEventListener('change', updateNavinTlac);
   if (rezanieNo) rezanieNo.addEventListener('change', updateNavinTlac);
+  if (refPartA) refPartA.addEventListener('input', updateRefDisplay);
+  if (refPartB) refPartB.addEventListener('input', updateRefDisplay);
+  if (btnOpenFirmManager) {
+    btnOpenFirmManager.addEventListener('click', () => {
+      try { localStorage.setItem('index2_vz', 'vz34'); } catch (_) {}
+      window.open('index2.html?vz=vz34', '_blank');
+    });
+  }
 
   function num(el, fallback=0){ const v=parseFloat(el.value); return Number.isFinite(v)?v:fallback; }
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
@@ -119,10 +134,14 @@
     return {effectiveCode, effectiveVariant, finalCode, finalVariant};
   }
   function updateNavinTlac(){
-    const {effectiveCode, effectiveVariant} = getEffectiveNavin();
+    const {effectiveCode, effectiveVariant, finalCode, finalVariant} = getEffectiveNavin();
     if(navinTlacText) navinTlacText.textContent = `${effectiveCode}${effectiveVariant}`;
+    if(finalNavinText) finalNavinText.textContent = `${finalCode}${finalVariant}`;
     const prefix = (printSide?.value === 'spodna') ? 'S' : 'V';
     if(lblNavinTlac) lblNavinTlac.textContent = `${prefix}${effectiveCode}`;
+    if (printSideText) printSideText.textContent = printSide?.value || 'vrchna';
+    if (rezanieText) rezanieText.textContent = (rezanieYes?.checked ? 'ano' : 'nie');
+    updateRefDisplay();
   }
   function fmtVal(n){
     if(!Number.isFinite(n)) return '';
@@ -396,13 +415,13 @@
       const wasteLeftW=Math.max(0, handleOffsetX - leftOuter);
       if(wasteLeftW>0){
         create('rect',{x:wasteLeftX,y:wasteY,width:wasteLeftW,height:wasteH,fill:cyan,'fill-opacity':0.2,stroke:'none'});
-        textWithBg('VÝSEK', wasteLeftX + wasteLeftW/2, wasteY + wasteH/2, {anchor:'middle',baseline:'middle',color:cyan});
+        textWithBg('VĂtSEK', wasteLeftX + wasteLeftW/2, wasteY + wasteH/2, {anchor:'middle',baseline:'middle',color:cyan});
       }
       const wasteRightX=handleEndX;
       const wasteRightW=Math.max(0, rightOuter - handleEndX);
       if(wasteRightW>0){
         create('rect',{x:wasteRightX,y:wasteY,width:wasteRightW,height:wasteH,fill:cyan,'fill-opacity':0.2,stroke:'none'});
-        textWithBg('VÝSEK', wasteRightX + wasteRightW/2, wasteY + wasteH/2, {anchor:'middle',baseline:'middle',color:cyan});
+        textWithBg('VĂtSEK', wasteRightX + wasteRightW/2, wasteY + wasteH/2, {anchor:'middle',baseline:'middle',color:cyan});
       }
     }
 
@@ -605,7 +624,6 @@
   });
   function rotateBg(delta){ bgState.rotation = ((bgState.rotation || 0) + delta + 360) % 360; draw(); }
   if(bgRotLeftBtn) bgRotLeftBtn.addEventListener('click', ()=> rotateBg(-90));
-  if(bgRotRightBtn) bgRotRightBtn.addEventListener('click', ()=> rotateBg(90));
   if(bgRot180Btn) bgRot180Btn.addEventListener('click', ()=> rotateBg(180));
   if(bgFlipBtn) bgFlipBtn.addEventListener('click', ()=>{ bgState.flip = !bgState.flip; draw(); });
 
@@ -1202,5 +1220,7 @@ ${svgText}
 
   prefillFromFirm();
   updateNavinTlac();
+  if (window.applyEpsPayload) { window.applyEpsPayload('vz34'); }
   draw();
 })();
+

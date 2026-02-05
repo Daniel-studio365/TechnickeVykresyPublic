@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="sk">
 <head>
   <meta charset="utf-8">
@@ -7,9 +7,55 @@
   <link rel="stylesheet" href="css/vz31.css">
 </head>
 <body>
-  <div id="app">
-    <aside id="controls">
-      <h3>Zakladne rozmery</h3>
+    <div id="app">
+      <aside id="controls">
+        <div class="card" id="eps-header">
+          <div class="field wide">
+            <strong>Cislo referencneho vzoru:</strong>
+            <input id="refPartA" class="pill pill-input" type="text" maxlength="10" aria-label="Cislo vzoru cast A" />
+            <span>/</span>
+            <input id="refPartB" class="pill pill-input short" type="text" maxlength="2" aria-label="Cislo vzoru cast B" />
+          </div>
+          <div class="field wide" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <strong>Finalny navin:</strong>
+            <div class="pill-group" style="display:flex;gap:6px;">
+              <select id="finalNavinNumber" class="pill pill-input short">
+                <option value="1" selected>1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="8">8</option>
+              </select>
+              <select id="finalNavinLetter" class="pill pill-input short">
+                <option value="A" selected>A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+                <option value="E">E</option>
+              </select>
+            </div>
+            <strong>Sposob tlace:</strong>
+            <select id="printSide">
+              <option value="vrchna" selected>vrchna</option>
+              <option value="spodna">spodna</option>
+            </select>
+            <strong>Rezanie:</strong>
+            <label style="display:flex;align-items:center;gap:4px;">
+              <input type="radio" name="rezanie" id="rezanie-ano" value="ano">
+              ano
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;">
+              <input type="radio" name="rezanie" id="rezanie-nie" value="nie" checked>
+              nie
+            </label>
+          </div>
+          <div class="row">
+            <button id="btnOpenFirmManager" type="button" class="secondary">Firmy (sprava)</button>
+          </div>
+        </div>
+        <h3>Zakladne rozmery</h3>
       <label>W (sirka): <input type="number" id="W" value="400"></label>
       <label>L (dlzka): <input type="number" id="L" value="600"></label>
       <label>G (spodna zalozka): <input type="number" id="G" value="50"></label>
@@ -95,7 +141,6 @@
       <div class="row" style="gap:6px;flex-wrap:wrap;">
         <button type="button" id="bg-rot-left" class="secondary" style="flex:1;">Otocit -90</button>
         <button type="button" id="bg-rot-180" class="secondary" style="flex:1;">Otocit 180</button>
-        <button type="button" id="bg-rot-right" class="secondary" style="flex:1;">Otocit +90</button>
         <button type="button" id="bg-flip" class="secondary" style="flex:1;">Zrkadlit horiz.</button>
       </div>
       <label>Priehladnost podkladu:
@@ -142,58 +187,27 @@
 
     <section id="workarea">
       <div id="top-panels">
-        <div class="card" id="left-notes">
+                <div class="card" id="left-notes">
           <div class="field wide">
-            <strong>Nazov suboru:</strong>
-            <input id="refPartA" class="pill pill-input" type="text" maxlength="10" aria-label="Cislo vzoru cast A" />
-            <span>/</span>
-            <input id="refPartB" class="pill pill-input short" type="text" maxlength="2" aria-label="Cislo vzoru cast B" />
+            <strong>Cislo referencneho vzoru:</strong>
+            <span id="refCodeText" class="pill">vz-31</span>
           </div>
           <div class="field wide" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <strong>Finalny navin:</strong>
-            <div class="pill-group" style="display:flex;gap:6px;">
-              <select id="finalNavinNumber" class="pill pill-input short">
-                <option value="1" selected>1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-              </select>
-              <select id="finalNavinLetter" class="pill pill-input short">
-                <option value="A" selected>A</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
-                <option value="D">D</option>
-                <option value="E">E</option>
-              </select>
-            </div>
+            <span id="finalNavinText" class="pill">1A</span>
             <strong>Sposob tlace:</strong>
-            <select id="printSide">
-              <option value="vrchna" selected>vrchna</option>
-              <option value="spodna">spodna</option>
-            </select>
+            <span id="printSideText" class="pill">vrchna</span>
             <strong>Rezanie:</strong>
-            <label style="display:flex;align-items:center;gap:4px;">
-              <input type="radio" name="rezanie" id="rezanie-ano" value="ano">
-              ano
-            </label>
-            <label style="display:flex;align-items:center;gap:4px;">
-              <input type="radio" name="rezanie" id="rezanie-nie" value="nie" checked>
-              nie
-            </label>
+            <span id="rezanieText" class="pill">nie</span>
           </div>
           <div class="field two-cols">
             <strong>Navin tlac:</strong>
             <span id="navinTlacText" class="pill">1A</span>
           </div>
           <div class="field"><strong>Navin montaz:</strong> <span id="lblNavinTlac" class="pill">V1</span></div>
-          <div class="wide"><span class="note">PREDNA STRANA / FOTOBUNKA NA STRANE OBSLUHY</span></div>
+          <div class="wide"><span class="note">ZADNA STRANA</span></div>
         </div>
-
-        <div class="card" id="right-notes">
+<div class="card" id="right-notes">
           <div class="meta">
             <span>Casova peciatka:</span>
             <span id="stamp" class="badge">-</span>
@@ -242,6 +256,9 @@
   </div>
 
   <div id="log"></div>
+  <script src="js/eps_map.js"></script>
+  <script src="js/eps_import.js"></script>
   <script src="js/vz31.js"></script>
 </body>
 </html>
+

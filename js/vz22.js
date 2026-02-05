@@ -4,16 +4,22 @@
   const svgRoot = $('svgRoot');
   const refPartA = $('refPartA');
   const refPartB = $('refPartB');
+  const refCodeText = $('refCodeText');
   const finalNavinNumber = $('finalNavinNumber');
   const finalNavinLetter = $('finalNavinLetter');
   const navinTlacText = $('navinTlacText');
+  const finalNavinText = $('finalNavinText');
   const rezanieYes = $('rezanie-ano');
   const rezanieNo = $('rezanie-nie');
+  const btnOpenFirmManager = $('btnOpenFirmManager');
 
   function buildRefLabel(){
     const a = (refPartA && refPartA.value ? refPartA.value.trim() : '') || 'vz-22';
     const b = (refPartB && refPartB.value ? refPartB.value.trim() : '');
     return b ? `${a}/${b}` : a;
+  }
+  function updateRefDisplay(){
+    if (refCodeText) refCodeText.textContent = buildRefLabel();
   }
   function buildRefSlug(){
     return buildRefLabel().replace(/[^a-zA-Z0-9_-]+/g, '-');
@@ -21,6 +27,8 @@
   const stampEl = $('stamp');
   const printSide = $('printSide');
   const lblNavinTlac = $('lblNavinTlac');
+  const printSideText = $('printSideText');
+  const rezanieText = $('rezanieText');
   const vzCodeEl = $('vzCode');
   const bgFile = $('bgFile');
   const bgWidthEl = $('bgWidth');
@@ -94,6 +102,14 @@
   if (finalNavinLetter) finalNavinLetter.addEventListener('change', updateNavinTlac);
   if (rezanieYes) rezanieYes.addEventListener('change', updateNavinTlac);
   if (rezanieNo) rezanieNo.addEventListener('change', updateNavinTlac);
+  if (refPartA) refPartA.addEventListener('input', updateRefDisplay);
+  if (refPartB) refPartB.addEventListener('input', updateRefDisplay);
+  if (btnOpenFirmManager) {
+    btnOpenFirmManager.addEventListener('click', () => {
+      try { localStorage.setItem('index2_vz', 'vz22'); } catch (_) {}
+      window.open('index2.html?vz=vz22', '_blank');
+    });
+  }
 
   // default zapnutĂ© zĂˇrezy (ak uĹľ nie je nastavenĂ© inak)
   if($('toggle-notches')) $('toggle-notches').checked = true;
@@ -140,10 +156,14 @@
     return {effectiveCode, effectiveVariant, finalCode, finalVariant};
   }
   function updateNavinTlac(){
-    const {effectiveCode, effectiveVariant} = getEffectiveNavin();
+    const {effectiveCode, effectiveVariant, finalCode, finalVariant} = getEffectiveNavin();
     if(navinTlacText) navinTlacText.textContent = `${effectiveCode}${effectiveVariant}`;
+    if(finalNavinText) finalNavinText.textContent = `${finalCode}${finalVariant}`;
     const prefix = (printSide?.value === 'spodna') ? 'S' : 'V';
     if(lblNavinTlac) lblNavinTlac.textContent = `${prefix}${effectiveCode}`;
+    if (printSideText) printSideText.textContent = printSide?.value || 'vrchna';
+    if (rezanieText) rezanieText.textContent = (rezanieYes?.checked ? 'ano' : 'nie');
+    updateRefDisplay();
   }
 
   const mm2px = (mm,dpi)=> (mm/25.4)*dpi;
@@ -174,6 +194,9 @@
   }
 
   function prefillFromFirm(){
+    let source = '';
+    try { source = localStorage.getItem('prefill_source') || ''; } catch (_) {}
+    if (source !== 'firm') return;
     let data = null;
     try {
       const raw = localStorage.getItem('selectedFirm');
@@ -246,6 +269,11 @@
       bottomImgPreview.style.display = 'none';
       bottomImgPreview.style.transform = '';
     }
+
+    try {
+      localStorage.removeItem('selectedFirm');
+      localStorage.removeItem('prefill_source');
+    } catch (_) {}
   }
 
   function clearPrefilled(){
@@ -253,7 +281,10 @@
   }
   prefillableEls.forEach(el=>{
     const evt = (el.tagName === 'TEXTAREA' || el.type === 'text' || el.type === 'number') ? 'input' : 'change';
-    el.addEventListener(evt, ()=> el.classList.remove('prefilled'));
+    el.addEventListener(evt, (e)=> {
+      if (e && e.isTrusted === false) return;
+      el.classList.remove('prefilled');
+    });
   });
 
   function withNormalizedView(fn){
@@ -1182,6 +1213,25 @@ ${svgText}
   }
 
   prefillFromFirm();
+  let epsSource = '';
+  try { epsSource = localStorage.getItem('prefill_source') || ''; } catch (_) {}
+  if (epsSource === 'eps' && window.applyEpsPayload) {
+    const applied = window.applyEpsPayload('vz22');
+    if (applied) {
+      try {
+        localStorage.removeItem('eps_payload');
+        localStorage.removeItem('prefill_source');
+      } catch (_) {}
+    }
+  }
+  window.addEventListener('storage', (e) => {
+    if (e.key !== 'selectedFirm' && e.key !== 'prefill_source') return;
+    let source = '';
+    try { source = localStorage.getItem('prefill_source') || ''; } catch (_) {}
+    if (source !== 'firm') return;
+    prefillFromFirm();
+    draw();
+  });
   draw();
 })();
 

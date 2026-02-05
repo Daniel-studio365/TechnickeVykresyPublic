@@ -20,7 +20,51 @@
   const formAdd = document.getElementById('formAddFirm');
   const btnDeleteFirm = document.getElementById('btnDeleteFirm');
 
-  if (!radios.length || !vreckoSelect || !vreckoRow || !firmSelect || !typeSelect || !firmModal || !formAdd) return;
+  if (!radios.length || !vreckoSelect || !vreckoRow || !btnGo) return;
+
+  const simpleMode = !firmSelect || !typeSelect || !firmModal || !formAdd;
+  if (simpleMode) {
+    const syncWorkType = () => {
+      const selected = radios.find(r => r.checked)?.value;
+      const isVrecko = selected === 'vrecko';
+      vreckoSelect.disabled = !isVrecko;
+      vreckoRow.classList.toggle('disabled', !isVrecko);
+    };
+    const getSelectedVz = () => {
+      const selectedType = radios.find(r => r.checked)?.value;
+      if (selectedType !== 'vrecko') return null;
+      const val = vreckoSelect.value;
+      if (!val) return null;
+      return val.replace('vz-', 'vz');
+    };
+    radios.forEach(r => r.addEventListener('change', syncWorkType));
+    vreckoSelect.addEventListener('change', syncWorkType);
+    syncWorkType();
+
+    btnGo.addEventListener('click', () => {
+      const basePath = () => {
+        const p = window.location.pathname;
+        return p.endsWith('/') ? p : p.replace(/\/[^/]*$/, '/');
+      };
+      const toUrl = (file) => window.location.origin + basePath() + file;
+      const selected = radios.find(r => r.checked)?.value;
+      if (selected === 'folia') {
+        window.location.href = toUrl('folia.html');
+        return;
+      }
+      const vz = getSelectedVz();
+      if (vz === 'vz31') {
+        window.location.href = toUrl('vz31.html');
+      } else if (vz === 'vz34') {
+        window.location.href = toUrl('vz34.html');
+      } else if (vz === 'vz22') {
+        window.location.href = toUrl('vz22.html');
+      } else {
+        alert('Pre vybrany vzor zatial nie je preklik.');
+      }
+    });
+    return;
+  }
 
   const numVal = (el) => {
     const v = parseFloat(el.value);

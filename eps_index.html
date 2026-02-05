@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>EPS Test Mode</title>
+  <style>
+    :root { --ink:#0f172a; --bg:#f6f7f9; --panel:#fff; --border:#e2e8f0; --accent:#0ea5e9; }
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:"Roboto","Noto Sans",system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+    main{max-width:720px;margin:24px auto;padding:16px;background:var(--panel);border:1px solid var(--border);border-radius:12px;}
+    h1{font-size:20px;margin:0 0 12px 0;}
+    label{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:14px;margin:8px 0;}
+    input,select,textarea{padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;}
+    button{border:none;border-radius:10px;padding:8px 12px;font-weight:600;color:#fff;background:var(--accent);cursor:pointer;}
+    button.secondary{background:#334155;}
+    button.warn{background:#dc2626;}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>EPS Test Mode</h1>
+    <div class="row">
+      <button id="btn-load" class="secondary">Nacitat EPS JSON</button>
+      <input type="file" id="loadFile" accept="application/json" style="display:none;">
+      <button id="btn-open" class="secondary">Otvori vykres</button>
+      <button id="btn-clear" class="warn">Vymazat EPS data</button>
+      <a href="eps_editor.html" style="margin-left:auto;">Otvorit EPS editor</a>
+    </div>
+    <label>Vzor:
+      <select id="targetTemplate">
+        <option value="vz22">vz22</option>
+        <option value="vz31">vz31</option>
+        <option value="vz34">vz34</option>
+        <option value="folia">folia</option>
+      </select>
+    </label>
+    <label>Preview JSON:</label>
+    <textarea id="jsonPreview" readonly style="width:100%;min-height:180px;"></textarea>
+  </main>
+  <script>
+    const $ = (id)=>document.getElementById(id);
+    const tmpl = $('targetTemplate');
+    const preview = $('jsonPreview');
+    let payload = null;
+
+    function setPreview(){
+      preview.value = payload ? JSON.stringify(payload, null, 2) : '';
+    }
+
+    $('btn-load').addEventListener('click', ()=> $('loadFile').click());
+    $('loadFile').addEventListener('change', (e)=>{
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      const r = new FileReader();
+      r.onload = (ev)=>{
+        try{
+          payload = JSON.parse(ev.target.result);
+          if(payload.target_template) tmpl.value = payload.target_template;
+          setPreview();
+        }catch(_){}
+      };
+      r.readAsText(file);
+    });
+
+    $('btn-open').addEventListener('click', ()=>{
+      if(!payload){
+        alert('Najprv nacitaj EPS JSON.');
+        return;
+      }
+      payload.target_template = tmpl.value;
+      try{
+        localStorage.setItem('eps_payload', JSON.stringify(payload));
+        localStorage.setItem('prefill_source', 'eps');
+      }catch(_){}
+      window.location.href = `${tmpl.value}.html`;
+    });
+
+    $('btn-clear').addEventListener('click', ()=>{
+      payload = null;
+      try{
+        localStorage.removeItem('eps_payload');
+        localStorage.removeItem('prefill_source');
+      }catch(_){}
+      setPreview();
+    });
+  </script>
+</body>
+</html>

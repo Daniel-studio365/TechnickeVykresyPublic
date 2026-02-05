@@ -1,4 +1,4 @@
-:root { --ink:#0f172a; --muted:#475569; --panel:#ffffff; --border:#e2e8f0; --bg:#f6f7f9; --accent:#0ea5e9; }
+﻿:root { --ink:#0f172a; --muted:#475569; --panel:#ffffff; --border:#e2e8f0; --bg:#f6f7f9; --accent:#0ea5e9; }
 *{box-sizing:border-box;}
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sans";background:var(--bg);color:var(--ink);}
 #app{display:grid;grid-template-columns:320px 1fr;gap:12px;height:100vh;padding:12px;min-height:0;}
@@ -8,6 +8,8 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sa
 #controls input[type=range]{width:160px;}
 #controls button{border:none;border-radius:10px;padding:8px 12px;font-weight:600;color:#fff;background:var(--accent);cursor:pointer;}
 #controls input.prefilled,#controls select.prefilled{background:#e6ffe6;border-color:#16a34a;}
+#controls input.epsfilled,#controls select.epsfilled,#controls textarea.epsfilled{background:#fff4b8;border-color:#f59e0b;}
+#controls label.epsfilled{background:#fff4b8;border-radius:6px;padding:2px 4px;}
 #controls button.secondary{background:#334155;}
 #controls .row{display:flex;gap:8px;align-items:center;}
 #controls .sep{height:1px;background:var(--border);margin:10px 0;}
@@ -113,4 +115,5 @@ svg{display:block;width:auto;height:auto;}
 #svgHolder::-webkit-scrollbar-track {
   background: rgba(0,0,0,0.08);
 }
+
 
