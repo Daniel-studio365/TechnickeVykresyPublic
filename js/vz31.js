@@ -5,6 +5,8 @@
   const refPartA = $('refPartA');
   const refPartB = $('refPartB');
   const refCodeText = $('refCodeText');
+  const porCislo = $('porCislo');
+  const porCisloText = $('porCisloText');
   const finalNavinNumber = $('finalNavinNumber');
   const finalNavinLetter = $('finalNavinLetter');
   const rezanieYes = $('rezanie-ano');
@@ -20,6 +22,9 @@
   }
   function updateRefDisplay(){
     if (refCodeText) refCodeText.textContent = buildRefLabel();
+  }
+  function updatePorCisloDisplay(){
+    if (porCisloText) porCisloText.textContent = (porCislo && porCislo.value ? porCislo.value : '-') || '-';
   }
   function buildRefSlug(){
     return buildRefLabel().replace(/[^a-zA-Z0-9_-]+/g, '-');
@@ -103,7 +108,7 @@
   };
 
   const inputs = [
-    'W','L','G','K','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirCount','AirPitch',
+    'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirCount','AirPitch',
     'PerfShape','PerfSide','PerfOffset','PerfHalfLen','FingerHole','fontPx','toggle-grid','toggle-notches',
     'bgWidth','bgHeight','finalNavinNumber','finalNavinLetter','rezanie-ano','rezanie-nie'
   ].map(id => $(id));
@@ -115,6 +120,7 @@
   if (rezanieNo) rezanieNo.addEventListener('change', updateNavinTlac);
   if (refPartA) refPartA.addEventListener('input', updateRefDisplay);
   if (refPartB) refPartB.addEventListener('input', updateRefDisplay);
+  if (porCislo) porCislo.addEventListener('input', updatePorCisloDisplay);
   if (btnOpenFirmManager) {
     btnOpenFirmManager.addEventListener('click', () => {
       try { localStorage.setItem('index2_vz', 'vz31'); } catch (_) {}
@@ -217,7 +223,7 @@
     const dims = data.dimensions || {};
     const air = data.air || {};
     const clip = data.clip || {};
-    const map = { W:'W', L:'L', G:'G', K:'K', Cpitch:'Cpitch', AxisInK:'AxisInK', notchLen:'NotchLen', AirEdge:'AirEdge', AirCount:'AirCount', AirPitch:'AirPitch' };
+    const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', Cpitch:'Cpitch', AxisInK:'AxisInK', notchLen:'NotchLen', AirEdge:'AirEdge', AirCount:'AirCount', AirPitch:'AirPitch' };
     Object.values(map).forEach(id=>{
       const el=$(id);
       if (el) el.classList.remove('prefilled');
@@ -235,6 +241,7 @@
         val = half ? Math.min(8, Math.max(2, half * 2)) : null; // dropdown zobrazuje celkovy pocet (2,4,6,8)
       }
       else if (key === 'AirPitch') val = air.pitch;
+      else if (key === 'bagWidth') val = (dims.W != null ? dims.W : null);
       else val = dims[key];
       if (el && val != null && val !== '') {
         el.value = (el.tagName === 'SELECT') ? String(val) : val;
@@ -391,6 +398,10 @@
     const L = num($('L'),600);
     const G = num($('G'),50);
     const K = num($('K'),45);
+    const bagWidthInput = $('BagWidth');
+    const bagWidthRaw = num(bagWidthInput, NaN);
+    const bagWidth = Number.isFinite(bagWidthRaw) && bagWidthRaw > 0 ? bagWidthRaw : W;
+    if(bagWidthInput && (bagWidthInput.value==='' || !Number.isFinite(bagWidthRaw))){ bagWidthInput.value = Math.round(bagWidth); }
     const C = Math.max(0,num($('Cpitch'),160));
     const axisInK = $('AxisInK').value==='' ? null : num($('AxisInK'), K/2);
     const showNotches = $('toggle-notches').checked;
@@ -559,6 +570,15 @@
     hDim(xFirstLeftL, yAirBase, xLeftGStart, Math.round(X),10,'#dc2626');
     hDim(xRightGEnd, yAirBase, xFirstRightL, Math.round(X),10,'#dc2626');
 
+    const xBagDim = xStart - 25;
+    const bagLabel = `sirka vrecka ${Math.round(bagWidth)}`;
+    let yBagStart = yTop + (W - bagWidth)/2;
+    let yBagEnd = yBagStart + bagWidth;
+    vDim(xBagDim, yBagStart, yBagEnd, bagLabel, 10, '#0f172a');
+    create('line',{x1:xBagDim,x2:xStart,y1:yBagStart,y2:yBagStart,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'4 3'});
+    create('line',{x1:xBagDim,x2:xStart,y1:yBagEnd,y2:yBagEnd,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'4 3'});
+    const leftPad = 60;
+
     let maxRight = xStart + totalWidth + 40;
     if (perfShape === 'rovna' && perfOffset > 0){
       const off = perfOffset;
@@ -642,7 +662,7 @@
     drawMeasurePreview();
 
     const bottomPad = Math.max(90, Math.round(state.fontPx * 5.5));
-    const svgW = Math.max(maxRight, xDimW + 80);
+    const svgW = Math.max(maxRight, xDimW + 80) + leftPad;
     const svgH = yDimAxis + bottomPad;
     state.bounds.width = svgW;
     state.bounds.height = svgH;
@@ -650,7 +670,7 @@
     svgRoot.setAttribute('height', svgH * state.zoom);
     const vw = svgW;
     const vh = svgH;
-    svgRoot.setAttribute('viewBox', `${-state.pan.x} ${-state.pan.y} ${vw} ${vh}`);
+    svgRoot.setAttribute('viewBox', `${-state.pan.x - leftPad} ${-state.pan.y} ${vw} ${vh}`);
     updateStamp();
   }
 
@@ -674,7 +694,7 @@
 
     $('btn-reset').addEventListener('click', ()=>{
     clearPrefilled();
-    $('W').value=400; $('L').value=600; $('G').value=50; $('K').value=45;
+    $('W').value=400; $('L').value=600; $('G').value=50; $('K').value=45; if($('BagWidth')) $('BagWidth').value=400;
     $('Cpitch').value=160; $('AxisInK').value='';
     $('NotchLen').value=7; $('toggle-notches').checked=false;
     $('AirEdge').value=30; $('AirXAbs').value=25; $('AirCount').value='2'; $('AirPitch').value=40;
@@ -952,7 +972,7 @@
     return {
       vz: 'vz31',
       inputs: {
-        W:$('W').value, L:$('L').value, G:$('G').value, K:$('K').value,
+        W:$('W').value, L:$('L').value, G:$('G').value, K:$('K').value, BagWidth:$('BagWidth')?.value || '',
         Cpitch:$('Cpitch').value, AxisInK:$('AxisInK').value,
         NotchLen:$('NotchLen').value, toggleNotches:$('toggle-notches').checked,
         AirEdge:$('AirEdge').value, AirXAbs:$('AirXAbs').value,
@@ -989,6 +1009,7 @@
     if(data.inputs){
       const i=data.inputs;
       $('W').value=i.W||'';
+      if($('BagWidth')) $('BagWidth').value=i.BagWidth||'';
       $('L').value=i.L||'';
       $('G').value=i.G||'';
       $('K').value=i.K||'';
@@ -1285,6 +1306,7 @@ ${svgText}
   })();
 
   prefillFromFirm();
+  updatePorCisloDisplay();
   let epsSource = '';
   try { epsSource = localStorage.getItem('prefill_source') || ''; } catch (_) {}
   if (epsSource === 'eps' && window.applyEpsPayload) {

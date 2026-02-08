@@ -5,6 +5,8 @@
   const refPartA = $('refPartA');
   const refPartB = $('refPartB');
   const refCodeText = $('refCodeText');
+  const porCislo = $('porCislo');
+  const porCisloText = $('porCisloText');
   const finalNavinNumber = $('finalNavinNumber');
   const finalNavinLetter = $('finalNavinLetter');
   const navinTlacText = $('navinTlacText');
@@ -20,6 +22,9 @@
   }
   function updateRefDisplay(){
     if (refCodeText) refCodeText.textContent = buildRefLabel();
+  }
+  function updatePorCisloDisplay(){
+    if (porCisloText) porCisloText.textContent = (porCislo && porCislo.value ? porCislo.value : '-') || '-';
   }
   function buildRefSlug(){
     return buildRefLabel().replace(/[^a-zA-Z0-9_-]+/g, '-');
@@ -104,6 +109,7 @@
   if (rezanieNo) rezanieNo.addEventListener('change', updateNavinTlac);
   if (refPartA) refPartA.addEventListener('input', updateRefDisplay);
   if (refPartB) refPartB.addEventListener('input', updateRefDisplay);
+  if (porCislo) porCislo.addEventListener('input', updatePorCisloDisplay);
   if (btnOpenFirmManager) {
     btnOpenFirmManager.addEventListener('click', () => {
       try { localStorage.setItem('index2_vz', 'vz22'); } catch (_) {}
@@ -1213,6 +1219,7 @@ ${svgText}
   }
 
   prefillFromFirm();
+  updatePorCisloDisplay();
   let epsSource = '';
   try { epsSource = localStorage.getItem('prefill_source') || ''; } catch (_) {}
   if (epsSource === 'eps' && window.applyEpsPayload) {

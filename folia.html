@@ -27,6 +27,16 @@
           </select>
         </label>
       </div>
+      <label>Cislo referencneho vzoru:
+        <div class="row" style="gap:6px;">
+          <input id="refPartA" type="text" maxlength="10" placeholder="vz-xx">
+          <span>/</span>
+          <input id="refPartB" type="text" maxlength="2" placeholder="kód">
+        </div>
+      </label>
+      <label>Por. cislo vyrobku:
+        <input type="text" id="porCislo" maxlength="60">
+      </label>
 
       <label>Vyska: <input type="number" id="W" value="400"></label>
       <div class="section-title">Rozdelenie vysky</div>
@@ -209,10 +219,6 @@
     </aside>
 
     <section id="canvas-wrap">
-      <div id="canvas-inputs">
-        <input type="text" id="orderNo" maxlength="15" placeholder="cislo zakazky">
-        <input type="text" id="orderNote" maxlength="50" placeholder="poznamka">
-      </div>
       <div id="svgHolder">
         <svg id="svgRoot" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" aria-label="nahlad"></svg>
       </div>

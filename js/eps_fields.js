@@ -65,6 +65,11 @@ window.EPS_FIELDS = [
     "desc": "Zakladny rozmer L (dlzka/sirka podla vzoru)"
   },
   {
+    "group": "Dimensions",
+    "key": "dim_C",
+    "desc": "Dno / kriz (C)"
+  },
+  {
     "group": "Holes/Notches",
     "key": "notch_length",
     "desc": "Dlzka zaseku v K"
@@ -108,6 +113,21 @@ window.EPS_FIELDS = [
     "group": "Dimensions",
     "key": "dim_W",
     "desc": "Zakladny rozmer W (sirka/vyska podla vzoru)"
+  },
+  {
+    "group": "vz108",
+    "key": "seam_mode",
+    "desc": "Zlep (stred/kraj)"
+  },
+  {
+    "group": "vz108",
+    "key": "seg_ps",
+    "desc": "PS (predna strana)"
+  },
+  {
+    "group": "vz108",
+    "key": "seg_bzp",
+    "desc": "BZP (bocna zalozka prava)"
   },
   {
     "group": "Reference",

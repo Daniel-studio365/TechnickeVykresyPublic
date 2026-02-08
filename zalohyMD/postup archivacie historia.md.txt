@@ -1,0 +1,8 @@
+HISTORIA HEADER (ARCHIVACIA)
+- Zapisuj len do historia.md (aktualny mesiacny vyrez).
+- Archiv je v zalohyMD (po mesiacoch).
+- Pri preklopeni mesiaca: najskor upozorni uzivatela, nech spravi zalohu, potom presun minuly mesiac do zalohyMD.
+- Ak je historia.md velmi kratka alebo chyba kontext, upozorni uzivatela a poziadaj o nacitanie zalohyMD.
+- Na vyziadanie "nacitaj celu historiu" precitaj historia.md + vsetky subory v zalohyMD.
+- Dalsie zaznamy zapisuj bez diakritiky (ASCII).
+- Starsie zaznamy su archivovane v zalohyMD (napr. 2025, 012026).

@@ -1,12 +1,17 @@
 ﻿const $ = (id)=>document.getElementById(id);
 const svgRoot = $('svgRoot');
 
-  const state = {
+const state = {
     fontPx:14,
     bounds:{width:800,height:800},
     zoom:1,
     segments:[],
     segmentsH:[],
+  segMeta:[],
+  widthManual:false,
+  seamMode:'center',
+  extraSegments:[],
+  extraSegmentsH:[],
   units:'mm',
   decimals:0,
   rollCode:'1',
@@ -43,7 +48,7 @@ const svgRoot = $('svgRoot');
 };
 
 const inputs = [
-  'W','L','fontPx','toggle-grid','lineStyle','lineStyleH','strokeWidth',
+  'fontPx','toggle-grid','lineStyle','lineStyleH','strokeWidth',
   'dimPos','dimOffset','dimPosH','dimOffsetH','units','decimals',
   'refPartA','refPartB','porCislo',
   'rollEnabled','rollType','rollVariant','photoW','photoH','photoNote','exportOrient','bgWidth','bgHeight','bgOpacity','measureMode'
@@ -67,38 +72,279 @@ function ensureDefs(){
   create('path',{d:'M 0 0 L 21 10.5 L 0 21 z',fill:'#0f172a'},marker);
 }
 
-function addSegmentInput(val=''){
-  const wrap = document.createElement('div');
-  wrap.style.display='flex'; wrap.style.gap='6px'; wrap.style.alignItems='center';
-  const lab = document.createElement('span'); lab.textContent = `cast S ${state.segments.length+1}:`; lab.style.fontSize='13px';
-  const inp = document.createElement('input'); inp.type='number'; inp.min='0'; inp.value = val; inp.style.flex='1'; inp.className='seg-input';
-  inp.addEventListener('input', draw);
-  wrap.appendChild(lab); wrap.appendChild(inp);
-  $('segments').appendChild(wrap);
-  state.segments.push(inp);
+const TABLE_CENTER = [
+  {W:60,BZ:40,C:30},
+  {W:70,BZ:40,C:35},{W:70,BZ:45,C:35},
+  {W:75,BZ:40,C:35},{W:75,BZ:45,C:35},
+  {W:80,BZ:40,C:35},{W:80,BZ:45,C:35},{W:80,BZ:50,C:40},
+  {W:90,BZ:50,C:40},
+  {W:100,BZ:50,C:40},{W:100,BZ:60,C:40},
+  {W:120,BZ:60,C:45},{W:120,BZ:65,C:45}
+];
+const TABLE_EDGE = [
+  {W:70,BZ:40,C:30},{W:70,BZ:45,C:30},
+  {W:75,BZ:45,C:30},
+  {W:80,BZ:40,C:35},{W:80,BZ:50,C:35},
+  {W:90,BZ:50,C:40},{W:90,BZ:55,C:40},{W:90,BZ:60,C:40},
+  {W:100,BZ:50,C:40},{W:100,BZ:60,C:40},{W:100,BZ:70,C:40},
+  {W:105,BZ:55,C:40},{W:105,BZ:60,C:40},
+  {W:110,BZ:55,C:45},{W:110,BZ:60,C:45},{W:110,BZ:65,C:45},
+  {W:120,BZ:60,C:45},{W:120,BZ:65,C:45},{W:120,BZ:70,C:45},
+  {W:130,BZ:65,C:50},{W:130,BZ:70,C:50},{W:130,BZ:75,C:50},
+  {W:140,BZ:70,C:50},{W:140,BZ:75,C:50},{W:140,BZ:80,C:50},{W:140,BZ:85,C:50},
+  {W:150,BZ:75,C:60},{W:150,BZ:80,C:60},{W:150,BZ:85,C:60},
+  {W:160,BZ:80,C:60},{W:160,BZ:85,C:60},{W:160,BZ:90,C:60},
+  {W:170,BZ:85,C:70},{W:170,BZ:90,C:70},
+  {W:180,BZ:90,C:75},{W:180,BZ:100,C:75},{W:180,BZ:110,C:75}
+];
+
+function uniqueSorted(list){
+  return [...new Set(list)].filter(v=>Number.isFinite(v)).sort((a,b)=>a-b);
 }
-function removeSegmentInput(){
-  if(state.segments.length===0) return;
-  const inp = state.segments.pop();
+const BZ_CENTER = uniqueSorted(TABLE_CENTER.map(r=>r.BZ));
+const BZ_EDGE = uniqueSorted(TABLE_EDGE.map(r=>r.BZ));
+const PS_CENTER = uniqueSorted(TABLE_CENTER.map(r=>r.W));
+const PS_EDGE = uniqueSorted(TABLE_EDGE.map(r=>r.W));
+
+function initLengthOptions(){
+  const sel = $('L');
+  if(!sel) return;
+  sel.innerHTML='';
+  for(let v=155; v<=410; v+=5){
+    const opt = document.createElement('option');
+    opt.value = String(v);
+    opt.textContent = String(v);
+    sel.appendChild(opt);
+  }
+  sel.value = sel.value || '200';
+}
+
+function findCValue(mode, ps, bz){
+  if(!Number.isFinite(ps) || !Number.isFinite(bz)) return null;
+  const table = mode === 'edge' ? TABLE_EDGE : TABLE_CENTER;
+  const row = table.find(r => r.W === ps && r.BZ === bz);
+  return row ? row.C : null;
+}
+
+function createSegField(def, container){
+  const wrap = document.createElement('div');
+  wrap.style.display='flex';
+  wrap.style.gap='6px';
+  wrap.style.alignItems='center';
+  const lab = document.createElement('span');
+  lab.textContent = `${def.label}:`;
+  lab.style.fontSize='13px';
+  let input;
+  if(def.options){
+    input = document.createElement('select');
+    def.options.forEach(v=>{
+      const opt = document.createElement('option');
+      opt.value = String(v);
+      opt.textContent = String(v);
+      input.appendChild(opt);
+    });
+  }else{
+    input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+  }
+  input.style.flex='1';
+  input.dataset.key = def.key;
+  input.id = def.key;
+  if(def.calc){
+    input.classList.add('calc');
+    input.dataset.auto = '1';
+    input.tabIndex = -1;
+  }
+  if(def.default !== undefined && input.tagName === 'INPUT'){
+    input.value = def.default;
+  }
+  if(def.options && def.default !== undefined){
+    input.value = String(def.default);
+  }
+  input.addEventListener('input', ()=>{
+    if(input.dataset.auto === '1'){
+      input.dataset.manual = '1';
+    }
+    if(def.key === 'PS'){
+      updateBZOptions();
+    }
+    updateComputedWidth();
+    updateWidthTotal();
+    updateCAndHeight();
+    draw();
+  });
+  input.addEventListener('change', ()=>{
+    if(def.key === 'PS'){
+      updateBZOptions();
+    }
+    updateComputedWidth();
+    updateWidthTotal();
+    updateCAndHeight();
+    draw();
+  });
+  wrap.appendChild(lab);
+  wrap.appendChild(input);
+  container.appendChild(wrap);
+  state.segments.push(input);
+  state.segMeta.push({key:def.key,label:def.label,input,auto:def.auto,calc:def.calc});
+  return input;
+}
+
+function addExtraSegment(containerId, list, prefix){
+  const container = $(containerId);
+  if(!container) return;
+  const idx = list.length + 1;
+  const wrap = document.createElement('div');
+  wrap.style.display='flex';
+  wrap.style.gap='6px';
+  wrap.style.alignItems='center';
+  const lab = document.createElement('span');
+  lab.textContent = `${prefix}${idx}:`;
+  lab.style.fontSize='13px';
+  const inp = document.createElement('input');
+  inp.type='number';
+  inp.min='0';
+  inp.style.flex='1';
+  inp.addEventListener('input', ()=>{
+    updateWidthTotal();
+    updateCAndHeight();
+    draw();
+  });
+  wrap.appendChild(lab);
+  wrap.appendChild(inp);
+  container.appendChild(wrap);
+  list.push(inp);
+}
+
+function removeExtraSegment(list){
+  if(!list.length) return;
+  const inp = list.pop();
   inp.parentElement?.remove();
+  updateWidthTotal();
+  updateCAndHeight();
   draw();
 }
 
-function addSegmentInputH(val=''){
-  const wrap = document.createElement('div');
-  wrap.style.display='flex'; wrap.style.gap='6px'; wrap.style.alignItems='center';
-  const lab = document.createElement('span'); lab.textContent = `cast V ${state.segmentsH.length+1}:`; lab.style.fontSize='13px';
-  const inp = document.createElement('input'); inp.type='number'; inp.min='0'; inp.value = val; inp.style.flex='1'; inp.className='segH-input';
-  inp.addEventListener('input', draw);
-  wrap.appendChild(lab); wrap.appendChild(inp);
-  $('segmentsH').appendChild(wrap);
-  state.segmentsH.push(inp);
+function buildWidthSegments(){
+  state.segments.length = 0;
+  state.segMeta.length = 0;
+  const container = $('segments');
+  if(container) container.innerHTML = '';
+  const mode = $('seamMode')?.value || 'center';
+  state.seamMode = mode;
+  state.widthManual = false;
+  const cInput = $('C');
+  if(cInput) cInput.dataset.manual = '0';
+  state.extraSegments.length = 0;
+  const extraWrap = $('segments-extra');
+  if(extraWrap) extraWrap.innerHTML = '';
+
+  const table = (mode === 'edge') ? TABLE_EDGE : TABLE_CENTER;
+  const psOptions = (mode === 'edge') ? PS_EDGE : PS_CENTER;
+
+  if(mode === 'edge'){
+    createSegField({key:'ZSP',label:'ZSP',calc:true,default:25}, container);
+    createSegField({key:'BZP',label:'BZP',options:[]}, container);
+    createSegField({key:'PS',label:'PS',options:psOptions}, container);
+    createSegField({key:'BZL',label:'BZL',calc:true,auto:(v)=>v.BZP ?? 0}, container);
+    createSegField({key:'ZSL',label:'ZSL',calc:true,auto:(v)=>Number.isFinite(v.PS)? v.PS - 15 : 0}, container);
+    createSegField({key:'ZLEP',label:'ZLEP',calc:true,default:10}, container);
+    createSegField({key:'PRID',label:'PRID',calc:true,default:0}, container);
+  }else{
+    createSegField({key:'ZLEP1',label:'ZLEP',calc:true,default:10}, container);
+    createSegField({key:'ZSP',label:'ZSP',calc:true,auto:(v)=>Number.isFinite(v.PS)? v.PS / 2 : 0}, container);
+    createSegField({key:'BZP',label:'BZP',options:[]}, container);
+    createSegField({key:'PS',label:'PS',options:psOptions}, container);
+    createSegField({key:'BZL',label:'BZL',calc:true,auto:(v)=>v.BZP ?? 0}, container);
+    createSegField({key:'ZSL',label:'ZSL',calc:true,auto:(v)=>v.ZSP ?? 0}, container);
+    createSegField({key:'ZLEP2',label:'ZLEP',calc:true,default:10}, container);
+    createSegField({key:'PRID',label:'PRID',calc:true,default:0}, container);
+  }
+  updateBZOptions();
+  updateComputedWidth();
+  updateWidthTotal();
+  updateCAndHeight();
 }
-function removeSegmentInputH(){
-  if(state.segmentsH.length===0) return;
-  const inp = state.segmentsH.pop();
-  inp.parentElement?.remove();
-  draw();
+
+function updateBZOptions(){
+  const table = (state.seamMode === 'edge') ? TABLE_EDGE : TABLE_CENTER;
+  const psVal = num(state.segMeta.find(s=>s.key==='PS')?.input, 0);
+  const bzSeg = state.segMeta.find(s=>s.key==='BZP');
+  if(!bzSeg) return;
+  const allowed = uniqueSorted(table.filter(r=>r.W === psVal).map(r=>r.BZ));
+  const select = bzSeg.input;
+  if(!select || select.tagName !== 'SELECT') return;
+  select.innerHTML = '';
+  allowed.forEach(v=>{
+    const opt = document.createElement('option');
+    opt.value = String(v);
+    opt.textContent = String(v);
+    select.appendChild(opt);
+  });
+  if(allowed.length){
+    if(!allowed.includes(num(select, NaN))){
+      select.value = String(allowed[0]);
+    }
+  }
+}
+
+function getSegValues(){
+  const vals = {};
+  state.segMeta.forEach(seg=>{
+    const v = parseFloat(seg.input.value);
+    vals[seg.key] = Number.isFinite(v) ? v : 0;
+  });
+  return vals;
+}
+
+function updateComputedWidth(){
+  let vals = getSegValues();
+  for(const seg of state.segMeta){
+    if(!seg.calc) continue;
+    if(seg.input.dataset.manual === '1') continue;
+    let nextVal = null;
+    if(seg.auto){
+      nextVal = seg.auto(vals);
+    }else if(seg.input.value === '' || seg.input.value === null){
+      nextVal = 0;
+    }else{
+      nextVal = parseFloat(seg.input.value);
+    }
+    if(!Number.isFinite(nextVal)) nextVal = 0;
+    seg.input.value = nextVal;
+    vals[seg.key] = nextVal;
+  }
+}
+
+function updateWidthTotal(){
+  const sum = state.segments.reduce((acc, inp)=>{
+    const v = parseFloat(inp.value);
+    return acc + (Number.isFinite(v)?v:0);
+  }, 0);
+  const extra = state.extraSegments.reduce((acc, inp)=>{
+    const v = parseFloat(inp.value);
+    return acc + (Number.isFinite(v)?v:0);
+  }, 0);
+  if(!state.widthManual){
+    $('W').value = (sum + extra).toFixed(0);
+  }
+}
+
+function updateCAndHeight(){
+  const cInput = $('C');
+  if(cInput && cInput.dataset.manual !== '1'){
+    const segVals = getSegValues();
+    const ps = segVals.PS;
+    const bz = segVals.BZP;
+    const cVal = findCValue(state.seamMode, ps, bz);
+    if(Number.isFinite(cVal)){
+      cInput.value = cVal;
+    }
+  }
+  const lVal = num($('L'),0);
+  const cValNow = num($('C'),0);
+  $('H').value = (lVal + cValNow).toFixed(0);
 }
 
 function textWithBg(txt,x,y,opts={}){
@@ -148,7 +394,7 @@ function formatPlain(v){
   return (Math.round(v * pow) / pow).toFixed(d);
 }
 
-function hDim(x1,y,x2,val,ext=10,color='#0f172a', fontScale=1, textOffset=null, useUnits=true, parent=svgRoot){
+function hDim(x1,y,x2,val,ext=10,color='#0f172a', fontScale=1, textOffset=null, useUnits=true, parent=svgRoot, labelText=null){
   if(x2<x1){ const t=x1; x1=x2; x2=t; }
   const sw = state.strokeWidth || 1;
   create('line',{x1,y1:y,x2,y2:y,stroke:color,'stroke-width':sw}, parent);
@@ -158,12 +404,12 @@ function hDim(x1,y,x2,val,ext=10,color='#0f172a', fontScale=1, textOffset=null, 
   const original = state.fontPx;
   state.fontPx = Math.max(6, original * fontScale);
   const txtOffset = (textOffset!==null ? textOffset : 6);
-  const label = useUnits ? formatVal(val) : formatPlain(val);
+  const label = labelText ?? (useUnits ? formatVal(val) : formatPlain(val));
   const g = parent || svgRoot;
   textWithBg(label,(x1+x2)/2,y-txtOffset,{color,parent:g});
   state.fontPx = original;
 }
-function vDim(x,y1,y2,val,ext=10,color='#0f172a', fontScale=1, textOffset=null, useUnits=true, parent=svgRoot){
+function vDim(x,y1,y2,val,ext=10,color='#0f172a', fontScale=1, textOffset=null, useUnits=true, parent=svgRoot, labelText=null){
   if(y2<y1){ const t=y1; y1=y2; y2=t; }
   const sw = state.strokeWidth || 1;
   create('line',{x1:x,x2:x,y1,y2,stroke:color,'stroke-width':sw}, parent);
@@ -176,7 +422,7 @@ function vDim(x,y1,y2,val,ext=10,color='#0f172a', fontScale=1, textOffset=null, 
   const original = state.fontPx;
   state.fontPx = Math.max(6, original * fontScale);
   const t = create('text',{'text-anchor':'middle','dominant-baseline':'middle','font-size':state.fontPx,fill:color},g);
-  t.textContent = useUnits ? formatVal(val) : formatPlain(val);
+  t.textContent = labelText ?? (useUnits ? formatVal(val) : formatPlain(val));
   state.fontPx = original;
 }
 
@@ -200,8 +446,10 @@ function drawMeasurements(parent){
 }
 
 function draw(){
-  const W = num($('W'),400);
-  const L = num($('L'),600);
+  const widthInput = num($('W'),0);
+  const lVal = num($('L'),0);
+  const cVal = num($('C'),0);
+  const heightInput = num($('H'),0);
   state.fontPx = parseInt($('fontPx')?.value,10)||14;
   $('fontPxVal').textContent = state.fontPx + ' px';
   const lineStyle = $('lineStyle')?.value === 'dashed' ? '6 4' : null;
@@ -218,7 +466,7 @@ function draw(){
   state.rollPrintEnabled = !!$('rollPrint')?.checked;
   state.rollAssemblyEnabled = !!$('rollAssembly')?.checked;
   state.printOps = parseInt($('printOps')?.value,10) || 1;
-    state.lacquerNext = document.querySelector('input[name="lacquerStep"]:checked')?.value === 'yes';
+  state.lacquerNext = document.querySelector('input[name="lacquerStep"]:checked')?.value === 'yes';
   state.printSide = document.querySelector('input[name="printSide"]:checked')?.value || 'bottom';
   state.rollCode = $('rollType')?.value || '1';
   state.rollVariant = $('rollVariant')?.value || 'A';
@@ -293,6 +541,10 @@ function draw(){
         lacquerBadge.style.display = 'none';
       }
     }
+    const lacquerRow = $('lacquerRow');
+    if(lacquerRow){
+      lacquerRow.classList.toggle('lacquer-yes', state.lacquerNext);
+    }
   let navinLabelText = `Navin: ${rollCodeDraw}${rollVariantDraw} (${navinMode})`;
   if(navinMode==='tlac'){
     const info = $('rollPrintInfo')?.textContent || '';
@@ -311,6 +563,45 @@ function draw(){
   state.bgHeight = $('bgHeight')?.value ? num($('bgHeight'), null) : null;
 
   const offsetX=60, offsetY=80;
+
+  const widthParts = [];
+  const widthLabels = [];
+  state.segMeta.forEach(seg=>{
+    const v = num(seg.input,0);
+    if(v > 0){
+      widthParts.push(v);
+      widthLabels.push({label: seg.label, value: formatVal(v)});
+    }
+  });
+  state.extraSegments.forEach((inp, idx)=>{
+    const v = num(inp,0);
+    if(v > 0){
+      widthParts.push(v);
+      widthLabels.push({label:`EX${idx+1}`, value: formatVal(v)});
+    }
+  });
+  const sumWidth = widthParts.reduce((a,b)=>a+b,0);
+  const heightParts = [];
+  const heightLabels = [];
+  if(lVal > 0){
+    heightParts.push(lVal);
+    heightLabels.push({label:'DLZKA', value: formatVal(lVal)});
+  }
+  if(cVal > 0){
+    heightParts.push(cVal);
+    heightLabels.push({label:'DNO', value: formatVal(cVal)});
+  }
+  state.extraSegmentsH.forEach((inp, idx)=>{
+    const v = num(inp,0);
+    if(v > 0){
+      heightParts.push(v);
+      heightLabels.push({label:`EX${idx+1}`, value: formatVal(v)});
+    }
+  });
+  const sumHeight = heightParts.reduce((a,b)=>a+b,0);
+
+  const L = (sumWidth > 0 ? sumWidth : widthInput);
+  const W = (sumHeight > 0 ? sumHeight : heightInput);
   const baseDimOffset = dimOffsetVal;
   const yTop=offsetY, yBottom=offsetY+W;
 
@@ -362,19 +653,11 @@ function draw(){
   // hlavny obdlznik
   create('rect',{x:offsetX,y:offsetY,width:L,height:W,fill:'none',stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
 
-  // delenie sirky
-  const segValues = state.segments.map(inp => num(inp,0)).filter(v=>v>0);
-  const sumSeg = segValues.reduce((a,b)=>a+b,0);
-  const remainder = Math.max(L - sumSeg, 0);
-  const parts = [...segValues];
-  if (remainder > 0 || parts.length===0) parts.push(remainder);
-
-  // delenie vysky
-  const segValuesH = state.segmentsH.map(inp => num(inp,0)).filter(v=>v>0);
-  const sumSegH = segValuesH.reduce((a,b)=>a+b,0);
-  const remainderH = Math.max(W - sumSegH, 0);
-  const partsH = [...segValuesH];
-  if (remainderH > 0 || partsH.length===0) partsH.push(remainderH);
+  // delenie sirky / vysky
+  const parts = (widthParts.length ? widthParts : [L]);
+  const partLabels = (widthLabels.length ? widthLabels : [formatVal(L)]);
+  const partsH = (heightParts.length ? heightParts : [W]);
+  const partLabelsH = (heightLabels.length ? heightLabels : [formatVal(W)]);
 
   // koty sirky
   const segOffset = Number.isFinite(baseDimOffset) ? baseDimOffset : 25;
@@ -382,13 +665,21 @@ function draw(){
   let cursor = offsetX;
   parts.forEach((len, idx)=>{
     const next = cursor + len;
-    hDim(cursor, segY, next, len, 10, '#0f172a', 0.9, null, true, contentGroup);
+    const meta = partLabels[idx];
+    const labelText = meta ? meta.value : formatVal(len);
+    const dimGroup = create('g',{}, contentGroup);
+    hDim(cursor, segY, next, len, 10, '#0f172a', 0.9, null, true, dimGroup, labelText);
+    if(meta?.label){
+      const txtY = segY - Math.max(18, state.fontPx * 1.6);
+      const t = create('text',{x:(cursor+next)/2,y:txtY,'text-anchor':'middle','dominant-baseline':'middle','font-size':state.fontPx,fill:'#0f172a'},dimGroup);
+      t.textContent = meta.label;
+    }
     if (idx < parts.length - 1){
       create('line',{x1:next,y1:offsetY,x2:next,y2:offsetY+W,stroke:'#475569','stroke-width':state.strokeWidth,'stroke-dasharray':lineStyle || ''}, contentGroup);
     }
     cursor = next;
   });
-  hDim(offsetX, segY + (dimPosEff==='top' ? -20 : 20), offsetX+L, L, 10, '#0f172a', 1.1, null, true, contentGroup);
+  hDim(offsetX, segY + (dimPosEff==='top' ? -36 : 36), offsetX+L, L, 10, '#0f172a', 1.1, null, true, contentGroup);
 
   // koty vysky
   const segOffsetH = dimOffsetH || Math.max(50, Math.round(state.fontPx*3.2));
@@ -396,7 +687,17 @@ function draw(){
   cursor = offsetY;
   partsH.forEach((len, idx)=>{
     const next = cursor + len;
-    vDim(segX, cursor, next, len, 10, '#0f172a', 0.9, null, true, contentGroup);
+    const meta = partLabelsH[idx];
+    const labelText = meta ? meta.value : formatVal(len);
+    const dimGroup = create('g',{}, contentGroup);
+    vDim(segX, cursor, next, len, 10, '#0f172a', 0.9, null, true, dimGroup, labelText);
+    if(meta?.label && meta.label !== 'DLZKA'){
+      const sideX = segX + (dimPosH === 'left' ? 18 : -18);
+      const midY = (cursor + next) / 2;
+      const g = create('g',{transform:`translate(${sideX} ${midY}) rotate(-90)`}, dimGroup);
+      const t = create('text',{'text-anchor':'middle','dominant-baseline':'middle','font-size':state.fontPx,fill:'#0f172a'},g);
+      t.textContent = meta.label;
+    }
     if (idx < partsH.length - 1){
       create('line',{x1:offsetX,y1:next,x2:offsetX+L,y2:next,stroke:'#475569','stroke-width':state.strokeWidth,'stroke-dasharray':lineStyleH || ''}, contentGroup);
     }
@@ -670,7 +971,10 @@ function draw(){
 }
 
 function reset(){
-  $('W').value=400; $('L').value=600; $('fontPx').value=14; $('fontPxVal').textContent='14 px'; $('toggle-grid').checked=false; $('lineStyle').value='solid';
+  $('W').value=0; $('H').value=0; $('L').value='200'; $('C').value='0'; $('C').dataset.manual='0';
+  $('seamMode').value='center';
+  state.widthManual=false;
+  $('fontPx').value=14; $('fontPxVal').textContent='14 px'; $('toggle-grid').checked=false; $('lineStyle').value='dashed';
   $('strokeWidth').value=1; $('dimPos').value='bottom'; $('dimOffset').value=25; $('dimPosH').value='right'; $('dimOffsetH').value=25; $('lineStyleH').value='solid';
   $('units').value='none'; $('decimals').value='0';
   $('rollEnabled').checked=true; $('rollPrint').checked=false; $('rollAssembly').checked=false; $('rollType').value='1'; $('rollVariant').value='A';
@@ -687,8 +991,13 @@ function reset(){
   $('bgFile').value=''; state.bgImageData=null; $('bgWidth').value=''; $('bgHeight').value=''; state.bgWidth=null; state.bgHeight=null; state.bgOpacity=0.6; $('bgOpacity').value=0.6; $('bgOpacityVal').textContent='60 %'; state.bgRot=0; state.bgFlip=false; state.bgOffsetX=0; state.bgOffsetY=0;
   $('measureMode').value='off'; state.measureMode='off'; state.measurePick=null; state.measures=[]; state.measurePreview=null;
   state.calibActive=false; state.calibPoints=[]; $('bg-calib-cancel').style.display='none'; $('bg-calib').style.display='inline-block'; svgRoot.style.cursor='';
-  $('segments').innerHTML=''; state.segments.length=0; addSegmentInput('');
-  $('segmentsH').innerHTML=''; state.segmentsH.length=0; addSegmentInputH('');
+  if($('segments')) $('segments').innerHTML='';
+  if($('segments-extra')) $('segments-extra').innerHTML='';
+  if($('segmentsH-extra')) $('segmentsH-extra').innerHTML='';
+  state.segments.length=0; state.segMeta.length=0;
+  state.extraSegments.length=0; state.extraSegmentsH.length=0;
+  buildWidthSegments();
+  updateCAndHeight();
   draw();
 }
 
@@ -701,7 +1010,7 @@ function exportPDF(){
   clone.querySelectorAll('.header-ui, .footer-ui').forEach(n=> n.remove());
   const width = bb.width || state.bounds.width || 800;
   const height = bb.height || state.bounds.height || 800;
-  const baseName = (state.orderNo || 'folia2').trim();
+  const baseName = (state.orderNo || 'vz108').trim();
 
   // remove zoom sizing/styles so PDF is 1:1
   clone.removeAttribute('style');
@@ -794,7 +1103,7 @@ function exportPNG(){
   const drawUrl = URL.createObjectURL(drawBlob);
   const drawImg = new Image();
 
-  const baseName = (state.orderNo || 'folia2').trim();
+  const baseName = (state.orderNo || 'vz108').trim();
   let fullReady = false;
   let drawReady = false;
   const tryRender = ()=>{
@@ -851,9 +1160,14 @@ function exportPNG(){
 
 function collectState(){
   return {
-    vz:'folia',
-    W:num($('W'),400),
-    L:num($('L'),600),
+    vz:'vz108',
+    W:num($('W'),0),
+    H:num($('H'),0),
+    L:num($('L'),0),
+    C:num($('C'),0),
+    cManual: $('C')?.dataset.manual === '1' ? 1 : 0,
+    seamMode:$('seamMode')?.value || 'center',
+    widthManual: state.widthManual,
     fontPx:state.fontPx,
     strokeWidth:state.strokeWidth,
     dimPos:$('dimPos')?.value || 'bottom',
@@ -891,8 +1205,12 @@ function collectState(){
     bgImageData:state.bgImageData,
     measures: state.measures,
     measureMode: state.measureMode,
-    segments: state.segments.map(inp=>num(inp,0)),
-    segmentsH: state.segmentsH.map(inp=>num(inp,0))
+    segments: state.segMeta.map(seg=>({
+      key: seg.key,
+      label: seg.label,
+      value: num(seg.input,0),
+      manual: seg.input.dataset.manual === '1' ? 1 : 0
+    }))
   };
 }
 
@@ -901,22 +1219,27 @@ function saveJSON(){
   const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const baseName = (data.orderNo || 'folia2').trim();
+  const baseName = (data.orderNo || 'vz108').trim();
   a.href = url; a.download = `${baseName}.json`; a.click();
   URL.revokeObjectURL(url);
 }
 
 function loadData(data){
   if(!data) return;
-  $('W').value = data.W ?? 400;
-  $('L').value = data.L ?? 600;
+  $('W').value = data.W ?? 0;
+  $('H').value = data.H ?? 0;
+  $('L').value = data.L ?? 200;
+  $('C').value = data.C ?? 0;
+  if($('C')) $('C').dataset.manual = data.cManual ? '1' : '0';
+  $('seamMode').value = data.seamMode ?? 'center';
+  state.widthManual = !!data.widthManual;
   $('fontPx').value = data.fontPx ?? 14;
   $('strokeWidth').value = data.strokeWidth ?? 1;
   $('dimPos').value = data.dimPos ?? 'bottom';
   $('dimOffset').value = data.dimOffset ?? 80;
   $('dimPosH').value = data.dimPosH ?? 'right';
   $('dimOffsetH').value = data.dimOffsetH ?? 25;
-  $('lineStyle').value = data.lineStyle ?? 'solid';
+  $('lineStyle').value = data.lineStyle ?? 'dashed';
   $('lineStyleH').value = data.lineStyleH ?? 'solid';
   $('units').value = data.units ?? 'mm';
   $('decimals').value = data.decimals ?? 0;
@@ -963,10 +1286,21 @@ function loadData(data){
   state.measureMode = data.measureMode ?? 'off';
   $('measureMode').value = state.measureMode;
   state.measures = Array.isArray(data.measures)? data.measures : [];
-  $('segments').innerHTML=''; state.segments.length=0;
-  (data.segments ?? ['']).forEach(v=> addSegmentInput(v));
-  $('segmentsH').innerHTML=''; state.segmentsH.length=0;
-  (data.segmentsH ?? ['']).forEach(v=> addSegmentInputH(v));
+  if($('segments')) $('segments').innerHTML=''; state.segments.length=0; state.segMeta.length=0;
+  buildWidthSegments();
+  if(Array.isArray(data.segments)){
+    const map = new Map(data.segments.map(s=>[s.key, s]));
+    state.segMeta.forEach(seg=>{
+      const stored = map.get(seg.key);
+      if(stored && stored.value !== undefined){
+        seg.input.value = stored.value;
+        if(stored.manual) seg.input.dataset.manual = '1';
+      }
+    });
+  }
+  updateComputedWidth();
+  updateWidthTotal();
+  updateCAndHeight();
   draw();
 }
 
@@ -998,7 +1332,7 @@ function handleLoadFile(file){
   r.onload = (ev)=>{
     try{
       const data = JSON.parse(ev.target.result);
-      if (data.vz && data.vz !== 'folia'){
+      if (data.vz && data.vz !== 'vz108'){
         alert('Tento JSON je pre iny vzor: ' + data.vz);
         return;
       }
@@ -1040,8 +1374,8 @@ function applyCalibIfReady(){
   const mmVal = parseFloat(mmStr);
   if(Number.isFinite(mmVal) && mmVal>0 && dist>0){
     const factor = mmVal / dist;
-    const curW = state.bgWidth ?? num($('L'),600);
-    const curH = state.bgHeight ?? num($('W'),400);
+    const curW = state.bgWidth ?? num($('W'),600);
+    const curH = state.bgHeight ?? num($('H'),400);
     state.bgWidth = curW * factor;
     state.bgHeight = curH * factor;
     $('bgWidth').value = state.bgWidth.toFixed(1);
@@ -1091,10 +1425,14 @@ $('btn-export-png')?.addEventListener('click', ()=>{ draw(); exportPNG(); });
 $('btn-save')?.addEventListener('click', saveJSON);
 $('btn-load')?.addEventListener('click', ()=> $('loadFile')?.click());
 $('loadFile')?.addEventListener('change', (e)=> handleLoadFile(e.target.files?.[0]));
-$('seg-add')?.addEventListener('click', ()=> addSegmentInput(''));
-$('seg-remove')?.addEventListener('click', removeSegmentInput);
-$('segH-add')?.addEventListener('click', ()=> addSegmentInputH(''));
-$('segH-remove')?.addEventListener('click', removeSegmentInputH);
+$('seamMode')?.addEventListener('change', ()=>{ buildWidthSegments(); updateCAndHeight(); draw(); });
+$('L')?.addEventListener('change', ()=>{ updateCAndHeight(); draw(); });
+$('C')?.addEventListener('input', ()=>{ const c=$('C'); if(c){ c.dataset.manual='1'; } updateCAndHeight(); draw(); });
+$('W')?.addEventListener('input', ()=>{ state.widthManual = true; updateCAndHeight(); draw(); });
+$('seg-add')?.addEventListener('click', ()=> addExtraSegment('segments-extra', state.extraSegments, 'EX'));
+$('seg-remove')?.addEventListener('click', ()=> removeExtraSegment(state.extraSegments));
+$('segH-add')?.addEventListener('click', ()=> addExtraSegment('segmentsH-extra', state.extraSegmentsH, 'EX'));
+$('segH-remove')?.addEventListener('click', ()=> removeExtraSegment(state.extraSegmentsH));
 $('printOps')?.addEventListener('change', draw);
 document.querySelectorAll('input[name=\"lacquerStep\"]').forEach(el=> el.addEventListener('change', draw));
 document.querySelectorAll('input[name="printSide"]').forEach(el=> el.addEventListener('change', draw));
@@ -1179,8 +1517,18 @@ window.addEventListener('paste',(e)=>{
   e.preventDefault();
 });
 
-addSegmentInput('');
-addSegmentInputH('');
+initLengthOptions();
+if($('C')){
+  $('C').classList.add('calc');
+  $('C').tabIndex = -1;
+}
+if($('H')){
+  $('H').tabIndex = -1;
+}
+if($('W')){
+  $('W').classList.add('calc');
+  $('W').tabIndex = -1;
+}
 reset();
-if (window.applyEpsPayload) { window.applyEpsPayload('folia'); }
+if (window.applyEpsPayload) { window.applyEpsPayload('vz108'); }
 draw();

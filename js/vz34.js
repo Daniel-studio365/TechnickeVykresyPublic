@@ -5,6 +5,8 @@
   const refPartA = $('refPartA');
   const refPartB = $('refPartB');
   const refCodeText = $('refCodeText');
+  const porCislo = $('porCislo');
+  const porCisloText = $('porCisloText');
   const finalNavinNumber = $('finalNavinNumber');
   const finalNavinLetter = $('finalNavinLetter');
   const rezanieYes = $('rezanie-ano');
@@ -19,6 +21,9 @@
   }
   function updateRefDisplay(){
     if (refCodeText) refCodeText.textContent = buildRefLabel();
+  }
+  function updatePorCisloDisplay(){
+    if (porCisloText) porCisloText.textContent = (porCislo && porCislo.value ? porCislo.value : '-') || '-';
   }
   function buildRefSlug(){
     return buildRefLabel().replace(/[^a-zA-Z0-9_-]+/g, '-');
@@ -80,9 +85,16 @@
   };
 
   const inputs = [
-    'W','L','G','K','P','Ph','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirXAuto','AirCount','AirPitch','fontPx','toggle-grid','toggle-notches',
+    'W','L','G','K','BagWidth','P','Ph','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirXAuto','AirCount','AirPitch','fontPx','toggle-grid','toggle-notches',
     'finalNavinNumber','finalNavinLetter','rezanie-ano','rezanie-nie'
   ].map(id => $(id));
+
+  const prefillableIds = [
+    'W','L','G','K','BagWidth','P','Ph','Cpitch','AxisInK','NotchLen','AirEdge','AirCount','AirPitch',
+    'refPartA','refPartB','printSide','finalNavinNumber','finalNavinLetter','rezanie-ano','rezanie-nie',
+    'bottomText1','bottomText2'
+  ];
+  const prefillableEls = prefillableIds.map(id=>$(id)).filter(Boolean);
 
   if (printSide) printSide.addEventListener('change', updateNavinTlac);
   if (finalNavinNumber) finalNavinNumber.addEventListener('change', updateNavinTlac);
@@ -91,6 +103,7 @@
   if (rezanieNo) rezanieNo.addEventListener('change', updateNavinTlac);
   if (refPartA) refPartA.addEventListener('input', updateRefDisplay);
   if (refPartB) refPartB.addEventListener('input', updateRefDisplay);
+  if (porCislo) porCislo.addEventListener('input', updatePorCisloDisplay);
   if (btnOpenFirmManager) {
     btnOpenFirmManager.addEventListener('click', () => {
       try { localStorage.setItem('index2_vz', 'vz34'); } catch (_) {}
@@ -174,6 +187,9 @@
     }
   }
   function prefillFromFirm(){
+    let source = '';
+    try { source = localStorage.getItem('prefill_source') || ''; } catch (_) {}
+    if (source !== 'firm') return;
     let data = null;
     try {
       const raw = localStorage.getItem('selectedFirm');
@@ -183,11 +199,8 @@
     const dims = data.dimensions || {};
     const air = data.air || {};
     const clip = data.clip || {};
-    const map = { W:'W', L:'L', G:'G', K:'K', notchLen:'NotchLen', Cpitch:'Cpitch', AxisInK:'AxisInK', AirEdge:'AirEdge', AirCount:'AirCount', AirPitch:'AirPitch' };
-    Object.values(map).forEach(id=>{
-      const el=$(id);
-      if (el) el.classList.remove('prefilled');
-    });
+    const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', notchLen:'NotchLen', Cpitch:'Cpitch', AxisInK:'AxisInK', AirEdge:'AirEdge', AirCount:'AirCount', AirPitch:'AirPitch' };
+    prefillableEls.forEach(el=> el.classList.remove('prefilled'));
     Object.entries(map).forEach(([key,id])=>{
       const el=$(id);
       let val=null;
@@ -200,6 +213,7 @@
       }
       else if (key === 'AirPitch') val = air.pitch;
       else if (key === 'AxisInK') val = (dims.AxisInK != null) ? dims.AxisInK : (dims.K != null ? dims.K/2 : null);
+      else if (key === 'bagWidth') val = (dims.W != null ? dims.W : null);
       else val = dims[key];
       if (el && val != null && val !== '') {
         el.value = (el.tagName === 'SELECT') ? String(val) : val;
@@ -252,7 +266,23 @@
       bottomImgPreview.style.display = 'none';
       bottomImgPreview.style.transform = '';
     }
+
+    try {
+      localStorage.removeItem('selectedFirm');
+      localStorage.removeItem('prefill_source');
+    } catch (_) {}
   }
+
+  function clearPrefilled(){
+    prefillableEls.forEach(el=> el.classList.remove('prefilled'));
+  }
+  prefillableEls.forEach(el=>{
+    const evt = (el.tagName === 'TEXTAREA' || el.type === 'text' || el.type === 'number') ? 'input' : 'change';
+    el.addEventListener(evt, (e)=> {
+      if (e && e.isTrusted === false) return;
+      el.classList.remove('prefilled');
+    });
+  });
 
   function withNormalizedView(fn){
     const oldPan = {...state.pan};
@@ -337,6 +367,10 @@
     const L = num($('L'),600);
     const G = num($('G'),50);
     const K = num($('K'),45);
+    const bagWidthInput = $('BagWidth');
+    const bagWidthRaw = num(bagWidthInput, NaN);
+    const bagWidth = Number.isFinite(bagWidthRaw) && bagWidthRaw > 0 ? bagWidthRaw : W;
+    if(bagWidthInput && (bagWidthInput.value==='' || !Number.isFinite(bagWidthRaw))){ bagWidthInput.value = Math.round(bagWidth); }
     const P = Math.max(10,num($('P'),55));
     const Ph = Math.max(0,num($('Ph'),240));
     const C = Math.max(0,num($('Cpitch'),160));
@@ -415,13 +449,13 @@
       const wasteLeftW=Math.max(0, handleOffsetX - leftOuter);
       if(wasteLeftW>0){
         create('rect',{x:wasteLeftX,y:wasteY,width:wasteLeftW,height:wasteH,fill:cyan,'fill-opacity':0.2,stroke:'none'});
-        textWithBg('VĂtSEK', wasteLeftX + wasteLeftW/2, wasteY + wasteH/2, {anchor:'middle',baseline:'middle',color:cyan});
+        textWithBg('VYSEK', wasteLeftX + wasteLeftW/2, wasteY + wasteH/2, {anchor:'middle',baseline:'middle',color:cyan});
       }
       const wasteRightX=handleEndX;
       const wasteRightW=Math.max(0, rightOuter - handleEndX);
       if(wasteRightW>0){
         create('rect',{x:wasteRightX,y:wasteY,width:wasteRightW,height:wasteH,fill:cyan,'fill-opacity':0.2,stroke:'none'});
-        textWithBg('VĂtSEK', wasteRightX + wasteRightW/2, wasteY + wasteH/2, {anchor:'middle',baseline:'middle',color:cyan});
+        textWithBg('VYSEK', wasteRightX + wasteRightW/2, wasteY + wasteH/2, {anchor:'middle',baseline:'middle',color:cyan});
       }
     }
 
@@ -574,14 +608,23 @@
       vDim(xDim, y1, y2, C, 10, '#dc2626');
       vDim(xDim, yBottomBody, y2, W/2 - C/2);
       vDim(xDimW, yTopBody, yBottomBody, W);
+    const xBagDim = leftOuter - 18;
+      const bagLabel = `sirka vrecka ${Math.round(bagWidth)}`;
+      let yBagStart = yTopBody + (W - bagWidth)/2;
+      let yBagEnd = yBagStart + bagWidth;
+      vDim(xBagDim, yBagStart, yBagEnd, bagLabel, 10, '#0f172a');
+      create('line',{x1:xBagDim,x2:leftOuter,y1:yBagStart,y2:yBagStart,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'4 3'});
+      create('line',{x1:xBagDim,x2:leftOuter,y1:yBagEnd,y2:yBagEnd,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'4 3'});
+      minX = Math.min(minX, xBagDim - 40);
       hDim(rightSlot.x, rightSlot.y-10, rightSlot.x+rightSlot.w, 90);
       vDim(rightSlot.x+rightSlot.w+16, rightSlot.y, rightSlot.y+rightSlot.h, 20);
       vDim(rightSlot.x+rightSlot.w+36, offsetYTop, rightSlot.y+rightSlot.h, 50);
       const yAirBase = cyBot + Math.max(36, Math.round(state.fontPx*3.0));
-      leftL.slice(1).forEach((xVal,i)=>{ hDim(xVal, yAirBase, leftL[i], Math.abs(leftL[i]-xVal), '#dc2626'); });
-      rightL.slice(1).forEach((xVal,i)=>{ hDim(rightL[i], yAirBase, xVal, Math.abs(xVal-rightL[i]), '#dc2626'); });
-      hDim(xFirstLeftL, yAirBase, xLeftGStart, X, '#dc2626');
-      hDim(xRightGEnd,  yAirBase, xFirstRightL, X, '#dc2626');
+      leftL.slice(1).forEach((xVal,i)=>{ hDim(xVal, yAirBase, leftL[i], Math.abs(leftL[i]-xVal), 10, '#dc2626'); });
+      rightL.slice(1).forEach((xVal,i)=>{ hDim(rightL[i], yAirBase, xVal, Math.abs(xVal-rightL[i]), 10, '#dc2626'); });
+      hDim(xFirstLeftL, yAirBase, xLeftGStart, X, 10, '#dc2626');
+      hDim(xRightGEnd,  yAirBase, xFirstRightL, X, 10, '#dc2626');
+      // roztec otvorov - nech ostane len v rovine s kotou X od okrajov G
       const segY   = yBottomBody + Math.max(60, Math.round(state.fontPx * 4.5));
       const totalY = segY + Math.max(28, Math.round(state.fontPx * 2.4));
       let segX=leftOuter;
@@ -628,7 +671,7 @@
   if(bgFlipBtn) bgFlipBtn.addEventListener('click', ()=>{ bgState.flip = !bgState.flip; draw(); });
 
   $('btn-reset').addEventListener('click', ()=>{
-    $('W').value=400; $('L').value=600; $('G').value=50; $('K').value=45;
+    $('W').value=400; $('L').value=600; $('G').value=50; $('K').value=45; if($('BagWidth')) $('BagWidth').value=400;
     $('P').value=55; $('Ph').value=240;
     $('Cpitch').value=160; $('AxisInK').value='';
     $('NotchLen').value=7; $('toggle-notches').checked=true;
@@ -640,6 +683,19 @@
     if(rezanieYes) rezanieYes.checked=false;
     if(rezanieNo) rezanieNo.checked=true;
     bgFile.value=''; bgWidthEl.value=''; bgHeightEl.value=''; bgState.data=null; bgState.natural={w:0,h:0}; bgState.offset={x:0,y:0}; bgState.rotation=0; bgState.flip=false;
+    document.querySelectorAll('.epsfilled').forEach(el=> el.classList.remove('epsfilled'));
+    clearPrefilled();
+    if(bottomText1) bottomText1.value='';
+    if(bottomText2) bottomText2.value='';
+    if(bottomImgPreview){
+      bottomImgPreview.src='';
+      bottomImgPreview.style.display='none';
+      bottomImgPreview.style.transform='';
+    }
+    try{
+      localStorage.removeItem('selectedFirm');
+      localStorage.removeItem('prefill_source');
+    }catch(_){}
     updateNavinTlac();
     draw();
   });
@@ -906,7 +962,7 @@
     return {
       vz: 'vz34',
       inputs: {
-        W:$('W').value, L:$('L').value, G:$('G').value, K:$('K').value,
+        W:$('W').value, L:$('L').value, G:$('G').value, K:$('K').value, BagWidth:$('BagWidth')?.value || '',
         P:$('P').value, Ph:$('Ph').value,
         Cpitch:$('Cpitch').value, AxisInK:$('AxisInK').value,
         NotchLen:$('NotchLen').value, toggleNotches:$('toggle-notches').checked,
@@ -939,9 +995,12 @@
   }
 
   function applyLoadedState(data){
+    clearPrefilled();
+    document.querySelectorAll('.epsfilled').forEach(el=> el.classList.remove('epsfilled'));
     if(data.inputs){
       const i=data.inputs;
       $('W').value=i.W||'';
+      if($('BagWidth')) $('BagWidth').value=i.BagWidth||'';
       $('L').value=i.L||'';
       $('G').value=i.G||'';
       $('K').value=i.K||'';
@@ -1220,7 +1279,7 @@ ${svgText}
 
   prefillFromFirm();
   updateNavinTlac();
+  updatePorCisloDisplay();
   if (window.applyEpsPayload) { window.applyEpsPayload('vz34'); }
   draw();
 })();
-

@@ -29,7 +29,9 @@ window.EPS_MAP = {
     "vz34": "AxisInK"
   },
   "dim_bag_width": {
-    "vz22": "BagWidth"
+    "vz22": "BagWidth",
+    "vz31": "BagWidth",
+    "vz34": "BagWidth"
   },
   "hole_pitch_C": {
     "vz22": "Cpitch",
@@ -53,7 +55,11 @@ window.EPS_MAP = {
     "vz22": "L",
     "vz31": "L",
     "vz34": "L",
-    "folia": "L"
+    "folia": "L",
+    "vz108": "L"
+  },
+  "dim_C": {
+    "vz108": "C"
   },
   "notch_length": {
     "vz22": "NotchLen",
@@ -81,19 +87,38 @@ window.EPS_MAP = {
     "vz34": "Ph"
   },
   "dim_SEK": {
-    "vz34": "Sek"
+    "vz34": "Sek",
+    "vz108": "H"
   },
   "dim_W": {
     "vz22": "W",
     "vz31": "W",
     "vz34": "W",
-    "folia": "W"
+    "folia": "W",
+    "vz108": "W"
+  },
+  "seam_mode": {
+    "vz108": "seamMode"
+  },
+  "seg_ps": {
+    "vz108": "PS"
+  },
+  "seg_bzp": {
+    "vz108": "BZP"
   },
   "ref_code_a": {
-    "vz22": "refPartA"
+    "vz22": "refPartA",
+    "vz31": "refPartA",
+    "vz34": "refPartA",
+    "folia": "refPartA",
+    "vz108": "refPartA"
   },
   "ref_code_b": {
-    "vz22": "refPartB"
+    "vz22": "refPartB",
+    "vz31": "refPartB",
+    "vz34": "refPartB",
+    "folia": "refPartB",
+    "vz108": "refPartB"
   },
   "lacquer_next_no": {
     "folia": "lacquerNo"
@@ -128,7 +153,9 @@ window.EPS_MAP = {
   "order_serial": {
     "vz22": "porCislo",
     "vz31": "porCislo",
-    "vz34": "porCislo"
+    "vz34": "porCislo",
+    "folia": "porCislo",
+    "vz108": "porCislo"
   },
   "print_ops": {
     "folia": "printOps"

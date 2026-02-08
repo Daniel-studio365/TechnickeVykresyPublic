@@ -16,6 +16,10 @@
             <span>/</span>
             <input id="refPartB" class="pill pill-input short" type="text" maxlength="2" aria-label="Cislo vzoru cast B" />
           </div>
+          <div class="field wide">
+            <strong>Por. cislo vyrobku:</strong>
+            <input id="porCislo" class="pill pill-input" type="text" maxlength="60" aria-label="Poradove cislo vyrobku" />
+          </div>
           <div class="field wide" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <strong>Finalny navin:</strong>
             <div class="pill-group" style="display:flex;gap:6px;">
@@ -173,6 +177,10 @@
             <strong>Cislo referencneho vzoru:</strong>
             <span id="refCodeText" class="pill">vz-22</span>
           </div>
+          <div class="field wide">
+            <strong>Por. cislo vyrobku:</strong>
+            <span id="porCisloText" class="pill">-</span>
+          </div>
           <div class="field wide" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <strong>Finalny navin:</strong>
             <span id="finalNavinText" class="pill">1A</span>
@@ -194,10 +202,6 @@
             <span id="stamp" class="badge">-</span>
             <span>Vzor:</span>
             <span id="vzCode" class="badge">vz-22</span>
-          </div>
-          <div class="field">
-            <label for="porCislo">por. cislo vyrobku</label>
-            <input type="text" id="porCislo" placeholder="Dopln poradie / cislo vyrobku" maxlength="60">
           </div>
           <div class="field">
             <label for="otherNotes">ostatne poznamky</label>
