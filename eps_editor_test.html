@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>EPS Editor (Test)</title>
+  <style>
+    :root { --ink:#0f172a; --bg:#f6f7f9; --panel:#fff; --border:#e2e8f0; --accent:#0ea5e9; }
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:"Roboto","Noto Sans",system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+    header{padding:12px 16px;border-bottom:1px solid var(--border);background:#fff;display:flex;align-items:center;gap:12px;}
+    main{display:grid;grid-template-columns:280px 1fr;gap:12px;padding:12px;min-height:calc(100vh - 56px);}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;overflow:auto;}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    label{display:flex;align-items:center;justify-content:flex-start;gap:8px;font-size:13px;margin:6px 0;}
+    label span{flex:0 0 35%;max-width:35%;min-width:0;}
+    input,select,textarea{padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;min-width:120px;max-width:160px;}
+    textarea{min-height:80px;width:100%;}
+    button{border:none;border-radius:10px;padding:8px 12px;font-weight:600;color:#fff;background:var(--accent);cursor:pointer;}
+    button.secondary{background:#334155;}
+    button.warn{background:#dc2626;}
+    .section-title{font-weight:700;font-size:15px;margin:10px 0 6px 0;}
+    .group{border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:10px;}
+    .group-title{font-weight:700;font-size:13px;margin-bottom:6px;color:#334155;}
+    .kv{font-size:12px;color:#64748b;}
+    #fields label.active-vz{outline:none;padding:0;}
+    #fields input.active-vz{outline:2px solid #f59e0b;border-radius:8px;}
+  </style>
+</head>
+<body>
+  <header>
+    <strong>EPS Editor (Test)</strong>
+    <span class="kv">Generovanie a test EPS JSON</span>
+  </header>
+  <main>
+    <aside class="panel">
+      <div class="section-title">Cielovy vzor</div>
+      <label>Vzor:
+        <select id="targetTemplate">
+          <option value="vz22">vz22</option>
+          <option value="vz31">vz31</option>
+          <option value="vz34">vz34</option>
+          <option value="folia">folia</option>
+          <option value="vz108">vz108</option>
+        </select>
+      </label>
+      <div class="section-title">EPS JSON</div>
+      <div class="row">
+        <button id="btn-save">Ulozit JSON</button>
+        <button id="btn-open" class="secondary">Otvorit vykres</button>
+      </div>
+      <div class="row">
+        <button id="btn-load" class="secondary">Nacitat JSON</button>
+        <input type="file" id="loadFile" accept="application/json" style="display:none;">
+      </div>
+      <div class="row">
+        <button id="btn-clear" class="warn">Vymazat polia</button>
+      </div>
+      <div class="section-title">Aktualny JSON</div>
+      <textarea id="jsonPreview" readonly></textarea>
+    </aside>
+    <section class="panel">
+      <div class="section-title">Canonical keys</div>
+      <div id="fields"></div>
+    </section>
+  </main>
+  <script src="js/eps_fields.js"></script>
+  <script src="js/eps_map.js"></script>
+  <script src="js/eps_editor_test.js"></script>
+</body>
+</html>

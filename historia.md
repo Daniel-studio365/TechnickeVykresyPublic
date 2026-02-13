@@ -1610,3 +1610,20 @@ vz34: pridana sirka vrecka (BagWidth) v ovladani aj JSON, koty sirky vrecka na l
 vz31: pridana sirka vrecka (BagWidth) v ovladani aj JSON, koty sirky vrecka na lavej strane, viewBox posunut vpravo (leftPad) aby sa koty nerezali. reset/prefill podporuje BagWidth. eps_map doplneny o dim_bag_width pre vz31.
 CRV/PCV: refPartA/refPartB (CRV) a porCislo (PCV) doplnene do vsetkych vzorov (vz22/vz31/vz34/folia/vz108). vo vz22/vz31/vz34 presunute do hornej hlavicky a zobrazenie v left-notes. vo folia/vz108 odstranene polia cislo zakazky/poznamka; v hlavicke vykresu je CRV a PCV.
 Canonical keys: ref_code_a, ref_code_b, order_serial nastavene na vsetky vzory v canonyan_keys2_vz108.csv.
+HISTORIA
+2026-02-12 18:04 - PRACA
+vz22: upravene ovladanie podla postrehov obsluhy. V sekcii Perforacia pridany prepinac ano/nie (PerfEnabled); pri volbe nie sa vypne strana/perf offset a perforacia sa nekresli. Text pre perf offset premenovany na "Vzdialenost od stredu".
+vz22: v sekcii Vzduchove otvory pridany prepinac ano/nie (AirEnabled); pri volbe nie sa vypnu suvisiace volby a vzduchove otvory ani ich koty sa nekreslia.
+vz22: premenovane nazvy sekcii a poli: "Zavesne otvory v chlopni", "Vzialenost zavesnych otvorov", "Umiestnenie stredu otvorov (z lavej strany chlopne)", "Pozadovana sirka vrecka".
+vz22: upravene poradie v Zakladne rozmery na: Pozadovana sirka vrecka, Dlzka (L), Sek (W), Spodna zalozka (G), Chlopna (K).
+vz22: sekcia "Zaseky v K" premenovana na "Zaseky pri zavesnych otvoroch"; pole "Dlzka zaseku v K" na "Dlzka zaseku". Pridane readonly pole "Mostik" s automatickym vypoctom z logiky vykresu (medzera medzi zasekom a zavesnym otvorom). Do JSON sa neuklada, dopocitava sa po nacitani.
+HISTORIA
+2026-02-12 19:26 - PRACA
+vz22/vz31/vz34: UX upravy ovladania a nazvov podla postrehov obsluhy. Zjednotene nazvy v Zakladne rozmery (Pozadovana sirka vrecka, Dlzka (L), Sek (W), Spodna zalozka (G), Chlopna (K)).
+vz22: pridane prepinace ano/nie pre Perforacia (PerfEnabled) a Vzduchove otvory (AirEnabled); pri volbe nie sa suvisiace polia vypnu a prvky sa nekreslia. Upraveny text "Vzdialenost od stredu" pre perforaciu a "Vzduchovy otvor od zalozky".
+vz31/vz34: premenovane sekcie na "Zavesne otvory v chlopni" a "Zaseky pri zavesnych otvoroch"; texty C/Axis zjednotene ako vo vz34. Pridane readonly pole Mostik (automaticky vypocet z logiky koty medzi zasekom a otvorom).
+vz22/vz31/vz34: Mostik sa zobrazuje s 1 desatinnym miestom a rovnako sa pouziva v kote vykresu. Do JSON sa Mostik neuklada (dopocitava sa).
+vz31: otvor na prst uz neprekriva znacky textom. Kruh otvoru je farebne ako zona bez tlace a legenda "OTVOR NA PRST BEZ FARBY" je vedla legendy "ZONA BEZ TLACE".
+vz22/vz31/vz34: text "NO PRINT AREA" zmeneny na "ZONA BEZ TLACE".
+vz31/vz34: tlacidlo Nacitat presunute na vrch panelu ako "Nacitat ulozeny TV"; "Ulozit (JSON)" premenovane na "Ulozit TV". Na vz34 odstranene duplicitne tlacidlo "Firmy (sprava)".
+vz22/vz31/vz34: pridane Undo/Redo (tlacidla Spat/Dopredu + Ctrl+Z, Ctrl+Y/Ctrl+Shift+Z) s historiou zmien formulara, vratane reset/load/prefill snapshotov.

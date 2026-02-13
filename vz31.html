@@ -9,6 +9,9 @@
 <body>
     <div id="app">
       <aside id="controls">
+        <div class="row" style="margin-bottom:8px;">
+          <button id="btn-load" type="button">Nacitat ulozeny TV</button>
+        </div>
         <div class="card" id="eps-header">
           <div class="field wide">
             <strong>Cislo referencneho vzoru:</strong>
@@ -60,11 +63,11 @@
           </div>
         </div>
         <h3>Zakladne rozmery</h3>
-      <label>W (sirka): <input type="number" id="W" value="400"></label>
-      <label>L (dlzka): <input type="number" id="L" value="600"></label>
-      <label>G (spodna zalozka): <input type="number" id="G" value="50"></label>
-      <label>K (chlopna): <input type="number" id="K" value="45"></label>
-      <label>Sirka vrecka: <input type="number" id="BagWidth" value="400"></label>
+      <label>Pozadovana sirka vrecka: <input type="number" id="BagWidth" value="400"></label>
+      <label>Dlzka (L): <input type="number" id="L" value="600"></label>
+      <label>Sek (W): <input type="number" id="W" value="400"></label>
+      <label>Spodna zalozka (G): <input type="number" id="G" value="50"></label>
+      <label>Chlopna (K): <input type="number" id="K" value="45"></label>
       <span class="sep"></span>
 
       <h3>Perforacia</h3>
@@ -92,15 +95,16 @@
       </label>
       <span class="sep"></span>
 
-      <h3>Dierovanie v K</h3>
-      <label>C - roztec &Oslash;14 v K: <input type="number" id="Cpitch" value="160"></label>
-      <label>Os v K od lavej hrany (ak prazdne K/2): <input type="number" id="AxisInK" placeholder="K/2"></label>
+      <h3>Zavesne otvory v chlopni</h3>
+      <label>Vzdialenost zavesnych otvorov: <input type="number" id="Cpitch" value="160"></label>
+      <label>Umiestnenie stredu otvorov (od vrecka): <input type="number" id="AxisInK" placeholder="K/2"></label>
       <div id="warnC">C je mimo W (zasahuje okraj)</div>
       <div id="warnAxis">Os je mimo 0..K</div>
       <span class="sep"></span>
 
-      <h3>Zaseky v K</h3>
-      <label>Dlzka zaseku v K: <input type="number" id="NotchLen" value="7"></label>
+      <h3>Zaseky pri zavesnych otvoroch</h3>
+      <label>Dlzka zaseku: <input type="number" id="NotchLen" value="7"></label>
+      <label>Mostik: <input type="number" id="Mostik" value="0" readonly tabindex="-1"></label>
       <label><input type="checkbox" id="toggle-notches"> Zobrazit zaseky</label>
       <span class="sep"></span>
 
@@ -181,11 +185,14 @@
         </label>
       </div>
       <div class="row" style="margin-top:6px;">
+        <button id="btn-undo" type="button" class="secondary">Spat</button>
+        <button id="btn-redo" type="button" class="secondary">Dopredu</button>
         <button id="btn-reset" class="secondary">Reset</button>
+      </div>
+      <div class="row" style="margin-top:6px;">
         <button id="btn-export">Export PDF 1:1</button>
         <button id="btn-print">Tlac dokumentu (PNG)</button>
-        <button id="btn-save" type="button">Ulozit (JSON)</button>
-        <button id="btn-load" type="button">Nacitat</button>
+        <button id="btn-save" type="button">Ulozit TV</button>
         <input type="file" id="loadFile" accept="application/json" style="display:none;">
       </div>
     </aside>

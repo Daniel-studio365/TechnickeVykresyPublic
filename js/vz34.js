@@ -59,6 +59,8 @@
   const bottomText2 = $('bottomText2');
   const saveBtn = $('btn-save');
   const loadBtn = $('btn-load');
+  const undoBtn = $('btn-undo');
+  const redoBtn = $('btn-redo');
   const loadFile = $('loadFile');
   const lineOnlyEl = $('lineOnly');
 
@@ -73,6 +75,13 @@
     measurePreview:null,
     lineOnly:false
   };
+  const historyState = {
+    undo: [],
+    redo: [],
+    lastSig: '',
+    isApplying: false
+  };
+  let historyTimer = null;
 
   const bgState = {
     data:null,
@@ -110,9 +119,101 @@
       window.open('index2.html?vz=vz34', '_blank');
     });
   }
+  if (undoBtn) undoBtn.addEventListener('click', doUndo);
+  if (redoBtn) redoBtn.addEventListener('click', doRedo);
+  document.addEventListener('keydown', (e)=>{
+    const key = (e.key || '').toLowerCase();
+    if (!(e.ctrlKey || e.metaKey)) return;
+    if (key === 'z' && !e.shiftKey){
+      e.preventDefault();
+      doUndo();
+      return;
+    }
+    if (key === 'y' || (key === 'z' && e.shiftKey)){
+      e.preventDefault();
+      doRedo();
+    }
+  });
+  const controlsRoot = $('controls');
+  if (controlsRoot){
+    controlsRoot.addEventListener('input', (e)=>{
+      if (isUndoTrackable(e.target)) scheduleUndoSnapshot();
+    });
+    controlsRoot.addEventListener('change', (e)=>{
+      if (isUndoTrackable(e.target)) scheduleUndoSnapshot();
+    });
+  }
 
   function num(el, fallback=0){ const v=parseFloat(el.value); return Number.isFinite(v)?v:fallback; }
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function isUndoTrackable(el){
+    if (!el || !el.id) return false;
+    if (el.id === 'loadFile' || el.id === 'Mostik') return false;
+    if (el.type === 'file') return false;
+    return true;
+  }
+  function captureUndoSnapshot(){
+    const values = {};
+    const nodes = document.querySelectorAll('#controls input[id], #controls select[id], #controls textarea[id]');
+    nodes.forEach((el)=>{
+      if (!isUndoTrackable(el)) return;
+      if (el.type === 'checkbox' || el.type === 'radio') values[el.id] = !!el.checked;
+      else values[el.id] = el.value;
+    });
+    return values;
+  }
+  function updateUndoRedoButtons(){
+    if (undoBtn) undoBtn.disabled = historyState.undo.length <= 1;
+    if (redoBtn) redoBtn.disabled = historyState.redo.length === 0;
+  }
+  function pushUndoSnapshot(clearRedo=true){
+    if (historyState.isApplying) return;
+    const snap = captureUndoSnapshot();
+    const sig = JSON.stringify(snap);
+    if (sig === historyState.lastSig) return;
+    historyState.undo.push(snap);
+    if (historyState.undo.length > 100) historyState.undo.shift();
+    historyState.lastSig = sig;
+    if (clearRedo) historyState.redo = [];
+    updateUndoRedoButtons();
+  }
+  function scheduleUndoSnapshot(){
+    if (historyState.isApplying) return;
+    if (historyTimer) clearTimeout(historyTimer);
+    historyTimer = setTimeout(()=> pushUndoSnapshot(true), 120);
+  }
+  function applyUndoSnapshot(snap){
+    if (!snap) return;
+    historyState.isApplying = true;
+    Object.entries(snap).forEach(([id,val])=>{
+      const el = $(id);
+      if (!el) return;
+      if (el.type === 'checkbox' || el.type === 'radio') el.checked = !!val;
+      else el.value = val;
+    });
+    historyState.isApplying = false;
+    updateRefDisplay();
+    updatePorCisloDisplay();
+    updateNavinTlac();
+    draw();
+  }
+  function doUndo(){
+    if (historyState.undo.length <= 1) return;
+    const current = historyState.undo.pop();
+    historyState.redo.push(current);
+    const prev = historyState.undo[historyState.undo.length - 1];
+    historyState.lastSig = JSON.stringify(prev);
+    applyUndoSnapshot(prev);
+    updateUndoRedoButtons();
+  }
+  function doRedo(){
+    if (!historyState.redo.length) return;
+    const snap = historyState.redo.pop();
+    historyState.undo.push(snap);
+    historyState.lastSig = JSON.stringify(snap);
+    applyUndoSnapshot(snap);
+    updateUndoRedoButtons();
+  }
 
   function updateStamp(){
     const now = new Intl.DateTimeFormat('sk-SK',{
@@ -535,7 +636,7 @@
       const padX = 6;
       const legendY = Math.round(offsetYTop - 26);
 
-      const textLeft = 'NO PRINT AREA';
+      const textLeft = 'ZONA BEZ TLACE';
       const textLeftW = Math.round(state.fontPx * 0.6 * textLeft.length);
       const boxLeftW = textLeftW + padX * 2;
       const legendX = leftOuter;
@@ -550,18 +651,22 @@
       create('text',{x:rightLegendX+padX,y:legendY+boxH/2,'text-anchor':'start','dominant-baseline':'middle','font-size':state.fontPx,fill:greenStroke}).textContent=textRight;
     }
 
+    const notchLenPx = notchLen;
+    const xNotchStart = xKend - notchLenPx;
+    const xHoleRight = xAxis + rHole;
+    const bridgeRaw = Math.max(0, xNotchStart - xHoleRight);
+    const bridgeVal = Number(bridgeRaw.toFixed(1));
+    if ($('Mostik')) $('Mostik').value = bridgeVal.toFixed(1);
+
     if(showNotches){
-      const notchLenPx = notchLen;
-      const x1=xKend-notchLenPx, x2=xKend;
+      const x1=xNotchStart, x2=xKend;
       create('line',{x1,y1:y1,x2,y2:y1,stroke:'#0f172a'});
       create('line',{x1,y1:y2,x2,y2:y2,stroke:'#0f172a'});
       if(!state.lineOnly){
         const upY   = y2 - Math.max(14, Math.round(state.fontPx*2.0));
         const downY = y2 + Math.max(18, Math.round(state.fontPx*2.2));
         hDim(x1, upY, x2, notchLenPx, 10, '#dc2626');
-        const xHoleRight = xAxis + rHole;
-        const dist = Math.max(0, x1 - xHoleRight);
-        hDim(xHoleRight, downY, x1, dist, 10, '#dc2626');
+        hDim(xHoleRight, downY, x1, bridgeVal.toFixed(1), 10, '#dc2626');
       }
     }
 
@@ -698,6 +803,7 @@
     }catch(_){}
     updateNavinTlac();
     draw();
+    pushUndoSnapshot(true);
   });
 
   $('btn-export').addEventListener('click', ()=>{ try{ exportPDF1(); } catch(err){ console.error(err); alert('Export PDF zlyhal. Detaily v konzole.'); }});
@@ -1052,6 +1158,7 @@
       bgState.flip = !!data.bg.flip;
     }
     draw();
+    pushUndoSnapshot(true);
   }
 
   saveBtn.addEventListener('click', ()=>{
@@ -1282,4 +1389,5 @@ ${svgText}
   updatePorCisloDisplay();
   if (window.applyEpsPayload) { window.applyEpsPayload('vz34'); }
   draw();
+  pushUndoSnapshot(true);
 })();

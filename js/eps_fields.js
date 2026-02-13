@@ -1,6 +1,11 @@
 window.EPS_FIELDS = [
   {
     "group": "Air holes",
+    "key": "air_enabled",
+    "desc": "Vzduchove otvory (ano/nie)"
+  },
+  {
+    "group": "Air holes",
     "key": "air_count",
     "desc": "Pocet otvorov"
   },
@@ -22,27 +27,32 @@ window.EPS_FIELDS = [
   {
     "group": "Air holes",
     "key": "air_x_abs",
-    "desc": "Prvy vzduchovy otvor od rucky / X od okrajov G"
+    "desc": "Vzduchovy otvor od zalozky / prvy vzduchovy otvor od zalozky"
   },
   {
     "group": "Air holes",
     "key": "air_x_auto",
-    "desc": "Auto X = G"
+    "desc": "Vz. otvor v strede zalozky"
   },
   {
     "group": "Holes/Notches",
     "key": "axis_in_K",
-    "desc": "Os v K od lavej hrany"
+    "desc": "Umiestnenie stredu otvorov (od vrecka)"
   },
   {
     "group": "Dimensions",
     "key": "dim_bag_width",
-    "desc": "Sirka vrecka (kota vpravo)"
+    "desc": "Pozadovana sirka vrecka"
   },
   {
     "group": "Holes/Notches",
     "key": "hole_pitch_C",
-    "desc": "Roztec otvorov v K (O14)"
+    "desc": "Vzdialenost zavesnych otvorov"
+  },
+  {
+    "group": "Perforation",
+    "key": "perf_enabled",
+    "desc": "Perforacia (ano/nie)"
   },
   {
     "group": "Perforation",
@@ -72,12 +82,12 @@ window.EPS_FIELDS = [
   {
     "group": "Holes/Notches",
     "key": "notch_length",
-    "desc": "Dlzka zaseku v K"
+    "desc": "Dlzka zaseku"
   },
   {
     "group": "Perforation",
     "key": "perf_offset_P",
-    "desc": "Odsadenie perforacie od G"
+    "desc": "Vzdialenost perforacie od spodnej zalozky"
   },
   {
     "group": "Perforation",
@@ -87,7 +97,7 @@ window.EPS_FIELDS = [
   {
     "group": "Perforation",
     "key": "perf_offset",
-    "desc": "Odsadenie perforacie"
+    "desc": "Vzdialenost od stredu"
   },
   {
     "group": "Perforation",
@@ -137,7 +147,7 @@ window.EPS_FIELDS = [
   {
     "group": "Reference",
     "key": "ref_code_b",
-    "desc": "Cislo referencneho vzoru (cast B)"
+    "desc": "Cislo zmeny"
   },
   {
     "group": "Printing",
@@ -182,7 +192,7 @@ window.EPS_FIELDS = [
   {
     "group": "Order",
     "key": "order_serial",
-    "desc": "Poradie/cislo vyrobku"
+    "desc": "Poradove cislo vyrobku"
   },
   {
     "group": "Printing",

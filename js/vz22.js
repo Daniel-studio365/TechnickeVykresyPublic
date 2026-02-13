@@ -60,6 +60,8 @@
   const bottomText2 = $('bottomText2');
   const saveBtn = $('btn-save');
   const loadBtn = $('btn-load');
+  const undoBtn = $('btn-undo');
+  const redoBtn = $('btn-redo');
   const loadFile = $('loadFile');
 
   const prefillableIds = [
@@ -82,6 +84,14 @@
     measurePreview:null
   };
 
+  const historyState = {
+    undo: [],
+    redo: [],
+    lastSig: '',
+    isApplying: false
+  };
+  let historyTimer = null;
+
   const bgState = {
     data:null,
     natural:{w:0,h:0},
@@ -94,7 +104,7 @@
 
   const inputs = [
     'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirInGOnly',
-    'PerfOffset','PerfSide','fontPx','toggle-grid','toggle-notches',
+    'PerfEnabled','PerfOffset','PerfSide','fontPx','toggle-grid','toggle-notches',
     'bgWidth','bgHeight','finalNavinNumber','finalNavinLetter','rezanie-ano','rezanie-nie'
   ].map(id => $(id));
 
@@ -110,10 +120,54 @@
   if (refPartA) refPartA.addEventListener('input', updateRefDisplay);
   if (refPartB) refPartB.addEventListener('input', updateRefDisplay);
   if (porCislo) porCislo.addEventListener('input', updatePorCisloDisplay);
+  const airEnabledEl = $('AirEnabled');
+  const airEdgeEl = $('AirEdge');
+  const airXAbsEl = $('AirXAbs');
+  const airInGOnlyEl = $('AirInGOnly');
+  function updateAirUiState(){
+    const enabled = ((airEnabledEl?.value || 'ano').toLowerCase() === 'ano');
+    if (airEdgeEl) airEdgeEl.disabled = !enabled;
+    if (airXAbsEl) airXAbsEl.disabled = !enabled;
+    if (airInGOnlyEl) airInGOnlyEl.disabled = !enabled;
+  }
+  if (airEnabledEl) airEnabledEl.addEventListener('change', ()=>{ updateAirUiState(); draw(); });
+  const perfEnabledEl = $('PerfEnabled');
+  const perfSideEl = $('PerfSide');
+  const perfOffsetEl = $('PerfOffset');
+  function updatePerfUiState(){
+    const enabled = ((perfEnabledEl?.value || 'ano').toLowerCase() === 'ano');
+    if (perfSideEl) perfSideEl.disabled = !enabled;
+    if (perfOffsetEl) perfOffsetEl.disabled = !enabled;
+  }
+  if (perfEnabledEl) perfEnabledEl.addEventListener('change', ()=>{ updatePerfUiState(); draw(); });
   if (btnOpenFirmManager) {
     btnOpenFirmManager.addEventListener('click', () => {
       try { localStorage.setItem('index2_vz', 'vz22'); } catch (_) {}
       window.open('index2.html?vz=vz22', '_blank');
+    });
+  }
+  if (undoBtn) undoBtn.addEventListener('click', doUndo);
+  if (redoBtn) redoBtn.addEventListener('click', doRedo);
+  document.addEventListener('keydown', (e)=>{
+    const key = (e.key || '').toLowerCase();
+    if (!(e.ctrlKey || e.metaKey)) return;
+    if (key === 'z' && !e.shiftKey){
+      e.preventDefault();
+      doUndo();
+      return;
+    }
+    if (key === 'y' || (key === 'z' && e.shiftKey)){
+      e.preventDefault();
+      doRedo();
+    }
+  });
+  const controlsRoot = $('controls');
+  if (controlsRoot){
+    controlsRoot.addEventListener('input', (e)=>{
+      if (isUndoTrackable(e.target)) scheduleUndoSnapshot();
+    });
+    controlsRoot.addEventListener('change', (e)=>{
+      if (isUndoTrackable(e.target)) scheduleUndoSnapshot();
     });
   }
 
@@ -123,6 +177,76 @@
   function num(el, fallback=0){ const v=parseFloat(el.value); return Number.isFinite(v)?v:fallback; }
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function fmtVal(n){ if(!Number.isFinite(n)) return ''; return Number.isInteger(n)? `${n}` : n.toFixed(1); }
+  function isUndoTrackable(el){
+    if (!el || !el.id) return false;
+    if (el.id === 'loadFile' || el.id === 'Mostik') return false;
+    if (el.type === 'file') return false;
+    return true;
+  }
+  function captureUndoSnapshot(){
+    const values = {};
+    const nodes = document.querySelectorAll('#controls input[id], #controls select[id], #controls textarea[id]');
+    nodes.forEach((el)=>{
+      if (!isUndoTrackable(el)) return;
+      if (el.type === 'checkbox' || el.type === 'radio') values[el.id] = !!el.checked;
+      else values[el.id] = el.value;
+    });
+    return values;
+  }
+  function updateUndoRedoButtons(){
+    if (undoBtn) undoBtn.disabled = historyState.undo.length <= 1;
+    if (redoBtn) redoBtn.disabled = historyState.redo.length === 0;
+  }
+  function pushUndoSnapshot(clearRedo=true){
+    if (historyState.isApplying) return;
+    const snap = captureUndoSnapshot();
+    const sig = JSON.stringify(snap);
+    if (sig === historyState.lastSig) return;
+    historyState.undo.push(snap);
+    if (historyState.undo.length > 100) historyState.undo.shift();
+    historyState.lastSig = sig;
+    if (clearRedo) historyState.redo = [];
+    updateUndoRedoButtons();
+  }
+  function scheduleUndoSnapshot(){
+    if (historyState.isApplying) return;
+    if (historyTimer) clearTimeout(historyTimer);
+    historyTimer = setTimeout(()=> pushUndoSnapshot(true), 120);
+  }
+  function applyUndoSnapshot(snap){
+    if (!snap) return;
+    historyState.isApplying = true;
+    Object.entries(snap).forEach(([id,val])=>{
+      const el = $(id);
+      if (!el) return;
+      if (el.type === 'checkbox' || el.type === 'radio') el.checked = !!val;
+      else el.value = val;
+    });
+    historyState.isApplying = false;
+    updateRefDisplay();
+    updatePorCisloDisplay();
+    updateNavinTlac();
+    updateAirUiState();
+    updatePerfUiState();
+    draw();
+  }
+  function doUndo(){
+    if (historyState.undo.length <= 1) return;
+    const current = historyState.undo.pop();
+    historyState.redo.push(current);
+    const prev = historyState.undo[historyState.undo.length - 1];
+    historyState.lastSig = JSON.stringify(prev);
+    applyUndoSnapshot(prev);
+    updateUndoRedoButtons();
+  }
+  function doRedo(){
+    if (!historyState.redo.length) return;
+    const snap = historyState.redo.pop();
+    historyState.undo.push(snap);
+    historyState.lastSig = JSON.stringify(snap);
+    applyUndoSnapshot(snap);
+    updateUndoRedoButtons();
+  }
   function pickLabel(label, actual){
     if (typeof label === 'number') return fmtVal(actual);
     if (label === null || label === undefined || label === '') return fmtVal(actual);
@@ -384,11 +508,13 @@
     const showNotches = $('toggle-notches').checked;
     const notchLen = Math.max(1,num($('NotchLen'),7));
     const bagWidth = Math.max(0,num($('BagWidth'), 0));
+    const airEnabled = (($('AirEnabled')?.value)||'ano').toLowerCase()==='ano';
     const airEdge = Math.max(0,num($('AirEdge'),30));
     const airInGOnly = !!$('AirInGOnly')?.checked;
     const airXAbsRaw = num($('AirXAbs'), NaN);
     const airCount = 2; // 4 otvory total (2 na kazdej strane)
     const airPitch = 40; // fixna roztec
+    const perfEnabled = (($('PerfEnabled')?.value)||'ano').toLowerCase()==='ano';
     const perfSide = (($('PerfSide')?.value)||'prava').toLowerCase()==='lava'?'lava':'prava';
     const perfOffset = Math.max(0,num($('PerfOffset'),7));
     state.fontPx = parseInt($('fontPx').value,10)||14;
@@ -485,7 +611,7 @@
       const padX = 6;
       const textY = offsetY - boxH / 2 - 6;
 
-      const textLeft = 'NO PRINT AREA';
+      const textLeft = 'ZONA BEZ TLACE';
       const textLeftW = Math.round(state.fontPx * 0.6 * textLeft.length);
       const boxLeftW = textLeftW + padX * 2;
       const legendX = leftOuter;
@@ -502,6 +628,10 @@
       create('text',{x:rightLegendX + padX,y:legendY + boxH/2,'text-anchor':'start','dominant-baseline':'middle','font-size':state.fontPx,fill:greenStroke}).textContent=textRight;
     }
 
+    const bridgeRaw = Math.max(0, (xAxis - rHole) - (xKstart + notchLen));
+    const bridgeVal = Number(bridgeRaw.toFixed(1));
+    if ($('Mostik')) $('Mostik').value = bridgeVal.toFixed(1);
+
     if (showNotches){
       const x1n = xKstart;
       const x2n = xKstart + notchLen;
@@ -510,8 +640,7 @@
       const upY = y2 - Math.max(18, Math.round(state.fontPx*2.2));
       const downY = y2 + Math.max(18, Math.round(state.fontPx*2.2));
       hDim(x1n, upY, x2n, Math.round(notchLen), 10, '#dc2626');
-      const dist = Math.max(0, Math.round((xAxis - rHole) - x2n));
-      hDim(x2n, downY, xAxis - rHole, dist, 10, '#dc2626');
+      hDim(x2n, downY, xAxis - rHole, bridgeVal.toFixed(1), 10, '#dc2626');
     }
 
     const xBagDim = rightOuter + 40;
@@ -523,34 +652,37 @@
     create('line',{x1:xBagDim,x2:rightOuter,y1:yBagEnd,y2:yBagEnd,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'4 3'});
 
     // vzduchove otvory: fixne 2 na kazdej strane
-    const rawAirX = (airXInput?.value || '').trim();
-    const hasAirX = !!airXInput?.dataset.userSet && rawAirX !== '' && Number.isFinite(airXAbsRaw);
-    const autoX = G/2;
-    const X = clamp(hasAirX ? Math.max(0,airXAbsRaw) : autoX, 0, G);
-    if(!hasAirX && airXInput){ airXInput.value = fmtVal(X); }
-    const cyTop = yTop + airEdge;
-    const cyBot = yBottom - airEdge;
-    const xRefLeftG = xLeftGStart + X;
-    const xFirstLeft = xLeftGStart - X;
-    const xRefRightG = xRightGEnd - X;
-    const xFirstRight = xRightGEnd + X;
-    const airXs = airInGOnly ? [xRefLeftG, xRefRightG] : [xRefLeftG,xFirstLeft,xRefRightG,xFirstRight];
-    airXs.forEach(x=>{
-      if(x!=null) { cross(x, cyTop); cross(x, cyBot); }
-    });
+    let xFirstRight = rightOuter;
+    if (airEnabled){
+      const rawAirX = (airXInput?.value || '').trim();
+      const hasAirX = !!airXInput?.dataset.userSet && rawAirX !== '' && Number.isFinite(airXAbsRaw);
+      const autoX = G/2;
+      const X = clamp(hasAirX ? Math.max(0,airXAbsRaw) : autoX, 0, G);
+      if(!hasAirX && airXInput){ airXInput.value = fmtVal(X); }
+      const cyTop = yTop + airEdge;
+      const cyBot = yBottom - airEdge;
+      const xRefLeftG = xLeftGStart + X;
+      const xFirstLeft = xLeftGStart - X;
+      const xRefRightG = xRightGEnd - X;
+      xFirstRight = xRightGEnd + X;
+      const airXs = airInGOnly ? [xRefLeftG, xRefRightG] : [xRefLeftG,xFirstLeft,xRefRightG,xFirstRight];
+      airXs.forEach(x=>{
+        if(x!=null) { cross(x, cyTop); cross(x, cyBot); }
+      });
 
-    const yAirTop = yTop - Math.max(22, Math.round(state.fontPx*1.8));
-    vDim(xLeftGStart - 25, yTop, cyTop, Math.round(airEdge), 10, '#dc2626');
-    hDim(xLeftGStart, yAirTop, xRefLeftG, Math.round(X), 10, '#dc2626');
-    if(!airInGOnly){
-      hDim(xFirstLeft, yAirTop, xLeftGStart, Math.round(X), 10, '#dc2626');
+      const yAirTop = yTop - Math.max(22, Math.round(state.fontPx*1.8));
+      vDim(xLeftGStart - 25, yTop, cyTop, Math.round(airEdge), 10, '#dc2626');
+      hDim(xLeftGStart, yAirTop, xRefLeftG, Math.round(X), 10, '#dc2626');
+      if(!airInGOnly){
+        hDim(xFirstLeft, yAirTop, xLeftGStart, Math.round(X), 10, '#dc2626');
+      }
     }
 
     let maxRight = Math.max(xStart + totalWidth + 40, xFirstRight + 40, xBagDim + 40);
     if(rightLegendW > 0){
       maxRight = Math.max(maxRight, rightLegendX + rightLegendW + 10);
     }
-    if (perfOffset > 0){
+    if (perfEnabled && perfOffset > 0){
       const off = Math.min(perfOffset, G);
       if (perfSide === 'prava'){
         const xPerf = xRightGStart + off;
@@ -613,9 +745,11 @@
     $('W').value=400; $('L').value=600; $('G').value=50; $('K').value=45;
     $('BagWidth').value=400;
     $('Cpitch').value=160; $('AxisInK').value='';
+    if ($('AirEnabled')) $('AirEnabled').value='ano';
     $('NotchLen').value=7; $('toggle-notches').checked=false;
     $('AirEdge').value=30; $('AirXAbs').value=''; $('AirInGOnly').checked=false;
     if (airXInput) airXInput.dataset.userSet='';
+    if ($('PerfEnabled')) $('PerfEnabled').value='ano';
     $('PerfOffset').value=7;
     $('PerfSide').value='prava';
     if(finalNavinNumber) finalNavinNumber.value='1';
@@ -625,7 +759,10 @@
     $('fontPx').value=14; $('toggle-grid').checked=false;
     bgFile.value=''; bgWidthEl.value=''; bgHeightEl.value=''; bgState.data=null; bgState.natural={w:0,h:0}; bgState.offset={x:0,y:0}; bgState.rotation=0; bgState.flip=false;
     updateNavinTlac();
+    updateAirUiState();
+    updatePerfUiState();
     draw();
+    pushUndoSnapshot(true);
   });
 
   $('btn-export').addEventListener('click', ()=>{ try{ exportPDF1(); } catch(err){ console.error(err); alert('Export PDF zlyhal. Detaily v konzole.'); }});
@@ -667,7 +804,9 @@
         BagWidth:$('BagWidth').value,
         Cpitch:$('Cpitch').value, AxisInK:$('AxisInK').value,
         NotchLen:$('NotchLen').value, toggleNotches:$('toggle-notches').checked,
+        AirEnabled:$('AirEnabled')?.value || 'ano',
         AirEdge:$('AirEdge').value, AirXAbs:$('AirXAbs').value, AirInGOnly:$('AirInGOnly').checked,
+        PerfEnabled:$('PerfEnabled')?.value || 'ano',
         PerfOffset:$('PerfOffset').value,
         PerfSide:$('PerfSide').value,
         fontPx:$('fontPx').value, grid:$('toggle-grid').checked,
@@ -705,10 +844,12 @@
       $('BagWidth').value=i.BagWidth||'';
       $('Cpitch').value=i.Cpitch||'';
       $('AxisInK').value=i.AxisInK||'';
+      if ($('AirEnabled')) $('AirEnabled').value=i.AirEnabled||'ano';
       $('AirEdge').value=(i.AirEdge!==undefined && i.AirEdge!==null)?i.AirEdge:30;
       $('AirXAbs').value=(i.AirXAbs!==undefined && i.AirXAbs!==null)?i.AirXAbs:'';
       $('AirInGOnly').checked=!!i.AirInGOnly;
       if(airXInput) airXInput.dataset.userSet = (i.AirXAbs!==undefined && i.AirXAbs!=='') ? '1' : '';
+      if ($('PerfEnabled')) $('PerfEnabled').value=i.PerfEnabled||'ano';
       $('NotchLen').value=i.NotchLen||'';
       $('toggle-notches').checked=!!i.toggleNotches;
       $('PerfOffset').value=i.PerfOffset||'';
@@ -726,6 +867,8 @@
       bottomText2.value=i.bottomText2||'';
       state.measureMode = i.measureMode || 'off';
       updateNavinTlac();
+      updateAirUiState();
+      updatePerfUiState();
     }
     state.measures = Array.isArray(data.measures)? data.measures : [];
 
@@ -749,6 +892,7 @@
       bgState.flip = !!data.bg.flip;
     }
     draw();
+    pushUndoSnapshot(true);
   }
 
   saveBtn.addEventListener('click', ()=>{
@@ -1220,6 +1364,8 @@ ${svgText}
 
   prefillFromFirm();
   updatePorCisloDisplay();
+  updateAirUiState();
+  updatePerfUiState();
   let epsSource = '';
   try { epsSource = localStorage.getItem('prefill_source') || ''; } catch (_) {}
   if (epsSource === 'eps' && window.applyEpsPayload) {
@@ -1238,8 +1384,10 @@ ${svgText}
     if (source !== 'firm') return;
     prefillFromFirm();
     draw();
+    pushUndoSnapshot(true);
   });
   draw();
+  pushUndoSnapshot(true);
 })();
 
 

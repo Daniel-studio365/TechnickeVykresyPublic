@@ -1,4 +1,7 @@
 window.EPS_MAP = {
+  "air_enabled": {
+    "vz22": "AirEnabled"
+  },
   "air_count": {
     "vz31": "AirCount",
     "vz34": "AirCount"
@@ -40,6 +43,9 @@ window.EPS_MAP = {
   },
   "perf_finger_hole": {
     "vz31": "FingerHole"
+  },
+  "perf_enabled": {
+    "vz22": "PerfEnabled"
   },
   "dim_G": {
     "vz22": "G",

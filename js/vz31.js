@@ -60,6 +60,8 @@
   const bottomText2 = $('bottomText2');
   const saveBtn = $('btn-save');
   const loadBtn = $('btn-load');
+  const undoBtn = $('btn-undo');
+  const redoBtn = $('btn-redo');
   const loadFile = $('loadFile');
 
   const prefillableIds = [
@@ -96,6 +98,13 @@
     measures:[],
     measurePreview:null
   };
+  const historyState = {
+    undo: [],
+    redo: [],
+    lastSig: '',
+    isApplying: false
+  };
+  let historyTimer = null;
 
   const bgState = {
     data:null,
@@ -127,6 +136,30 @@
       window.open('index2.html?vz=vz31', '_blank');
     });
   }
+  if (undoBtn) undoBtn.addEventListener('click', doUndo);
+  if (redoBtn) redoBtn.addEventListener('click', doRedo);
+  document.addEventListener('keydown', (e)=>{
+    const key = (e.key || '').toLowerCase();
+    if (!(e.ctrlKey || e.metaKey)) return;
+    if (key === 'z' && !e.shiftKey){
+      e.preventDefault();
+      doUndo();
+      return;
+    }
+    if (key === 'y' || (key === 'z' && e.shiftKey)){
+      e.preventDefault();
+      doRedo();
+    }
+  });
+  const controlsRoot = $('controls');
+  if (controlsRoot){
+    controlsRoot.addEventListener('input', (e)=>{
+      if (isUndoTrackable(e.target)) scheduleUndoSnapshot();
+    });
+    controlsRoot.addEventListener('change', (e)=>{
+      if (isUndoTrackable(e.target)) scheduleUndoSnapshot();
+    });
+  }
 
   // default zapnutĂ© zĂˇrezy (ak uĹľ nie je nastavenĂ© inak)
   if($('toggle-notches')) $('toggle-notches').checked = true;
@@ -134,6 +167,74 @@
   function num(el, fallback=0){ const v=parseFloat(el.value); return Number.isFinite(v)?v:fallback; }
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function fmtVal(n){ if(!Number.isFinite(n)) return ''; return Number.isInteger(n)? `${n}` : n.toFixed(1); }
+  function isUndoTrackable(el){
+    if (!el || !el.id) return false;
+    if (el.id === 'loadFile' || el.id === 'Mostik') return false;
+    if (el.type === 'file') return false;
+    return true;
+  }
+  function captureUndoSnapshot(){
+    const values = {};
+    const nodes = document.querySelectorAll('#controls input[id], #controls select[id], #controls textarea[id]');
+    nodes.forEach((el)=>{
+      if (!isUndoTrackable(el)) return;
+      if (el.type === 'checkbox' || el.type === 'radio') values[el.id] = !!el.checked;
+      else values[el.id] = el.value;
+    });
+    return values;
+  }
+  function updateUndoRedoButtons(){
+    if (undoBtn) undoBtn.disabled = historyState.undo.length <= 1;
+    if (redoBtn) redoBtn.disabled = historyState.redo.length === 0;
+  }
+  function pushUndoSnapshot(clearRedo=true){
+    if (historyState.isApplying) return;
+    const snap = captureUndoSnapshot();
+    const sig = JSON.stringify(snap);
+    if (sig === historyState.lastSig) return;
+    historyState.undo.push(snap);
+    if (historyState.undo.length > 100) historyState.undo.shift();
+    historyState.lastSig = sig;
+    if (clearRedo) historyState.redo = [];
+    updateUndoRedoButtons();
+  }
+  function scheduleUndoSnapshot(){
+    if (historyState.isApplying) return;
+    if (historyTimer) clearTimeout(historyTimer);
+    historyTimer = setTimeout(()=> pushUndoSnapshot(true), 120);
+  }
+  function applyUndoSnapshot(snap){
+    if (!snap) return;
+    historyState.isApplying = true;
+    Object.entries(snap).forEach(([id,val])=>{
+      const el = $(id);
+      if (!el) return;
+      if (el.type === 'checkbox' || el.type === 'radio') el.checked = !!val;
+      else el.value = val;
+    });
+    historyState.isApplying = false;
+    updateRefDisplay();
+    updatePorCisloDisplay();
+    updateNavinTlac();
+    draw();
+  }
+  function doUndo(){
+    if (historyState.undo.length <= 1) return;
+    const current = historyState.undo.pop();
+    historyState.redo.push(current);
+    const prev = historyState.undo[historyState.undo.length - 1];
+    historyState.lastSig = JSON.stringify(prev);
+    applyUndoSnapshot(prev);
+    updateUndoRedoButtons();
+  }
+  function doRedo(){
+    if (!historyState.redo.length) return;
+    const snap = historyState.redo.pop();
+    historyState.undo.push(snap);
+    historyState.lastSig = JSON.stringify(snap);
+    applyUndoSnapshot(snap);
+    updateUndoRedoButtons();
+  }
   function pickLabel(label, actual){
     if (typeof label === 'number') return fmtVal(actual);
     if (label === null || label === undefined || label === '') return fmtVal(actual);
@@ -492,16 +593,19 @@
     vDim(xDim, yBottom, y2, Math.round(W/2 - C/2));
     vDim(xDimW, yTop, yBottom, Math.round(W));
 
+    const x1n = xKend - notchLen;
+    const mostikRaw = Math.max(0, x1n - (xAxis + rHole));
+    const mostikVal = Number(mostikRaw.toFixed(1));
+    if ($('Mostik')) $('Mostik').value = mostikVal.toFixed(1);
+
     if (showNotches){
-      const x1n = xKend - notchLen;
       const x2n = xKend;
       create('line',{x1:x1n,y1:y1,x2:x2n,y2:y1,stroke:'#0f172a'});
       create('line',{x1:x1n,y1:y2,x2:x2n,y2:y2,stroke:'#0f172a'});
       const upY = y2 - Math.max(18, Math.round(state.fontPx*2.2));
       const downY = y2 + Math.max(18, Math.round(state.fontPx*2.2));
       hDim(x1n, upY, x2n, Math.round(notchLen), 10, '#dc2626');
-      const dist = Math.max(0, Math.round(x1n - (xAxis + rHole)));
-      hDim(xAxis + rHole, downY, x1n, dist, 10, '#dc2626');
+      hDim(xAxis + rHole, downY, x1n, mostikVal.toFixed(1), 10, '#dc2626');
     }
 
     const slotW = 20, slotH = 90, slotR = 10;
@@ -516,9 +620,8 @@
     if (fingerHole === 'ano'){
       const rFinger = 10;
       const yFinger = (perfSide === 'prava') ? (yTop + 30) : (yBottom - 30);
-      create('circle',{cx:cxLeftSlot, cy:yFinger, r:rFinger, fill:'#ffffff', stroke:'#0f172a','stroke-width':1});
-      create('circle',{cx:cxRightSlot, cy:yFinger, r:rFinger, fill:'#ffffff', stroke:'#0f172a','stroke-width':1});
-      create('text',{x:cxRightSlot + rFinger + 6, y:yFinger,'font-size':state.fontPx,fill:'#0f172a','text-anchor':'start','dominant-baseline':'middle'}).textContent='no print';
+      create('circle',{cx:cxLeftSlot, cy:yFinger, r:rFinger, fill:'#f5c2dd', 'fill-opacity':0.55, stroke:'#d0007a','stroke-width':1});
+      create('circle',{cx:cxRightSlot, cy:yFinger, r:rFinger, fill:'#f5c2dd', 'fill-opacity':0.55, stroke:'#d0007a','stroke-width':1});
     }
 
     const X = clamp(airXAbs, 0, L);
@@ -548,12 +651,20 @@
       const padX = 6;
       const legendY = Math.round(offsetY - 26);
 
-      const textLeft = 'NO PRINT AREA';
+      const textLeft = 'ZONA BEZ TLACE';
       const textLeftW = Math.round(state.fontPx * 0.6 * textLeft.length);
       const boxLeftW = textLeftW + padX * 2;
       const legendX = leftOuter;
       create('rect',{x:legendX,y:legendY,width:boxLeftW,height:boxH,fill:magenta,'fill-opacity':0.25,stroke:magenta,'stroke-width':1});
       create('text',{x:legendX+padX,y:legendY+boxH/2,'text-anchor':'start','dominant-baseline':'middle','font-size':state.fontPx,fill:magenta}).textContent=textLeft;
+
+      if (fingerHole === 'ano'){
+        const fy = legendY + boxH/2;
+        const fr = Math.max(4, Math.round(state.fontPx * 0.35));
+        const fx = legendX + boxLeftW + 14;
+        create('circle',{cx:fx + fr, cy:fy, r:fr, fill:'#f5c2dd', 'fill-opacity':0.55, stroke:magenta, 'stroke-width':1});
+        create('text',{x:fx + fr*2 + 6, y:fy,'text-anchor':'start','dominant-baseline':'middle','font-size':state.fontPx,fill:magenta}).textContent='OTVOR NA PRST BEZ FARBY';
+      }
 
       const textRight = 'BEZ KORONOVEJ UPRAVY';
       const textRightW = Math.round(state.fontPx * 0.6 * textRight.length);
@@ -708,6 +819,7 @@
     bgFile.value=''; bgWidthEl.value=''; bgHeightEl.value=''; bgState.data=null; bgState.natural={w:0,h:0}; bgState.offset={x:0,y:0}; bgState.rotation=0; bgState.flip=false;
     updateNavinTlac();
     draw();
+    pushUndoSnapshot(true);
   });
 
   $('btn-export').addEventListener('click', ()=>{ try{ exportPDF1(); } catch(err){ console.error(err); alert('Export PDF zlyhal. Detaily v konzole.'); }});
@@ -1062,6 +1174,7 @@
       bgState.flip = !!data.bg.flip;
     }
     draw();
+    pushUndoSnapshot(true);
   }
 
   saveBtn.addEventListener('click', ()=>{
@@ -1325,7 +1438,9 @@ ${svgText}
     if (source !== 'firm') return;
     prefillFromFirm();
     draw();
+    pushUndoSnapshot(true);
   });
   draw();
+  pushUndoSnapshot(true);
 })();
 

@@ -53,7 +53,7 @@
       items.forEach(it=>{
         const lab = document.createElement('label');
         const span = document.createElement('span');
-        span.textContent = it.desc ? `${it.key} – ${it.desc}` : `${it.key}`;
+        span.textContent = it.desc ? `${it.key} - ${it.desc}` : `${it.key}`;
         lab.appendChild(span);
         const inp = document.createElement('input');
         inp.type = 'text';
