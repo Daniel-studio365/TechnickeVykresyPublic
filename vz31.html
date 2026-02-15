@@ -12,6 +12,9 @@
         <div class="row" style="margin-bottom:8px;">
           <button id="btn-load" type="button">Nacitat ulozeny TV</button>
         </div>
+        <label for="motivInput">Motiv:
+          <input id="motivInput" type="text" placeholder="Nazov motivu" maxlength="120">
+        </label>
         <div class="card" id="eps-header">
           <div class="field wide">
             <strong>Cislo referencneho vzoru:</strong>
@@ -231,8 +234,8 @@
             <span id="vzCode" class="badge">vz-31</span>
           </div>
           <div class="field">
-            <label for="otherNotes">ostatne poznamky</label>
-            <input type="text" id="otherNotes" placeholder="Dopln doplnujuce info / poznamky" maxlength="60">
+            <span class="motif-label">Motiv</span>
+            <div id="motivText" class="note note-black">-</div>
           </div>
           <div class="note">CHLOPNA/ ZS NA STRANE POHONU</div>
         </div>
@@ -248,6 +251,12 @@
       <div class="card" id="bottom-notes">
         <div class="bottom-item">
           <label class="bottom-label">Obrazok:</label>
+          <select id="clipPreset">
+            <option value="none" selected>Bez obrazka</option>
+            <option value="zhora">Spona zhora</option>
+            <option value="zdola">Spona zdola</option>
+            <option value="file">Vybrat vlastny subor</option>
+          </select>
           <input type="file" id="bottomImgInput" accept="image/png,image/jpeg,image/webp,image/gif" />
           <div class="bottom-box"><img id="bottomImgPreview" alt="Nahlad obrazka" /></div>
         </div>

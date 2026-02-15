@@ -56,6 +56,7 @@
   const printBtn = $('btn-print');
   const bottomImgInput = $('bottomImgInput');
   const bottomImgPreview = $('bottomImgPreview');
+  const clipPresetEl = $('clipPreset');
   const bottomText1 = $('bottomText1');
   const bottomText2 = $('bottomText2');
   const saveBtn = $('btn-save');
@@ -63,12 +64,14 @@
   const undoBtn = $('btn-undo');
   const redoBtn = $('btn-redo');
   const loadFile = $('loadFile');
+  const motivInput = $('motivInput');
+  const motivText = $('motivText');
 
   const prefillableIds = [
     'W','L','G','K','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirCount','AirPitch',
     'PerfShape','PerfSide','PerfOffset','PerfHalfLen','FingerHole','printSide',
     'finalNavinNumber','finalNavinLetter','rezanie-ano','rezanie-nie',
-    'porCislo','otherNotes','bottomText1','bottomText2','refPartA','refPartB',
+    'porCislo','motivInput','bottomText1','bottomText2','refPartA','refPartB',
     'bgWidth','bgHeight'
   ];
   const prefillableEls = prefillableIds.map(id=>$(id)).filter(Boolean);
@@ -130,6 +133,10 @@
   if (refPartA) refPartA.addEventListener('input', updateRefDisplay);
   if (refPartB) refPartB.addEventListener('input', updateRefDisplay);
   if (porCislo) porCislo.addEventListener('input', updatePorCisloDisplay);
+  function updateMotivDisplay(){
+    if (motivText) motivText.textContent = (motivInput?.value || '').trim() || '-';
+  }
+  if (motivInput) motivInput.addEventListener('input', updateMotivDisplay);
   if (btnOpenFirmManager) {
     btnOpenFirmManager.addEventListener('click', () => {
       try { localStorage.setItem('index2_vz', 'vz31'); } catch (_) {}
@@ -216,6 +223,7 @@
     updateRefDisplay();
     updatePorCisloDisplay();
     updateNavinTlac();
+    updateMotivDisplay();
     draw();
   }
   function doUndo(){
@@ -323,8 +331,9 @@
     if (!data || data.vz !== 'vz31') return;
     const dims = data.dimensions || {};
     const air = data.air || {};
+    const perf = data.perforation || {};
     const clip = data.clip || {};
-    const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', Cpitch:'Cpitch', AxisInK:'AxisInK', notchLen:'NotchLen', AirEdge:'AirEdge', AirCount:'AirCount', AirPitch:'AirPitch' };
+    const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', Cpitch:'Cpitch', AxisInK:'AxisInK', notchLen:'NotchLen', AirEdge:'AirEdge', AirCount:'AirCount', AirPitch:'AirPitch', PerfShape:'PerfShape', PerfSide:'PerfSide', PerfOffset:'PerfOffset' };
     Object.values(map).forEach(id=>{
       const el=$(id);
       if (el) el.classList.remove('prefilled');
@@ -335,6 +344,12 @@
       if (key === 'notchLen') val = dims.notchLen;
       else if (key === 'Cpitch') val = dims.Cpitch;
       else if (key === 'AxisInK') val = (dims.AxisInK != null) ? dims.AxisInK : (dims.K != null ? dims.K/2 : null);
+      else if (key === 'PerfShape') {
+        if ((perf.enabled || '').toLowerCase() === 'no') val = 'none';
+        else if ((perf.enabled || '').toLowerCase() === 'yes') val = 'rovna';
+      }
+      else if (key === 'PerfSide') val = perf.side || dims.PerfSide;
+      else if (key === 'PerfOffset') val = (perf.offset != null ? perf.offset : dims.PerfOffset);
       else if (key === 'AirEdge') val = air.offsetFromEdge;
       else if (key === 'AirCount') {
         const hasAir = air.count !== null && air.count !== undefined;
@@ -377,29 +392,43 @@
       if(p === 'zdola') return 'img/zdola.png';
       return p;
     };
+    const clipPreset = ((data.clipImages && data.clipImages[0]) || '').toLowerCase();
     const assetPath = resolveAsset((data.clipImages && data.clipImages[0]) || (Array.isArray(data.assets) && data.assets[0]?.path));
+    if (clipPresetEl) clipPresetEl.value = (clipPreset === 'zhora' || clipPreset === 'zdola') ? clipPreset : (assetPath ? 'file' : 'none');
     if (assetPath){
-      bottomImgPreview.style.display = 'block';
-      bottomImgPreview.style.transform = 'rotate(90deg)';
       inlineAsset(assetPath).then(dataUrl=>{
-        if(dataUrl){
-          bottomImgPreview.src = dataUrl;
-        } else {
-          bottomImgPreview.src='';
-          bottomImgPreview.style.display='none';
-          bottomImgPreview.style.transform='';
-        }
+        setBottomImage(dataUrl || null);
       });
     } else {
-      bottomImgPreview.src = '';
-      bottomImgPreview.style.display = 'none';
-      bottomImgPreview.style.transform = '';
+      clearBottomImage();
     }
 
     try {
       localStorage.removeItem('selectedFirm');
       localStorage.removeItem('prefill_source');
     } catch (_) {}
+  }
+
+  function clearBottomImage(){
+    if (!bottomImgPreview) return;
+    bottomImgPreview.src = '';
+    bottomImgPreview.style.display = 'none';
+    bottomImgPreview.style.transform = '';
+  }
+  function setBottomImage(dataUrl){
+    if (!bottomImgPreview) return;
+    if (!dataUrl) { clearBottomImage(); return; }
+    bottomImgPreview.src = dataUrl;
+    bottomImgPreview.style.display = 'block';
+    bottomImgPreview.style.transform = 'rotate(90deg)';
+  }
+  function applyClipPreset(preset, fromUser=false){
+    const p = (preset || 'none').toLowerCase();
+    if (p === 'none') { clearBottomImage(); return; }
+    if (p === 'zhora') { setBottomImage(INLINE_ASSETS.zhora); return; }
+    if (p === 'zdola') { setBottomImage(INLINE_ASSETS.zdola); return; }
+    if (p === 'file' && fromUser) { bottomImgInput?.click(); return; }
+    if (p === 'file') { clearBottomImage(); }
   }
 
   function clearPrefilled(){
@@ -816,8 +845,12 @@
     if(finalNavinLetter) finalNavinLetter.value='A';
     if(rezanieYes) rezanieYes.checked=false;
     if(rezanieNo) rezanieNo.checked=true;
+    if (motivInput) motivInput.value='';
+    if (clipPresetEl) clipPresetEl.value='none';
+    clearBottomImage();
     bgFile.value=''; bgWidthEl.value=''; bgHeightEl.value=''; bgState.data=null; bgState.natural={w:0,h:0}; bgState.offset={x:0,y:0}; bgState.rotation=0; bgState.flip=false;
     updateNavinTlac();
+    updateMotivDisplay();
     draw();
     pushUndoSnapshot(true);
   });
@@ -832,26 +865,27 @@
   bottomImgInput.addEventListener('change',(e)=>{
     const file = e.target.files && e.target.files[0];
     if(!file){
-      bottomImgPreview.style.display='none';
-      bottomImgPreview.src='';
-      bottomImgPreview.style.transform='';
+      clearBottomImage();
       return;
     }
     if(!file.type.startsWith('image/')){
       alert('Podporovane su iba obrazky.');
       bottomImgInput.value='';
-      bottomImgPreview.style.display='none';
-      bottomImgPreview.style.transform='';
+      clearBottomImage();
       return;
     }
     const r=new FileReader();
     r.onload=(ev)=>{
-      bottomImgPreview.src = ev.target.result;
-      bottomImgPreview.style.display='block';
-      bottomImgPreview.style.transform='rotate(90deg)';
+      if (clipPresetEl) clipPresetEl.value = 'file';
+      setBottomImage(ev.target.result);
     };
     r.readAsDataURL(file);
   });
+  if (clipPresetEl){
+    clipPresetEl.addEventListener('change', ()=>{
+      applyClipPreset(clipPresetEl.value, true);
+    });
+  }
 
   bgFile.addEventListener('change',(e)=>{
     const file = e.target.files && e.target.files[0];
@@ -1098,9 +1132,10 @@
         finalNavinLetter:finalNavinLetter?.value || '',
         rezanie:!!rezanieYes?.checked,
         porCislo:$('porCislo').value,
-        otherNotes:$('otherNotes').value,
+        motiv:motivInput?.value || '',
         bottomText1:bottomText1.value,
         bottomText2:bottomText2.value,
+        clipPreset: clipPresetEl?.value || 'none',
         measureMode:state.measureMode
       },
       measures: state.measures,
@@ -1146,22 +1181,20 @@
       if(rezanieYes) rezanieYes.checked = (i.rezanie===true || i.rezanie==='ano');
       if(rezanieNo) rezanieNo.checked = !rezanieYes?.checked;
       $('porCislo').value=i.porCislo||'';
-      $('otherNotes').value=i.otherNotes||'';
+      if (motivInput) motivInput.value = i.motiv || i.otherNotes || '';
       bottomText1.value=i.bottomText1||'';
       bottomText2.value=i.bottomText2||'';
+      if (clipPresetEl) clipPresetEl.value = i.clipPreset || ((data.bottomImage && data.bottomImage.length) ? 'file' : 'none');
       state.measureMode = i.measureMode || 'off';
       updateNavinTlac();
+      updateMotivDisplay();
     }
     state.measures = Array.isArray(data.measures)? data.measures : [];
 
     if(data.bottomImage){
-      bottomImgPreview.src = data.bottomImage;
-      bottomImgPreview.style.display='block';
-      bottomImgPreview.style.transform='rotate(90deg)';
+      setBottomImage(data.bottomImage);
     } else {
-      bottomImgPreview.src = '';
-      bottomImgPreview.style.display='none';
-      bottomImgPreview.style.transform='';
+      applyClipPreset(clipPresetEl?.value || 'none', false);
     }
     if(data.bg){
       bgState.data = data.bg.data || null;
@@ -1318,7 +1351,7 @@ ${svgText}
       ctx.fillText(`Casova peciatka: ${stampEl.textContent||"-"}`, rightX, y);
       ctx.fillText(`Vzor: ${vzCodeEl.textContent||"vz-31"}`, rightX, y+=lineH);
       ctx.fillText(`Por. cislo vyrobku: ${$("porCislo").value||"-"}`, rightX, y+=lineH);
-      ctx.fillText(`Ostatne poznamky: ${$("otherNotes").value||"-"}`, rightX, y+=lineH);
+      ctx.fillText(`Motiv: ${motivInput?.value || "-"}`, rightX, y+=lineH);
       ctx.fillStyle="#dc2626"; ctx.fillText("CHLOPNA/ ZS NA STRANE POHONU", rightX, y+=lineH);
 
       // drawing
@@ -1420,6 +1453,7 @@ ${svgText}
 
   prefillFromFirm();
   updatePorCisloDisplay();
+  updateMotivDisplay();
   let epsSource = '';
   try { epsSource = localStorage.getItem('prefill_source') || ''; } catch (_) {}
   if (epsSource === 'eps' && window.applyEpsPayload) {

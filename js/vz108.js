@@ -26,6 +26,7 @@ const state = {
   photoW:15,
   photoH:7,
   photoNote:'',
+  motiv:'',
   refPartA:'',
   refPartB:'',
   porCislo:'',
@@ -50,12 +51,75 @@ const state = {
 const inputs = [
   'fontPx','toggle-grid','lineStyle','lineStyleH','strokeWidth',
   'dimPos','dimOffset','dimPosH','dimOffsetH','units','decimals',
-  'refPartA','refPartB','porCislo',
+  'motivInput','refPartA','refPartB','porCislo',
   'rollEnabled','rollType','rollVariant','photoW','photoH','photoNote','exportOrient','bgWidth','bgHeight','bgOpacity','measureMode'
 ].map(id=>$(id));
+const undoBtn = $('btn-undo');
+const redoBtn = $('btn-redo');
+const historyState = {
+  undo: [],
+  redo: [],
+  isApplying: false,
+  lastSig: ''
+};
+let historyTimer = null;
 
 function num(el, fallback=0){ const v=parseFloat(el?.value); return Number.isFinite(v)?v:fallback; }
 function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function isUndoTrackable(el){
+  if (!el) return false;
+  if (!(el instanceof HTMLElement)) return false;
+  if (el.id === 'loadFile') return false;
+  if (el.closest('button')) return false;
+  const tag = el.tagName;
+  if (tag === 'SELECT' || tag === 'TEXTAREA') return true;
+  if (tag !== 'INPUT') return false;
+  const type = (el.type || '').toLowerCase();
+  return !['file','button','submit','reset'].includes(type);
+}
+function updateUndoRedoButtons(){
+  if (undoBtn) undoBtn.disabled = historyState.undo.length <= 1;
+  if (redoBtn) redoBtn.disabled = historyState.redo.length === 0;
+}
+function pushUndoSnapshot(clearRedo=true){
+  if (historyState.isApplying) return;
+  const snap = collectState();
+  const sig = JSON.stringify(snap);
+  if (sig === historyState.lastSig) return;
+  historyState.undo.push(snap);
+  if (historyState.undo.length > 100) historyState.undo.shift();
+  historyState.lastSig = sig;
+  if (clearRedo) historyState.redo = [];
+  updateUndoRedoButtons();
+}
+function scheduleUndoSnapshot(){
+  if (historyState.isApplying) return;
+  if (historyTimer) clearTimeout(historyTimer);
+  historyTimer = setTimeout(()=> pushUndoSnapshot(true), 120);
+}
+function applyUndoSnapshot(snap){
+  if (!snap) return;
+  historyState.isApplying = true;
+  loadData(snap);
+  historyState.isApplying = false;
+}
+function doUndo(){
+  if (historyState.undo.length <= 1) return;
+  const current = historyState.undo.pop();
+  historyState.redo.push(current);
+  const prev = historyState.undo[historyState.undo.length - 1];
+  historyState.lastSig = JSON.stringify(prev);
+  applyUndoSnapshot(prev);
+  updateUndoRedoButtons();
+}
+function doRedo(){
+  if (!historyState.redo.length) return;
+  const snap = historyState.redo.pop();
+  historyState.undo.push(snap);
+  historyState.lastSig = JSON.stringify(snap);
+  applyUndoSnapshot(snap);
+  updateUndoRedoButtons();
+}
 
 function create(tag, attrs={}, parent=svgRoot){
   const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -473,6 +537,7 @@ function draw(){
   state.photoW = num($('photoW'),15);
   state.photoH = num($('photoH'),7);
   state.photoNote = $('photoNote')?.value || '';
+  state.motiv = $('motivInput')?.value || '';
   state.refPartA = $('refPartA')?.value || '';
   state.refPartB = $('refPartB')?.value || '';
   state.porCislo = $('porCislo')?.value || '';
@@ -906,10 +971,14 @@ function draw(){
     const refB = (state.refPartB || '').trim();
     const refLabel = refB ? `${refA}/${refB}` : refA;
     const porTxt = (state.porCislo || '').trim();
-    if (refLabel || porTxt) {
+    const motivTxt = (state.motiv || '').trim();
+    if (refLabel || porTxt || motivTxt) {
       textWithBg(`CRV ${refLabel}`, 10, titleY, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#0f172a', fontWeight:'700', fontSize:16});
       if (porTxt) {
         textWithBg(`PCV ${porTxt}`, 220, titleY, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#0f172a', fontWeight:'700', fontSize:16});
+      }
+      if (motivTxt) {
+        textWithBg(`Motiv ${motivTxt}`, 430, titleY, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#0f172a', fontWeight:'700', fontSize:16});
       }
     }
     const sideText = state.printSide === 'top' ? 'vrchna' : 'spodna';
@@ -982,6 +1051,7 @@ function reset(){
   $('strokeWidth').value='0.8';
   if ($('lacquerNo')) $('lacquerNo').checked = true;
   $('photoW').value = 15; $('photoH').value = 7; if ($('photoNote')) $('photoNote').value = '';
+  if ($('motivInput')) $('motivInput').value = '';
   if ($('refPartA')) $('refPartA').value = '';
   if ($('refPartB')) $('refPartB').value = '';
   if ($('porCislo')) $('porCislo').value = '';
@@ -999,6 +1069,7 @@ function reset(){
   buildWidthSegments();
   updateCAndHeight();
   draw();
+  if (!historyState.isApplying) pushUndoSnapshot(true);
 }
 
 function exportPDF(){
@@ -1189,6 +1260,7 @@ function collectState(){
     photoW: state.photoW,
     photoH: state.photoH,
     photoNote: state.photoNote,
+    motiv: state.motiv,
     refPartA: state.refPartA,
     refPartB: state.refPartB,
     porCislo: state.porCislo,
@@ -1259,6 +1331,7 @@ function loadData(data){
   $('photoW').value = data.photoW ?? 15;
   $('photoH').value = data.photoH ?? 7;
   if ($('photoNote')) $('photoNote').value = data.photoNote ?? '';
+  if ($('motivInput')) $('motivInput').value = data.motiv ?? data.orderNote ?? '';
   if ($('refPartA')) $('refPartA').value = data.refPartA ?? '';
   if ($('refPartB')) $('refPartB').value = data.refPartB ?? '';
   if ($('porCislo')) $('porCislo').value = data.porCislo ?? '';
@@ -1267,6 +1340,7 @@ function loadData(data){
   state.photoW = num($('photoW'),15);
   state.photoH = num($('photoH'),7);
   state.photoNote = $('photoNote')?.value || '';
+  state.motiv = $('motivInput')?.value || '';
   state.refPartA = $('refPartA')?.value || '';
   state.refPartB = $('refPartB')?.value || '';
   state.porCislo = $('porCislo')?.value || '';
@@ -1302,6 +1376,7 @@ function loadData(data){
   updateWidthTotal();
   updateCAndHeight();
   draw();
+  if (!historyState.isApplying) pushUndoSnapshot(true);
 }
 
 function syncRollChecks(changedId){
@@ -1419,20 +1494,40 @@ function handleSvgMove(e){
 }
 
 inputs.forEach(el=> el && el.addEventListener('input', draw));
+if (undoBtn) undoBtn.addEventListener('click', doUndo);
+if (redoBtn) redoBtn.addEventListener('click', doRedo);
+document.addEventListener('keydown', (e)=>{
+  const key = (e.key || '').toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === 'z') {
+    e.preventDefault();
+    doUndo();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && (key === 'y' || (e.shiftKey && key === 'z'))) {
+    e.preventDefault();
+    doRedo();
+  }
+});
+document.addEventListener('input', (e)=>{
+  if (isUndoTrackable(e.target)) scheduleUndoSnapshot();
+}, true);
+document.addEventListener('change', (e)=>{
+  if (isUndoTrackable(e.target)) scheduleUndoSnapshot();
+}, true);
 $('btn-reset')?.addEventListener('click', reset);
 $('btn-export')?.addEventListener('click', ()=>{ draw(); exportPDF(); });
 $('btn-export-png')?.addEventListener('click', ()=>{ draw(); exportPNG(); });
 $('btn-save')?.addEventListener('click', saveJSON);
 $('btn-load')?.addEventListener('click', ()=> $('loadFile')?.click());
 $('loadFile')?.addEventListener('change', (e)=> handleLoadFile(e.target.files?.[0]));
-$('seamMode')?.addEventListener('change', ()=>{ buildWidthSegments(); updateCAndHeight(); draw(); });
+$('seamMode')?.addEventListener('change', ()=>{ buildWidthSegments(); updateCAndHeight(); draw(); pushUndoSnapshot(true); });
 $('L')?.addEventListener('change', ()=>{ updateCAndHeight(); draw(); });
 $('C')?.addEventListener('input', ()=>{ const c=$('C'); if(c){ c.dataset.manual='1'; } updateCAndHeight(); draw(); });
 $('W')?.addEventListener('input', ()=>{ state.widthManual = true; updateCAndHeight(); draw(); });
-$('seg-add')?.addEventListener('click', ()=> addExtraSegment('segments-extra', state.extraSegments, 'EX'));
-$('seg-remove')?.addEventListener('click', ()=> removeExtraSegment(state.extraSegments));
-$('segH-add')?.addEventListener('click', ()=> addExtraSegment('segmentsH-extra', state.extraSegmentsH, 'EX'));
-$('segH-remove')?.addEventListener('click', ()=> removeExtraSegment(state.extraSegmentsH));
+$('seg-add')?.addEventListener('click', ()=>{ addExtraSegment('segments-extra', state.extraSegments, 'EX'); pushUndoSnapshot(true); });
+$('seg-remove')?.addEventListener('click', ()=>{ removeExtraSegment(state.extraSegments); pushUndoSnapshot(true); });
+$('segH-add')?.addEventListener('click', ()=>{ addExtraSegment('segmentsH-extra', state.extraSegmentsH, 'EX'); pushUndoSnapshot(true); });
+$('segH-remove')?.addEventListener('click', ()=>{ removeExtraSegment(state.extraSegmentsH); pushUndoSnapshot(true); });
 $('printOps')?.addEventListener('change', draw);
 document.querySelectorAll('input[name=\"lacquerStep\"]').forEach(el=> el.addEventListener('change', draw));
 document.querySelectorAll('input[name="printSide"]').forEach(el=> el.addEventListener('change', draw));
@@ -1444,22 +1539,22 @@ $('bgFile')?.addEventListener('change', (e)=>{
   const file = e.target.files && e.target.files[0];
   if(!file) return;
   const r = new FileReader();
-  r.onload = (ev)=>{ state.bgImageData = ev.target.result; draw(); };
+  r.onload = (ev)=>{ state.bgImageData = ev.target.result; draw(); pushUndoSnapshot(true); };
   r.readAsDataURL(file);
 });
-$('bg-rot-left')?.addEventListener('click', ()=>{ state.bgRot = (state.bgRot - 90); draw(); });
-$('bg-rot-180')?.addEventListener('click', ()=>{ state.bgRot = (state.bgRot + 180); draw(); });
-$('bg-flip')?.addEventListener('click', ()=>{ state.bgFlip = !state.bgFlip; draw(); });
+$('bg-rot-left')?.addEventListener('click', ()=>{ state.bgRot = (state.bgRot - 90); draw(); pushUndoSnapshot(true); });
+$('bg-rot-180')?.addEventListener('click', ()=>{ state.bgRot = (state.bgRot + 180); draw(); pushUndoSnapshot(true); });
+$('bg-flip')?.addEventListener('click', ()=>{ state.bgFlip = !state.bgFlip; draw(); pushUndoSnapshot(true); });
 $('bgOpacity')?.addEventListener('input', ()=>{ state.bgOpacity = clamp(num($('bgOpacity'), 0.6),0,1); $('bgOpacityVal').textContent = `${Math.round(state.bgOpacity*100)} %`; draw(); });
 $('bgWidth')?.addEventListener('input', ()=>{ state.bgWidth = $('bgWidth').value ? num($('bgWidth'), state.bgWidth) : null; draw(); });
 $('bgHeight')?.addEventListener('input', ()=>{ state.bgHeight = $('bgHeight').value ? num($('bgHeight'), state.bgHeight) : null; draw(); });
-$('bg-clear')?.addEventListener('click', ()=>{ state.bgImageData=null; state.bgWidth=null; state.bgHeight=null; state.bgOffsetX=0; state.bgOffsetY=0; $('bgFile').value=''; $('bgWidth').value=''; $('bgHeight').value=''; draw(); });
+$('bg-clear')?.addEventListener('click', ()=>{ state.bgImageData=null; state.bgWidth=null; state.bgHeight=null; state.bgOffsetX=0; state.bgOffsetY=0; $('bgFile').value=''; $('bgWidth').value=''; $('bgHeight').value=''; draw(); pushUndoSnapshot(true); });
 $('bg-calib')?.addEventListener('click', startCalib);
 $('bg-calib-cancel')?.addEventListener('click', cancelCalib);
 
 $('measureMode')?.addEventListener('change', ()=>{ state.measureMode = $('measureMode').value; state.measurePick=null; state.measurePreview=null; draw(); });
-$('measure-cancel')?.addEventListener('click', ()=>{ state.measurePick=null; state.measurePreview=null; draw(); });
-$('measure-clear')?.addEventListener('click', ()=>{ state.measures=[]; state.measurePick=null; state.measurePreview=null; draw(); });
+$('measure-cancel')?.addEventListener('click', ()=>{ state.measurePick=null; state.measurePreview=null; draw(); pushUndoSnapshot(true); });
+$('measure-clear')?.addEventListener('click', ()=>{ state.measures=[]; state.measurePick=null; state.measurePreview=null; draw(); pushUndoSnapshot(true); });
 
 svgRoot.addEventListener('click', handleSvgClick);
 svgRoot.addEventListener('mousemove', handleSvgMove);
@@ -1484,7 +1579,7 @@ svgRoot.addEventListener('pointermove',(e)=>{
   state.bgOffsetY = dragStart.oy + dy / scaleY;
   draw();
 });
-  svgRoot.addEventListener('pointerup', ()=>{ draggingBg=false; });
+  svgRoot.addEventListener('pointerup', ()=>{ draggingBg=false; pushUndoSnapshot(true); });
   svgRoot.addEventListener('pointercancel', ()=>{ draggingBg=false; });
   const svgHolder = $('svgHolder');
   const onWheelZoom = (e)=>{
@@ -1512,7 +1607,7 @@ window.addEventListener('paste',(e)=>{
   const file = it.getAsFile();
   if(!file) return;
   const r=new FileReader();
-  r.onload=(ev)=>{ state.bgImageData = ev.target.result; draw(); };
+  r.onload=(ev)=>{ state.bgImageData = ev.target.result; draw(); pushUndoSnapshot(true); };
   r.readAsDataURL(file);
   e.preventDefault();
 });
@@ -1532,3 +1627,5 @@ if($('W')){
 reset();
 if (window.applyEpsPayload) { window.applyEpsPayload('vz108'); }
 draw();
+pushUndoSnapshot(true);
+updateUndoRedoButtons();

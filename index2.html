@@ -23,7 +23,7 @@
           <select id="firmSelect"></select>
         </div>
         <div class="pair">
-          <label for="typeSelect">Typ</label>
+          <label for="typeSelect">Specifikacia</label>
           <select id="typeSelect"></select>
         </div>
       </div>
@@ -54,8 +54,8 @@
     <div class="firm-modal-dialog">
       <div class="panel-header">
         <div>
-          <div class="modal-title">Nova firma / variant (typ)</div>
-          <div class="modal-sub">Vypln aspon ID, nazov a typ. Ostatne polozky su volitelne.</div>
+          <div class="modal-title">Nova firma / specifikacia - <span id="modalVzLabel">vz22</span></div>
+          <div class="modal-sub">Vypln aspon nazov firmy a specifikaciu. Ostatne polozky su volitelne.</div>
         </div>
         <button type="button" class="icon-btn" id="btnClosePanel" aria-label="Zavriet">&times;</button>
       </div>
@@ -63,25 +63,42 @@
         <input id="newFirmVz" type="hidden" />
         <div class="field-grid">
           <label>
-            <span>ID (slug)</span>
-            <input id="newFirmId" type="text" placeholder="napr. epicom-sp" required />
-          </label>
-          <label>
             <span>Nazov firmy</span>
             <input id="newFirmName" type="text" placeholder="EPICOM SP" required />
           </label>
           <label>
-            <span>Typ (variant)</span>
+            <span>Specifikacia</span>
             <input id="newFirmTyp" type="text" placeholder="default alebo a/b/c..." required />
           </label>
         </div>
 
         <div class="field-grid">
-          <label><span>W (sirka)</span><input id="newFirmW" type="number" step="0.1" /></label>
-          <label><span>L (dlzka)</span><input id="newFirmL" type="number" step="0.1" /></label>
-          <label><span>G (spodna zalozka)</span><input id="newFirmG" type="number" step="0.1" /></label>
-          <label><span>K (chlopna)</span><input id="newFirmK" type="number" step="0.1" /></label>
-          <label><span>Dlzka zaseku v K</span><input id="newNotchLen" type="number" step="0.1" /></label>
+          <label><span>Chlopna (K)</span><input id="newFirmK" type="number" step="0.1" /></label>
+          <label><span>Dlzka zaseku</span><input id="newNotchLen" type="number" step="0.1" /></label>
+        </div>
+
+        <div class="field-grid">
+          <label><span>Vzdialenost zavesnych otvorov</span><input id="newFirmCpitch" type="number" step="0.1" /></label>
+          <label><span>Umiestnenie stredu otvorov (z lavej strany chlopne)</span><input id="newFirmAxisInK" type="number" step="0.1" /></label>
+        </div>
+        <div class="field-grid">
+          <label>
+            <span>Perforacia (A/N)</span>
+            <select id="newPerfEnabled">
+              <option value="">-</option>
+              <option value="yes">ano</option>
+              <option value="no">nie</option>
+            </select>
+          </label>
+          <label>
+            <span>Strana perforacie</span>
+            <select id="newPerfSide">
+              <option value="">-</option>
+              <option value="lava">lava</option>
+              <option value="prava">prava</option>
+            </select>
+          </label>
+          <label><span>Vzdialenost od stredu</span><input id="newPerfOffset" type="number" step="0.1" /></label>
         </div>
 
         <div class="field-grid">
@@ -89,13 +106,6 @@
           <label><span>Priemer otvorov</span><input id="newAirDiameter" type="number" step="0.1" /></label>
           <label><span>Vzduch. otvory od okraja</span><input id="newAirOffsetEdge" type="number" step="0.1" /></label>
           <label><span>Roztec vzduch. otvorov</span><input id="newAirPitch" type="number" step="0.1" /></label>
-        </div>
-
-        <div class="field-grid">
-          <label><span>C-roztec zavesnych otvorov</span><input id="newFirmCpitch" type="number" step="0.1" /></label>
-          <label><span>Os C od vrecka</span><input id="newFirmAxisInK" type="number" step="0.1" /></label>
-          <label><span>Spony pocet</span><input id="newClipCount" type="number" step="1" /></label>
-          <label><span>Spony typ</span><input id="newClipType" type="text" placeholder="plast" /></label>
         </div>
 
         <div class="field-grid">

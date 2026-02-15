@@ -56,6 +56,7 @@
   const printBtn = $('btn-print');
   const bottomImgInput = $('bottomImgInput');
   const bottomImgPreview = $('bottomImgPreview');
+  const clipPresetEl = $('clipPreset');
   const bottomText1 = $('bottomText1');
   const bottomText2 = $('bottomText2');
   const saveBtn = $('btn-save');
@@ -63,12 +64,17 @@
   const undoBtn = $('btn-undo');
   const redoBtn = $('btn-redo');
   const loadFile = $('loadFile');
+  const motivInput = $('motivInput');
+  const motivText = $('motivText');
+  const noteModeEl = $('noteMode');
+  const leftSideTitleEl = $('leftSideTitle');
+  const rightSideTitleEl = $('rightSideTitle');
 
   const prefillableIds = [
     'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirInGOnly',
-    'PerfOffset','PerfSide','printSide',
+    'PerfEnabled','PerfOffset','PerfSide','printSide',
     'finalNavinNumber','finalNavinLetter','rezanie-ano','rezanie-nie',
-    'porCislo','otherNotes','bottomText1','bottomText2','refPartA','refPartB',
+    'porCislo','motivInput','bottomText1','bottomText2','refPartA','refPartB',
     'bgWidth','bgHeight'
   ];
   const prefillableEls = prefillableIds.map(id=>$(id)).filter(Boolean);
@@ -120,6 +126,26 @@
   if (refPartA) refPartA.addEventListener('input', updateRefDisplay);
   if (refPartB) refPartB.addEventListener('input', updateRefDisplay);
   if (porCislo) porCislo.addEventListener('input', updatePorCisloDisplay);
+  function updateMotivDisplay(){
+    if (motivText) motivText.textContent = (motivInput?.value || '').trim() || '-';
+  }
+  function getSideTitles(){
+    const mode = (noteModeEl?.value || 'hygiena').toLowerCase();
+    if (mode === 'chlieb'){
+      return {
+        left: 'PREDNA STRANA / FOTOBUNKA NA STRANE POHONU',
+        right: 'CHLOPNA/ZS NA STRANE OBSLUHY'
+      };
+    }
+    return { left: 'ZADNA STRANA', right: 'PREDNA STRANA' };
+  }
+  function updateSideTitles(){
+    const t = getSideTitles();
+    if (leftSideTitleEl) leftSideTitleEl.textContent = t.left;
+    if (rightSideTitleEl) rightSideTitleEl.textContent = t.right;
+  }
+  if (motivInput) motivInput.addEventListener('input', updateMotivDisplay);
+  if (noteModeEl) noteModeEl.addEventListener('change', updateSideTitles);
   const airEnabledEl = $('AirEnabled');
   const airEdgeEl = $('AirEdge');
   const airXAbsEl = $('AirXAbs');
@@ -334,8 +360,16 @@
     } catch(_) { /* ignore */ }
     if (!data || data.vz !== 'vz22') return;
     const dims = data.dimensions || {};
+    const perf = data.perforation || {};
     const clip = data.clip || {};
     const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', Cpitch:'Cpitch', AxisInK:'AxisInK', notchLen:'NotchLen', AirEdge:'AirEdge', AirXAbs:'AirXAbs', AirInGOnly:'AirInGOnly', PerfOffset:'PerfOffset', PerfSide:'PerfSide' };
+    const perfEnabledEl = $('PerfEnabled');
+    if (perfEnabledEl) perfEnabledEl.classList.remove('prefilled');
+    const perfEnabledVal = (perf.enabled || '').toLowerCase();
+    if (perfEnabledEl && (perfEnabledVal === 'yes' || perfEnabledVal === 'no')) {
+      perfEnabledEl.value = perfEnabledVal;
+      perfEnabledEl.classList.add('prefilled');
+    }
     Object.values(map).forEach(id=>{
       const el=$(id);
       if (el) el.classList.remove('prefilled');
@@ -346,7 +380,8 @@
       if (key === 'notchLen') val = dims.notchLen;
       else if (key === 'Cpitch') val = dims.Cpitch;
       else if (key === 'AxisInK') val = (dims.AxisInK != null) ? dims.AxisInK : (dims.K != null ? dims.K/2 : null);
-      else if (key === 'PerfSide') val = dims.PerfSide;
+      else if (key === 'PerfSide') val = perf.side || dims.PerfSide;
+      else if (key === 'PerfOffset') val = (perf.offset != null ? perf.offset : dims.PerfOffset);
       else if (key === 'bagWidth') val = dims.W;
       else val = dims[key];
       if (el && val != null && val !== '') {
@@ -381,29 +416,43 @@
       if(p === 'zdola') return 'img/zdola.png';
       return p;
     };
+    const clipPreset = ((data.clipImages && data.clipImages[0]) || '').toLowerCase();
     const assetPath = resolveAsset((data.clipImages && data.clipImages[0]) || (Array.isArray(data.assets) && data.assets[0]?.path));
+    if (clipPresetEl) clipPresetEl.value = (clipPreset === 'zhora' || clipPreset === 'zdola') ? clipPreset : (assetPath ? 'file' : 'none');
     if (assetPath){
-      bottomImgPreview.style.display = 'block';
-      bottomImgPreview.style.transform = 'rotate(90deg)';
       inlineAsset(assetPath).then(dataUrl=>{
-        if(dataUrl){
-          bottomImgPreview.src = dataUrl;
-        } else {
-          bottomImgPreview.src='';
-          bottomImgPreview.style.display='none';
-          bottomImgPreview.style.transform='';
-        }
+        setBottomImage(dataUrl || null);
       });
     } else {
-      bottomImgPreview.src = '';
-      bottomImgPreview.style.display = 'none';
-      bottomImgPreview.style.transform = '';
+      clearBottomImage();
     }
 
     try {
       localStorage.removeItem('selectedFirm');
       localStorage.removeItem('prefill_source');
     } catch (_) {}
+  }
+
+  function clearBottomImage(){
+    if (!bottomImgPreview) return;
+    bottomImgPreview.src = '';
+    bottomImgPreview.style.display = 'none';
+    bottomImgPreview.style.transform = '';
+  }
+  function setBottomImage(dataUrl){
+    if (!bottomImgPreview) return;
+    if (!dataUrl) { clearBottomImage(); return; }
+    bottomImgPreview.src = dataUrl;
+    bottomImgPreview.style.display = 'block';
+    bottomImgPreview.style.transform = 'rotate(90deg)';
+  }
+  function applyClipPreset(preset, fromUser=false){
+    const p = (preset || 'none').toLowerCase();
+    if (p === 'none') { clearBottomImage(); return; }
+    if (p === 'zhora') { setBottomImage(INLINE_ASSETS.zhora); return; }
+    if (p === 'zdola') { setBottomImage(INLINE_ASSETS.zdola); return; }
+    if (p === 'file' && fromUser) { bottomImgInput?.click(); return; }
+    if (p === 'file') { clearBottomImage(); }
   }
 
   function clearPrefilled(){
@@ -752,6 +801,10 @@
     if ($('PerfEnabled')) $('PerfEnabled').value='ano';
     $('PerfOffset').value=7;
     $('PerfSide').value='prava';
+    if (noteModeEl) noteModeEl.value='hygiena';
+    if (motivInput) motivInput.value='';
+    if (clipPresetEl) clipPresetEl.value='none';
+    clearBottomImage();
     if(finalNavinNumber) finalNavinNumber.value='1';
     if(finalNavinLetter) finalNavinLetter.value='A';
     if(rezanieYes) rezanieYes.checked=false;
@@ -759,6 +812,8 @@
     $('fontPx').value=14; $('toggle-grid').checked=false;
     bgFile.value=''; bgWidthEl.value=''; bgHeightEl.value=''; bgState.data=null; bgState.natural={w:0,h:0}; bgState.offset={x:0,y:0}; bgState.rotation=0; bgState.flip=false;
     updateNavinTlac();
+    updateMotivDisplay();
+    updateSideTitles();
     updateAirUiState();
     updatePerfUiState();
     draw();
@@ -775,26 +830,27 @@
   bottomImgInput.addEventListener('change',(e)=>{
     const file = e.target.files && e.target.files[0];
     if(!file){
-      bottomImgPreview.style.display='none';
-      bottomImgPreview.src='';
-      bottomImgPreview.style.transform='';
+      clearBottomImage();
       return;
     }
     if(!file.type.startsWith('image/')){
       alert('Podporovane su iba obrazky.');
       bottomImgInput.value='';
-      bottomImgPreview.style.display='none';
-      bottomImgPreview.style.transform='';
+      clearBottomImage();
       return;
     }
     const r=new FileReader();
     r.onload=(ev)=>{
-      bottomImgPreview.src = ev.target.result;
-      bottomImgPreview.style.display='block';
-      bottomImgPreview.style.transform='rotate(90deg)';
+      if (clipPresetEl) clipPresetEl.value = 'file';
+      setBottomImage(ev.target.result);
     };
     r.readAsDataURL(file);
   });
+  if (clipPresetEl){
+    clipPresetEl.addEventListener('change', ()=>{
+      applyClipPreset(clipPresetEl.value, true);
+    });
+  }
 
   function collectStateForSave(){
     return {
@@ -812,9 +868,11 @@
         fontPx:$('fontPx').value, grid:$('toggle-grid').checked,
         printSide:printSide.value,
         porCislo:$('porCislo').value,
-        otherNotes:$('otherNotes').value,
+        motiv:motivInput?.value || '',
+        noteMode: noteModeEl?.value || 'hygiena',
         bottomText1:bottomText1.value,
         bottomText2:bottomText2.value,
+        clipPreset: clipPresetEl?.value || 'none',
         measureMode:state.measureMode,
         finalNavinNumber:finalNavinNumber?.value || '',
         finalNavinLetter:finalNavinLetter?.value || '',
@@ -862,24 +920,24 @@
       if(rezanieYes) rezanieYes.checked = (i.rezanie===true || i.rezanie==='ano');
       if(rezanieNo) rezanieNo.checked = !rezanieYes?.checked;
       $('porCislo').value=i.porCislo||'';
-      $('otherNotes').value=i.otherNotes||'';
+      if (motivInput) motivInput.value = i.motiv || i.otherNotes || '';
+      if (noteModeEl) noteModeEl.value = i.noteMode || 'hygiena';
       bottomText1.value=i.bottomText1||'';
       bottomText2.value=i.bottomText2||'';
+      if (clipPresetEl) clipPresetEl.value = i.clipPreset || ((data.bottomImage && data.bottomImage.length) ? 'file' : 'none');
       state.measureMode = i.measureMode || 'off';
       updateNavinTlac();
+      updateMotivDisplay();
+      updateSideTitles();
       updateAirUiState();
       updatePerfUiState();
     }
     state.measures = Array.isArray(data.measures)? data.measures : [];
 
         if(data.bottomImage){
-      bottomImgPreview.src = data.bottomImage;
-      bottomImgPreview.style.display='block';
-      bottomImgPreview.style.transform='rotate(90deg)';
+      setBottomImage(data.bottomImage);
     } else {
-      bottomImgPreview.src = '';
-      bottomImgPreview.style.display='none';
-      bottomImgPreview.style.transform='';
+      applyClipPreset(clipPresetEl?.value || 'none', false);
     }
     if(data.bg){
       bgState.data = data.bg.data || null;
@@ -1025,19 +1083,20 @@ ${svgText}
       const {effectiveCode, effectiveVariant, finalCode, finalVariant} = getEffectiveNavin();
       const navText = `${effectiveCode}${effectiveVariant}`;
       const finalNavText = `${finalCode}${finalVariant}`;
+      const sideTitles = getSideTitles();
       ctx.fillText(`Finalny navin: ${finalNavText||'-'}`, leftX, y+=lineH);
       ctx.fillText(`Rezanie: ${(rezanieYes?.checked ? 'ano' : 'nie')}`, leftX, y+=lineH);
       ctx.fillText(`Navin tlac: ${navText}`, leftX, y+=lineH);
       ctx.fillText(`Navin montaz: ${lblNavinTlac.textContent||"V1"}`, leftX, y+=lineH);
-      ctx.fillStyle="#dc2626"; ctx.fillText("ZADNA STRANA", leftX, y+=lineH);
+      ctx.fillStyle="#dc2626"; ctx.fillText(sideTitles.left, leftX, y+=lineH);
 
       ctx.fillStyle="#0f172a";
       y = margin + Math.round(lineH*0.8);
       ctx.fillText(`Casova peciatka: ${stampEl.textContent||"-"}`, rightX, y);
       ctx.fillText(`Vzor: ${vzCodeEl.textContent||"vz-22"}`, rightX, y+=lineH);
       ctx.fillText(`Por. cislo vyrobku: ${$("porCislo").value||"-"}`, rightX, y+=lineH);
-      ctx.fillText(`Ostatne poznamky: ${$("otherNotes").value||"-"}`, rightX, y+=lineH);
-      ctx.fillStyle="#dc2626"; ctx.fillText("PREDNA STRANA", rightX, y+=lineH);
+      ctx.fillText(`Motiv: ${motivInput?.value || "-"}`, rightX, y+=lineH);
+      ctx.fillStyle="#dc2626"; ctx.fillText(sideTitles.right, rightX, y+=lineH);
 
       // drawing
       const drawWpx = mm2px(drawWmm,dpi);
@@ -1364,6 +1423,8 @@ ${svgText}
 
   prefillFromFirm();
   updatePorCisloDisplay();
+  updateMotivDisplay();
+  updateSideTitles();
   updateAirUiState();
   updatePerfUiState();
   let epsSource = '';

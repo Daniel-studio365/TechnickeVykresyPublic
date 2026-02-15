@@ -9,6 +9,9 @@
 <body>
   <div id="app">
     <aside id="controls">
+      <div class="row" style="margin-bottom:8px;">
+        <button id="btn-load" type="button">Nacitat ulozeny TV</button>
+      </div>
       <label>Hrubka ciary:
         <input type="number" id="strokeWidth" value="0.8" step="0.2" min="0.2" max="5">
       </label>
@@ -27,6 +30,9 @@
           </select>
         </label>
       </div>
+      <label>Motiv:
+        <input type="text" id="motivInput" maxlength="120" placeholder="Nazov motivu">
+      </label>
       <label>Cislo referencneho vzoru:
         <div class="row" style="gap:6px;">
           <input id="refPartA" type="text" maxlength="10" placeholder="vz-xx">
@@ -224,11 +230,14 @@
         </label>
       </div>
       <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:6px;">
+        <button id="btn-undo" type="button" class="secondary">Spat</button>
+        <button id="btn-redo" type="button" class="secondary">Dopredu</button>
         <button id="btn-reset" class="secondary">Reset</button>
+      </div>
+      <div class="row" style="margin-top:6px;flex-wrap:wrap;gap:6px;">
         <button id="btn-export">Export PDF 1:1</button>
         <button id="btn-export-png">Export PNG</button>
-        <button id="btn-save" type="button">Ulozit (JSON)</button>
-        <button id="btn-load" type="button">Nacitat</button>
+        <button id="btn-save" type="button">Ulozit TV</button>
         <input type="file" id="loadFile" accept="application/json" style="display:none;">
       </div>
     </aside>

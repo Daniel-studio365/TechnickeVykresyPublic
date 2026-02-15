@@ -55,6 +55,7 @@
   const printBtn = $('btn-print');
   const bottomImgInput = $('bottomImgInput');
   const bottomImgPreview = $('bottomImgPreview');
+  const clipPresetEl = $('clipPreset');
   const bottomText1 = $('bottomText1');
   const bottomText2 = $('bottomText2');
   const saveBtn = $('btn-save');
@@ -62,6 +63,8 @@
   const undoBtn = $('btn-undo');
   const redoBtn = $('btn-redo');
   const loadFile = $('loadFile');
+  const motivInput = $('motivInput');
+  const motivText = $('motivText');
   const lineOnlyEl = $('lineOnly');
 
   const state = {
@@ -94,14 +97,14 @@
   };
 
   const inputs = [
-    'W','L','G','K','BagWidth','P','Ph','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirXAuto','AirCount','AirPitch','fontPx','toggle-grid','toggle-notches',
+    'W','SideHandle','L','G','K','BagWidth','P','Ph','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirXAuto','AirCount','AirPitch','fontPx','toggle-grid','toggle-notches',
     'finalNavinNumber','finalNavinLetter','rezanie-ano','rezanie-nie'
   ].map(id => $(id));
 
   const prefillableIds = [
-    'W','L','G','K','BagWidth','P','Ph','Cpitch','AxisInK','NotchLen','AirEdge','AirCount','AirPitch',
+    'W','SideHandle','L','G','K','BagWidth','P','Ph','Cpitch','AxisInK','NotchLen','AirEdge','AirCount','AirPitch',
     'refPartA','refPartB','printSide','finalNavinNumber','finalNavinLetter','rezanie-ano','rezanie-nie',
-    'bottomText1','bottomText2'
+    'bottomText1','bottomText2','motivInput'
   ];
   const prefillableEls = prefillableIds.map(id=>$(id)).filter(Boolean);
 
@@ -113,6 +116,10 @@
   if (refPartA) refPartA.addEventListener('input', updateRefDisplay);
   if (refPartB) refPartB.addEventListener('input', updateRefDisplay);
   if (porCislo) porCislo.addEventListener('input', updatePorCisloDisplay);
+  function updateMotivDisplay(){
+    if (motivText) motivText.textContent = (motivInput?.value || '').trim() || '-';
+  }
+  if (motivInput) motivInput.addEventListener('input', updateMotivDisplay);
   if (btnOpenFirmManager) {
     btnOpenFirmManager.addEventListener('click', () => {
       try { localStorage.setItem('index2_vz', 'vz34'); } catch (_) {}
@@ -195,6 +202,7 @@
     updateRefDisplay();
     updatePorCisloDisplay();
     updateNavinTlac();
+    updateMotivDisplay();
     draw();
   }
   function doUndo(){
@@ -299,6 +307,7 @@
     if (!data || data.vz !== 'vz34') return;
     const dims = data.dimensions || {};
     const air = data.air || {};
+    const perf = data.perforation || {};
     const clip = data.clip || {};
     const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', notchLen:'NotchLen', Cpitch:'Cpitch', AxisInK:'AxisInK', AirEdge:'AirEdge', AirCount:'AirCount', AirPitch:'AirPitch' };
     prefillableEls.forEach(el=> el.classList.remove('prefilled'));
@@ -306,6 +315,7 @@
       const el=$(id);
       let val=null;
       if (key === 'notchLen') val = dims.notchLen;
+      else if (key === 'P') val = (perf.offset != null ? perf.offset : dims.P);
       else if (key === 'AirEdge') val = air.offsetFromEdge;
       else if (key === 'AirCount') {
         const hasAir = air.count !== null && air.count !== undefined;
@@ -349,29 +359,43 @@
       if(p === 'zdola') return 'img/zdola.png';
       return p;
     };
+    const clipPreset = ((data.clipImages && data.clipImages[0]) || '').toLowerCase();
     const assetPath = resolveAsset((data.clipImages && data.clipImages[0]) || (Array.isArray(data.assets) && data.assets[0]?.path));
+    if (clipPresetEl) clipPresetEl.value = (clipPreset === 'zhora' || clipPreset === 'zdola') ? clipPreset : (assetPath ? 'file' : 'none');
     if (assetPath){
-      bottomImgPreview.style.display = 'block';
-      bottomImgPreview.style.transform = 'rotate(90deg)';
       inlineAsset(assetPath).then(dataUrl=>{
-        if(dataUrl){
-          bottomImgPreview.src = dataUrl;
-        } else {
-          bottomImgPreview.src = '';
-          bottomImgPreview.style.display='none';
-          bottomImgPreview.style.transform='';
-        }
+        setBottomImage(dataUrl || null);
       });
     } else {
-      bottomImgPreview.src = '';
-      bottomImgPreview.style.display = 'none';
-      bottomImgPreview.style.transform = '';
+      clearBottomImage();
     }
 
     try {
       localStorage.removeItem('selectedFirm');
       localStorage.removeItem('prefill_source');
     } catch (_) {}
+  }
+
+  function clearBottomImage(){
+    if (!bottomImgPreview) return;
+    bottomImgPreview.src = '';
+    bottomImgPreview.style.display = 'none';
+    bottomImgPreview.style.transform = '';
+  }
+  function setBottomImage(dataUrl){
+    if (!bottomImgPreview) return;
+    if (!dataUrl) { clearBottomImage(); return; }
+    bottomImgPreview.src = dataUrl;
+    bottomImgPreview.style.display = 'block';
+    bottomImgPreview.style.transform = 'rotate(90deg)';
+  }
+  function applyClipPreset(preset, fromUser=false){
+    const p = (preset || 'none').toLowerCase();
+    if (p === 'none') { clearBottomImage(); return; }
+    if (p === 'zhora') { setBottomImage(INLINE_ASSETS.zhora); return; }
+    if (p === 'zdola') { setBottomImage(INLINE_ASSETS.zdola); return; }
+    if (p === 'file' && fromUser) { bottomImgInput?.click(); return; }
+    if (p === 'file') { clearBottomImage(); }
   }
 
   function clearPrefilled(){
@@ -464,7 +488,10 @@
   }
 
   function draw(){
-    const W = num($('W'),400);
+    const W = Math.max(0, num($('W'),460));
+    const sideHandle = Math.max(0, num($('SideHandle'),60));
+    const filmW = Math.max(0, W - sideHandle);
+    if ($('FilmW')) $('FilmW').value = fmtVal(filmW);
     const L = num($('L'),600);
     const G = num($('G'),50);
     const K = num($('K'),45);
@@ -491,8 +518,8 @@
 
     const widths = [L,G,G,L,K];
     const totalWidth = widths.reduce((a,b)=>a+b,0);
-    const handleH = 60;
-    const sek = W + handleH;
+    const handleH = sideHandle;
+    const sek = W;
     const rightCut=185, leftCut=(185-K);
     const leftOuter=50, rightOuter=50+totalWidth;
     const offsetX = leftOuter;
@@ -500,8 +527,8 @@
     const handleEndX=leftOuter+totalWidth-rightCut;
     const handleW=handleEndX-handleOffsetX;
     const offsetYTop=120, offsetY=offsetYTop+handleH;
-    const yTopBody=offsetY, yBottomBody=offsetY+W;
-    const sekEl = $('Sek');
+    const yTopBody=offsetY, yBottomBody=offsetY+filmW;
+    const sekEl = $('W');
     if(sekEl){ sekEl.value = fmtVal(sek); }
     state.cachedDims = {yTop:yTopBody, yBottom:yBottomBody, width: totalWidth, height: sek, offsetX, offsetY};
 
@@ -537,7 +564,7 @@
     const xAxis=xKstart+axisVal;
 
     const rHole=7;
-    const yMid=offsetY+(W)/2;
+    const yMid=offsetY+(filmW)/2;
     const y1=yMid-(C/2), y2=yMid+(C/2);
     const topLimit=yTopBody+rHole, botLimit=yBottomBody-rHole;
     $('warnC').style.display = (y1<topLimit)||(y2>botLimit) ? 'block' : 'none';
@@ -563,7 +590,7 @@
     let ox=leftOuter;
     widths.forEach((w,i)=>{
       const isG=(i===1||i===2);
-      const h=isG ? (W+handleH) : (W);
+      const h=isG ? (filmW+handleH) : (filmW);
       create('rect',{x:ox, y:offsetY-(isG?handleH:0), width:w, height:h, fill:'none', stroke:'#0f172a','stroke-width':1});
       ox+=w;
     });
@@ -629,7 +656,7 @@
       const bodyTopBandH = 5;
       const bodyBotBandH = 5;
       create('rect',{x:leftOuter,y:offsetY,width:totalWidth,height:bodyTopBandH,fill:magenta,'fill-opacity':0.2,stroke:'none'});
-      const bodyBotY = offsetY + W - bodyBotBandH;
+      const bodyBotY = offsetY + filmW - bodyBotBandH;
       create('rect',{x:leftOuter,y:bodyBotY,width:totalWidth,height:bodyBotBandH,fill:magenta,'fill-opacity':0.2,stroke:'none'});
 
       const boxH = Math.max(16, Math.round(state.fontPx * 1.2));
@@ -703,19 +730,18 @@
       const leftMid=(leftSegStart+leftSegEnd)/2;
       hDim(leftSegStart, offsetYTop-topGap1, leftMid, leftMid-leftSegStart);
       hDim(leftMid, offsetYTop-topGap1, leftSegEnd, leftSegEnd-leftMid);
-      vDim(handleEndX+22, offsetYTop, offsetYTop+handleH, 60);
       vDim(xRight+35, pTop, pBot, Ph, 10, '#dc2626');
       const yDimPInside=pTop+Math.min(Ph-5,160);
       hDim(xLeft, yDimPInside, xLeftGStart, P, 10, '#dc2626');
       hDim(xLeft, pBot+20, xRight, 2*G + 2*P);
       const xDim=xKend+25, xDimW=xDim+30;
-      vDim(xDim, yTopBody, y1, W/2 - C/2);
+      vDim(xDim, yTopBody, y1, filmW/2 - C/2);
       vDim(xDim, y1, y2, C, 10, '#dc2626');
-      vDim(xDim, yBottomBody, y2, W/2 - C/2);
-      vDim(xDimW, yTopBody, yBottomBody, W);
+      vDim(xDim, yBottomBody, y2, filmW/2 - C/2);
+      vDim(xDimW, yTopBody, yBottomBody, filmW);
     const xBagDim = leftOuter - 18;
       const bagLabel = `sirka vrecka ${Math.round(bagWidth)}`;
-      let yBagStart = yTopBody + (W - bagWidth)/2;
+      let yBagStart = yTopBody + (filmW - bagWidth)/2;
       let yBagEnd = yBagStart + bagWidth;
       vDim(xBagDim, yBagStart, yBagEnd, bagLabel, 10, '#0f172a');
       create('line',{x1:xBagDim,x2:leftOuter,y1:yBagStart,y2:yBagStart,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'4 3'});
@@ -723,7 +749,6 @@
       minX = Math.min(minX, xBagDim - 40);
       hDim(rightSlot.x, rightSlot.y-10, rightSlot.x+rightSlot.w, 90);
       vDim(rightSlot.x+rightSlot.w+16, rightSlot.y, rightSlot.y+rightSlot.h, 20);
-      vDim(rightSlot.x+rightSlot.w+36, offsetYTop, rightSlot.y+rightSlot.h, 50);
       const yAirBase = cyBot + Math.max(36, Math.round(state.fontPx*3.0));
       leftL.slice(1).forEach((xVal,i)=>{ hDim(xVal, yAirBase, leftL[i], Math.abs(leftL[i]-xVal), 10, '#dc2626'); });
       rightL.slice(1).forEach((xVal,i)=>{ hDim(rightL[i], yAirBase, xVal, Math.abs(xVal-rightL[i]), 10, '#dc2626'); });
@@ -739,8 +764,10 @@
       hDim(xKstart, yDimAxis, xAxis, axisVal, 10, '#dc2626');
       create('path',{d:`M ${xAxis} ${y2} V ${yDimAxis}`, stroke:'#0f172a','stroke-dasharray':'4 3','fill':'none'});
       const magenta='#d0007a';
-    const xDimTotal = xDimW + 35;
-      vDim(xDimTotal, offsetYTop, yBottomBody, W + handleH);
+    const xDimHandle = xDimW;
+    vDim(xDimHandle, offsetYTop, yTopBody, sideHandle);
+    const xDimTotal = xDimW + 36;
+      vDim(xDimTotal, offsetYTop, yBottomBody, W);
       maxX = Math.max(maxX, xDimTotal + 40);
       const bottomPad = Math.max(90, Math.round(state.fontPx*5.5));
       const yDimAxisMax = yDimAxis + bottomPad;
@@ -776,7 +803,7 @@
   if(bgFlipBtn) bgFlipBtn.addEventListener('click', ()=>{ bgState.flip = !bgState.flip; draw(); });
 
   $('btn-reset').addEventListener('click', ()=>{
-    $('W').value=400; $('L').value=600; $('G').value=50; $('K').value=45; if($('BagWidth')) $('BagWidth').value=400;
+    $('W').value=460; $('SideHandle').value=60; $('FilmW').value=400; $('L').value=600; $('G').value=50; $('K').value=45; if($('BagWidth')) $('BagWidth').value=400;
     $('P').value=55; $('Ph').value=240;
     $('Cpitch').value=160; $('AxisInK').value='';
     $('NotchLen').value=7; $('toggle-notches').checked=true;
@@ -787,21 +814,20 @@
     if(finalNavinLetter) finalNavinLetter.value='A';
     if(rezanieYes) rezanieYes.checked=false;
     if(rezanieNo) rezanieNo.checked=true;
+    if (motivInput) motivInput.value='';
+    if (clipPresetEl) clipPresetEl.value='none';
     bgFile.value=''; bgWidthEl.value=''; bgHeightEl.value=''; bgState.data=null; bgState.natural={w:0,h:0}; bgState.offset={x:0,y:0}; bgState.rotation=0; bgState.flip=false;
     document.querySelectorAll('.epsfilled').forEach(el=> el.classList.remove('epsfilled'));
     clearPrefilled();
     if(bottomText1) bottomText1.value='';
     if(bottomText2) bottomText2.value='';
-    if(bottomImgPreview){
-      bottomImgPreview.src='';
-      bottomImgPreview.style.display='none';
-      bottomImgPreview.style.transform='';
-    }
+    clearBottomImage();
     try{
       localStorage.removeItem('selectedFirm');
       localStorage.removeItem('prefill_source');
     }catch(_){}
     updateNavinTlac();
+    updateMotivDisplay();
     draw();
     pushUndoSnapshot(true);
   });
@@ -816,26 +842,27 @@
   bottomImgInput.addEventListener('change',(e)=>{
     const file = e.target.files && e.target.files[0];
     if(!file){
-      bottomImgPreview.style.display='none';
-      bottomImgPreview.src='';
-      bottomImgPreview.style.transform='';
+      clearBottomImage();
       return;
     }
     if(!file.type.startsWith('image/')){
       alert('Podporovane su iba obrazky.');
       bottomImgInput.value='';
-      bottomImgPreview.style.display='none';
-      bottomImgPreview.style.transform='';
+      clearBottomImage();
       return;
     }
     const r=new FileReader();
     r.onload=(ev)=>{
-      bottomImgPreview.src = ev.target.result;
-      bottomImgPreview.style.display='block';
-      bottomImgPreview.style.transform='rotate(90deg)';
+      if (clipPresetEl) clipPresetEl.value = 'file';
+      setBottomImage(ev.target.result);
     };
     r.readAsDataURL(file);
   });
+  if (clipPresetEl){
+    clipPresetEl.addEventListener('change', ()=>{
+      applyClipPreset(clipPresetEl.value, true);
+    });
+  }
 
   bgFile.addEventListener('change',(e)=>{
     const file = e.target.files && e.target.files[0];
@@ -1068,7 +1095,7 @@
     return {
       vz: 'vz34',
       inputs: {
-        W:$('W').value, L:$('L').value, G:$('G').value, K:$('K').value, BagWidth:$('BagWidth')?.value || '',
+        W:$('W').value, SideHandle:$('SideHandle').value, FilmW:$('FilmW').value, L:$('L').value, G:$('G').value, K:$('K').value, BagWidth:$('BagWidth')?.value || '',
         P:$('P').value, Ph:$('Ph').value,
         Cpitch:$('Cpitch').value, AxisInK:$('AxisInK').value,
         NotchLen:$('NotchLen').value, toggleNotches:$('toggle-notches').checked,
@@ -1080,9 +1107,10 @@
         finalNavinLetter:finalNavinLetter?.value || '',
         rezanie:!!rezanieYes?.checked,
         porCislo:$('porCislo').value,
-        otherNotes:$('otherNotes').value,
+        motiv:motivInput?.value || '',
         bottomText1:bottomText1.value,
         bottomText2:bottomText2.value,
+        clipPreset: clipPresetEl?.value || 'none',
         measureMode:state.measureMode,
         lineOnly:lineOnlyEl?.checked || false
       },
@@ -1105,7 +1133,16 @@
     document.querySelectorAll('.epsfilled').forEach(el=> el.classList.remove('epsfilled'));
     if(data.inputs){
       const i=data.inputs;
-      $('W').value=i.W||'';
+      const loadedSideHandle = (i.SideHandle!==undefined && i.SideHandle!==null && i.SideHandle!=='') ? Number(i.SideHandle) : 60;
+      $('SideHandle').value=loadedSideHandle;
+      if (i.W!==undefined && i.W!==null && i.W!==''){
+        $('W').value=i.W;
+      } else if (i.FilmW!==undefined && i.FilmW!==null && i.FilmW!==''){
+        $('W').value=Number(i.FilmW) + loadedSideHandle;
+      } else {
+        $('W').value='';
+      }
+      $('FilmW').value=(i.FilmW!==undefined && i.FilmW!==null && i.FilmW!=='') ? i.FilmW : '';
       if($('BagWidth')) $('BagWidth').value=i.BagWidth||'';
       $('L').value=i.L||'';
       $('G').value=i.G||'';
@@ -1129,23 +1166,21 @@
       if(rezanieYes) rezanieYes.checked = (i.rezanie===true || i.rezanie==='ano');
       if(rezanieNo) rezanieNo.checked = !rezanieYes?.checked;
       $('porCislo').value=i.porCislo||'';
-      $('otherNotes').value=i.otherNotes||'';
+      if (motivInput) motivInput.value = i.motiv || i.otherNotes || '';
       bottomText1.value=i.bottomText1||'';
       bottomText2.value=i.bottomText2||'';
+      if (clipPresetEl) clipPresetEl.value = i.clipPreset || ((data.bottomImage && data.bottomImage.length) ? 'file' : 'none');
       state.measureMode = i.measureMode || 'off';
       if(lineOnlyEl) lineOnlyEl.checked = !!i.lineOnly;
       updateNavinTlac();
+      updateMotivDisplay();
     }
     state.measures = Array.isArray(data.measures)? data.measures : [];
 
     if(data.bottomImage){
-      bottomImgPreview.src = data.bottomImage;
-      bottomImgPreview.style.display='block';
-      bottomImgPreview.style.transform='rotate(90deg)';
+      setBottomImage(data.bottomImage);
     } else {
-      bottomImgPreview.src = '';
-      bottomImgPreview.style.display='none';
-      bottomImgPreview.style.transform='';
+      applyClipPreset(clipPresetEl?.value || 'none', false);
     }
     if(data.bg){
       bgState.data = data.bg.data || null;
@@ -1302,7 +1337,7 @@ ${svgText}
       ctx.fillText(`Casova peciatka: ${stampEl.textContent||"-"}`, rightX, y);
       ctx.fillText(`Vzor: ${vzCodeEl.textContent||"vz-34"}`, rightX, y+=lineH);
       ctx.fillText(`Por. cislo vyrobku: ${$("porCislo").value||"-"}`, rightX, y+=lineH);
-      ctx.fillText(`Ostatne poznamky: ${$("otherNotes").value||"-"}`, rightX, y+=lineH);
+      ctx.fillText(`Motiv: ${motivInput?.value || "-"}`, rightX, y+=lineH);
       ctx.fillStyle="#dc2626"; ctx.fillText("CHLOPNA / ZS NA STRANE POHONU", rightX, y+=lineH);
 
       // drawing
@@ -1387,6 +1422,7 @@ ${svgText}
   prefillFromFirm();
   updateNavinTlac();
   updatePorCisloDisplay();
+  updateMotivDisplay();
   if (window.applyEpsPayload) { window.applyEpsPayload('vz34'); }
   draw();
   pushUndoSnapshot(true);

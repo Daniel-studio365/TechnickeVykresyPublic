@@ -12,6 +12,15 @@
         <div class="row" style="margin-bottom:8px;">
           <button id="btn-load" type="button">Nacitat ulozeny TV</button>
         </div>
+        <label for="motivInput">Motiv:
+          <input id="motivInput" type="text" placeholder="Nazov motivu" maxlength="120">
+        </label>
+        <label for="noteMode">Typ textov hore:
+          <select id="noteMode">
+            <option value="hygiena" selected>hygiena</option>
+            <option value="chlieb">chlieb</option>
+          </select>
+        </label>
         <div class="card" id="eps-header">
           <div class="field wide">
             <strong>Cislo referencneho vzoru:</strong>
@@ -213,9 +222,9 @@
             <span id="navinTlacText" class="pill">1A</span>
           </div>
           <div class="field"><strong>Navin montaz:</strong> <span id="lblNavinTlac" class="pill">V1</span></div>
-          <div class="wide"><span class="note">ZADNA STRANA</span></div>
+          <div class="wide"><span id="leftSideTitle" class="note">ZADNA STRANA</span></div>
         </div>
-<div class="card" id="right-notes">
+        <div class="card" id="right-notes">
           <div class="meta">
             <span>Casova peciatka:</span>
             <span id="stamp" class="badge">-</span>
@@ -223,10 +232,10 @@
             <span id="vzCode" class="badge">vz-22</span>
           </div>
           <div class="field">
-            <label for="otherNotes">ostatne poznamky</label>
-            <input type="text" id="otherNotes" placeholder="Dopln doplnujuce info / poznamky" maxlength="60">
+            <span class="motif-label">Motiv</span>
+            <div id="motivText" class="note note-black">-</div>
           </div>
-          <div class="note">PREDNA STRANA</div>
+          <div id="rightSideTitle" class="note">PREDNA STRANA</div>
         </div>
       </div>
 
@@ -240,6 +249,12 @@
       <div class="card" id="bottom-notes">
         <div class="bottom-item">
           <label class="bottom-label">Obrazok:</label>
+          <select id="clipPreset">
+            <option value="none" selected>Bez obrazka</option>
+            <option value="zhora">Spona zhora</option>
+            <option value="zdola">Spona zdola</option>
+            <option value="file">Vybrat vlastny subor</option>
+          </select>
           <input type="file" id="bottomImgInput" accept="image/png,image/jpeg,image/webp,image/gif" />
           <div class="bottom-box"><img id="bottomImgPreview" alt="Nahlad obrazka" /></div>
         </div>

@@ -93,8 +93,14 @@ window.EPS_MAP = {
     "vz34": "Ph"
   },
   "dim_SEK": {
-    "vz34": "Sek",
+    "vz22": "W",
+    "vz31": "W",
+    "vz34": "W",
+    "folia": "W",
     "vz108": "H"
+  },
+  "side_handle": {
+    "vz34": "SideHandle"
   },
   "dim_W": {
     "vz22": "W",
@@ -143,9 +149,11 @@ window.EPS_MAP = {
     "vz34": "bottomText2"
   },
   "order_notes": {
-    "vz22": "otherNotes",
-    "vz31": "otherNotes",
-    "vz34": "otherNotes"
+    "vz22": "motivInput",
+    "vz31": "motivInput",
+    "vz34": "motivInput",
+    "folia": "motivInput",
+    "vz108": "motivInput"
   },
   "photo_height": {
     "folia": "photoH"

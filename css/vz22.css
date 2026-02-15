@@ -36,8 +36,10 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sa
 #right-notes .badge{padding:2px 8px;border:1px solid #cbd5e1;border-radius:999px;background:#f8fafc;}
 #right-notes .field{display:flex;flex-direction:column;gap:6px;}
 #right-notes .field label{font-weight:600;}
+#right-notes .motif-label{font-weight:600;}
 #right-notes input[type=text]{padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;}
 #right-notes .note{color:#dc2626;font-weight:700;}
+#right-notes .note.note-black{color:#0f172a;}
 #canvas-wrap{background:#fff;border:1px solid var(--border);border-radius:12px;overflow: hidden;min-height: 0;  display: flex;
   flex-direction: column;
 }

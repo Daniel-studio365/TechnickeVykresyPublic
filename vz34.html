@@ -12,6 +12,9 @@
         <div class="row" style="margin-bottom:8px;">
           <button id="btn-load" type="button">Nacitat ulozeny TV</button>
         </div>
+        <label for="motivInput">Motiv:
+          <input id="motivInput" type="text" placeholder="Nazov motivu" maxlength="120">
+        </label>
         <div class="card" id="eps-header">
           <div class="field wide">
             <strong>Cislo referencneho vzoru:</strong>
@@ -64,10 +67,12 @@
       </div>
       <h3>Zakladna rozmery</h3>
       <label>Pozadovana sirka vrecka: <input type="number" id="BagWidth" value="400"></label>
+      <label>Rozmer folia: <input type="number" id="FilmW" value="400" readonly tabindex="-1"></label>
       <label>Dlzka (L): <input type="number" id="L" value="600"></label>
-      <label>Sek (W): <input type="number" id="W" value="400"></label>
+      <label>Sek (W): <input type="number" id="W" value="460"></label>
       <label>Spodna zalozka (G): <input type="number" id="G" value="50"></label>
       <label>Chlopna (K): <input type="number" id="K" value="45"></label>
+      <label>Bocna rucka: <input type="number" id="SideHandle" value="60"></label>
       <span class="sep"></span>
 
       <h3>Perforacia</h3>
@@ -214,8 +219,8 @@
             <span id="vzCode" class="badge">vz-34</span>
           </div>
           <div class="field">
-            <label for="otherNotes">Ostatne poznamky</label>
-            <input type="text" id="otherNotes" placeholder="Dopn doplnujuce info / poznamky" maxlength="60">
+            <span class="motif-label">Motiv</span>
+            <div id="motivText" class="note note-black">-</div>
           </div>
           <div class="note">CHLOPNA/ ZS NA STRANE POHONU</div>
         </div>
@@ -231,6 +236,12 @@
       <div class="card" id="bottom-notes">
         <div class="bottom-item">
           <label class="bottom-label">Obrazok:</label>
+          <select id="clipPreset">
+            <option value="none" selected>Bez obrazka</option>
+            <option value="zhora">Spona zhora</option>
+            <option value="zdola">Spona zdola</option>
+            <option value="file">Vybrat vlastny subor</option>
+          </select>
           <input type="file" id="bottomImgInput" accept="image/png,image/jpeg,image/webp,image/gif" />
           <div class="bottom-box"><img id="bottomImgPreview" alt="Nahlad obrazka" /></div>
         </div>

@@ -121,6 +121,11 @@ window.EPS_FIELDS = [
   },
   {
     "group": "Dimensions",
+    "key": "side_handle",
+    "desc": "Bocna rucka"
+  },
+  {
+    "group": "Dimensions",
     "key": "dim_W",
     "desc": "Zakladny rozmer W (sirka/vyska podla vzoru)"
   },
@@ -172,7 +177,7 @@ window.EPS_FIELDS = [
   {
     "group": "Order",
     "key": "order_notes",
-    "desc": "Ostatne poznamky"
+    "desc": "Motiv / Ostatne poznamky"
   },
   {
     "group": "Photo mark",

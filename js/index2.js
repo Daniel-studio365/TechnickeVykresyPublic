@@ -18,11 +18,13 @@
   const formAdd = document.getElementById('formAddFirm');
   const btnDeleteFirm = document.getElementById('btnDeleteFirm');
   const currentVzLabel = document.getElementById('currentVz');
+  const modalVzLabel = document.getElementById('modalVzLabel');
   const newFirmVz = document.getElementById('newFirmVz');
 
   if (!firmSelect || !typeSelect || !firmModal || !formAdd) return;
 
   const numVal = (el) => {
+    if (!el) return null;
     const v = parseFloat(el.value);
     return Number.isFinite(v) ? v : null;
   };
@@ -102,19 +104,21 @@
   };
   let currentVz = getVz();
   if (currentVzLabel) currentVzLabel.textContent = currentVz;
+  if (modalVzLabel) modalVzLabel.textContent = currentVz;
   if (newFirmVz) newFirmVz.value = currentVz;
   if (vzSelect) vzSelect.value = currentVz;
   try { localStorage.setItem(LS_VZ, currentVz); } catch (_) {}
 
-  const firmKey = (f) => `${f.firmId || ''}__${f.vz || ''}__${f.typ || ''}`;
+  const normName = (v) => String(v || '').trim();
+  const firmIdentity = (f) => normName(f.firmName || f.name || f.firmId);
+  const firmKey = (f) => `${firmIdentity(f).toLowerCase()}__${f.vz || ''}__${f.typ || ''}`;
 
   const normalizeFirm = (f) => {
     if (!f) return null;
     const typVal = f.typ || f.zyp || 'default';
     const vzVal = (f.vz || '').toLowerCase().replace('vz-', 'vz');
     return {
-      firmId: f.firmId,
-      firmName: f.firmName || f.name || f.firmId,
+      firmName: firmIdentity(f),
       vz: vzVal,
       typ: typVal,
       notes: f.notes || [],
@@ -122,6 +126,7 @@
       dimensions: f.dimensions || { W: null, L: null, G: null, K: null, Cpitch: null, AxisInK: null },
       clip: f.clip || { count: null, offsetX: null, offsetY: null, packageCount: null, type: null },
       air: f.air || { count: null, diameter: null, offsetFromEdge: null, pitch: null },
+      perforation: f.perforation || { enabled: '', side: '', offset: null },
       clipImages: f.clipImages || []
     };
   };
@@ -162,8 +167,10 @@
     const unique = [];
     const byId = new Set();
     list.forEach(f => {
-      if (!byId.has(f.firmId)) {
-        byId.add(f.firmId);
+      const id = firmIdentity(f);
+      if (!id || byId.has(id)) return;
+      if (!byId.has(id)) {
+        byId.add(id);
         unique.push(f);
       }
     });
@@ -175,7 +182,7 @@
     firmSelect.appendChild(optEmpty);
     unique.forEach(f => {
       const opt = document.createElement('option');
-      opt.value = f.firmId;
+      opt.value = firmIdentity(f);
       opt.textContent = `${f.firmName} (${f.vz})`;
       firmSelect.appendChild(opt);
     });
@@ -189,9 +196,9 @@
   };
 
   const renderTypeOptions = () => {
-    const firmId = firmSelect.value;
+    const firmName = firmSelect.value;
     typeSelect.innerHTML = '';
-    if (!firmId) {
+    if (!firmName) {
       const opt = document.createElement('option');
       opt.value = '';
       opt.textContent = 'Bez variantu';
@@ -199,7 +206,7 @@
       typeSelect.appendChild(opt);
       return;
     }
-    const items = (state.firms || []).filter(f => f.vz === currentVz && f.firmId === firmId);
+    const items = (state.firms || []).filter(f => f.vz === currentVz && firmIdentity(f) === firmName);
     items.forEach(f => {
       const opt = document.createElement('option');
       opt.value = f.typ;
@@ -215,6 +222,7 @@
   };
 
   const openPanel = () => {
+    if (modalVzLabel) modalVzLabel.textContent = currentVz;
     firmModal.hidden = false;
     firmModal.classList.add('show');
     firmModal.setAttribute('aria-hidden', 'false');
@@ -242,7 +250,7 @@
     const map = new Map();
     arr.forEach(item => {
       const f = normalizeFirm(item);
-      if (f && f.firmId && f.vz && f.typ) {
+      if (f && firmIdentity(f) && f.vz && f.typ) {
         map.set(firmKey(f), f);
       }
     });
@@ -273,6 +281,7 @@
     vzSelect.addEventListener('change', () => {
       currentVz = vzSelect.value;
       if (currentVzLabel) currentVzLabel.textContent = currentVz;
+      if (modalVzLabel) modalVzLabel.textContent = currentVz;
       if (newFirmVz) newFirmVz.value = currentVz;
       try { localStorage.setItem(LS_VZ, currentVz); } catch (_) {}
       renderFirmOptions();
@@ -292,7 +301,6 @@
       if (el) el.value = val ?? '';
     };
     formAdd.reset();
-    setVal('newFirmId', found.firmId);
     setVal('newFirmName', found.firmName);
     setVal('newFirmVz', found.vz);
     setVal('newFirmTyp', found.typ);
@@ -303,8 +311,9 @@
     setVal('newNotchLen', found.dimensions?.notchLen);
     setVal('newFirmCpitch', found.dimensions?.Cpitch);
     setVal('newFirmAxisInK', found.dimensions?.AxisInK);
-    setVal('newClipCount', found.clip?.count);
-    setVal('newClipType', found.clip?.type);
+    setVal('newPerfEnabled', found.perforation?.enabled);
+    setVal('newPerfSide', found.perforation?.side);
+    setVal('newPerfOffset', found.perforation?.offset);
     setVal('newAirCount', found.air?.count);
     setVal('newAirDiameter', found.air?.diameter);
     setVal('newAirOffsetEdge', found.air?.offsetFromEdge);
@@ -320,15 +329,15 @@
 
   if (btnEditFirm) {
     btnEditFirm.addEventListener('click', () => {
-      const firmId = firmSelect.value;
+      const firmName = firmSelect.value;
       const typVal = typeSelect.value;
-      if (!firmId || !typVal) {
-        alert('Vyber firmu a typ, potom mozes upravit.');
+      if (!firmName || !typVal) {
+        alert('Vyber firmu a specifikaciu, potom mozes upravit.');
         return;
       }
-      const found = (state.firms || []).find(f => f.firmId === firmId && f.vz === currentVz && f.typ === typVal);
+      const found = (state.firms || []).find(f => firmIdentity(f) === firmName && f.vz === currentVz && f.typ === typVal);
       if (!found) {
-        alert('Zaznam sa nenasiel pre zvolenu firmu/typ.');
+        alert('Zaznam sa nenasiel pre zvolenu firmu/specifikaciu.');
         return;
       }
       fillForm(found);
@@ -339,23 +348,24 @@
 
   if (btnViewFirm) {
     btnViewFirm.addEventListener('click', () => {
-      const firmId = firmSelect.value;
+      const firmName = firmSelect.value;
       const typVal = typeSelect.value;
-      if (!firmId || !typVal) {
-        alert('Vyber firmu a typ.');
+      if (!firmName || !typVal) {
+        alert('Vyber firmu a specifikaciu.');
         return;
       }
-      const found = (state.firms || []).find(f => f.firmId === firmId && f.vz === currentVz && f.typ === typVal);
+      const found = (state.firms || []).find(f => firmIdentity(f) === firmName && f.vz === currentVz && f.typ === typVal);
       if (!found) {
-        alert('Zaznam sa nenasiel pre zvolenu firmu/typ.');
+        alert('Zaznam sa nenasiel pre zvolenu firmu/specifikaciu.');
         return;
       }
       if (firmPreview && firmPreviewMeta && firmPreviewBody) {
-        firmPreviewMeta.textContent = `${found.firmName || firmId} (${currentVz} / ${typVal})`;
+        firmPreviewMeta.textContent = `${found.firmName || firmName} (${currentVz} / ${typVal})`;
         const parts = [];
         const dims = found.dimensions || {};
         const clip = found.clip || {};
         const air = found.air || {};
+        const perf = found.perforation || {};
         if (dims.W || dims.L || dims.G || dims.K) {
           parts.push(`Rozmery W/L/G/K: ${dims.W ?? '-'} / ${dims.L ?? '-'} / ${dims.G ?? '-'} / ${dims.K ?? '-'}`);
         }
@@ -364,6 +374,10 @@
         if (clip.count || clip.type) parts.push(`Spony: ${clip.count ?? '-'} ks, typ ${clip.type ?? '-'}`);
         if (air.count || air.diameter || air.offsetFromEdge || air.pitch) {
           parts.push(`Vzduch. otvory: ks ${air.count ?? '-'}, priemer ${air.diameter ?? '-'}, od okraja ${air.offsetFromEdge ?? '-'}, roztec ${air.pitch ?? '-'}`);
+        }
+        if (perf.enabled || perf.side || perf.offset !== null) {
+          const perfEnabledText = perf.enabled === 'yes' ? 'ano' : perf.enabled === 'no' ? 'nie' : '-';
+          parts.push(`Perforacia: ${perfEnabledText}, strana ${perf.side || '-'}, vzdialenost od stredu ${perf.offset ?? '-'}`);
         }
         (found.notes || []).forEach(n => parts.push(`Poznamka: ${n}`));
         firmPreviewBody.innerHTML = parts.length ? parts.map(p => `<div>${p}</div>`).join('') : 'Ziadne detaily.';
@@ -383,40 +397,49 @@
   if (formAdd) {
     formAdd.addEventListener('submit', (e) => {
       e.preventDefault();
-      const firmId = document.getElementById('newFirmId').value.trim() || 'nova-firma';
-      const firmName = document.getElementById('newFirmName').value.trim() || firmId;
+      const firmName = document.getElementById('newFirmName').value.trim() || 'nova firma';
       const typ = document.getElementById('newFirmTyp').value.trim() || 'default';
+      const prev = editingKey ? (state.firms || []).find(f => firmKey(f) === editingKey) : null;
+      const prevDims = prev?.dimensions || {};
+      const prevClip = prev?.clip || {};
+      const prevAir = prev?.air || {};
+      const prevPerf = prev?.perforation || {};
       const firm = {
-        firmId,
         firmName,
+        firmId: firmName, // backward compatibility for older tools/data
         vz: currentVz,
         typ,
         notes: lines(document.getElementById('newNotes')),
         techNotes: lines(document.getElementById('newTechNotes')),
         dimensions: {
-          W: numVal(document.getElementById('newFirmW')),
-          L: numVal(document.getElementById('newFirmL')),
-          G: numVal(document.getElementById('newFirmG')),
-          K: numVal(document.getElementById('newFirmK')),
-          notchLen: numVal(document.getElementById('newNotchLen')),
-          Cpitch: numVal(document.getElementById('newFirmCpitch')),
-          AxisInK: numVal(document.getElementById('newFirmAxisInK'))
+          W: prevDims.W ?? null,
+          L: prevDims.L ?? null,
+          G: prevDims.G ?? null,
+          K: numVal(document.getElementById('newFirmK')) ?? prevDims.K ?? null,
+          notchLen: numVal(document.getElementById('newNotchLen')) ?? prevDims.notchLen ?? null,
+          Cpitch: numVal(document.getElementById('newFirmCpitch')) ?? prevDims.Cpitch ?? null,
+          AxisInK: numVal(document.getElementById('newFirmAxisInK')) ?? prevDims.AxisInK ?? null
         },
         clip: {
-          count: numVal(document.getElementById('newClipCount')),
-          offsetX: null,
-          offsetY: null,
-          packageCount: null,
-          type: document.getElementById('newClipType').value.trim() || null
+          count: prevClip.count ?? null,
+          offsetX: prevClip.offsetX ?? null,
+          offsetY: prevClip.offsetY ?? null,
+          packageCount: prevClip.packageCount ?? null,
+          type: prevClip.type ?? null
         },
         clipImages: [
           document.querySelector('input[name="clipImage"]:checked')?.value || ''
         ].filter(Boolean),
         air: {
-          count: numVal(document.getElementById('newAirCount')),
-          diameter: numVal(document.getElementById('newAirDiameter')),
-          offsetFromEdge: numVal(document.getElementById('newAirOffsetEdge')),
-          pitch: numVal(document.getElementById('newAirPitch'))
+          count: numVal(document.getElementById('newAirCount')) ?? prevAir.count ?? null,
+          diameter: numVal(document.getElementById('newAirDiameter')) ?? prevAir.diameter ?? null,
+          offsetFromEdge: numVal(document.getElementById('newAirOffsetEdge')) ?? prevAir.offsetFromEdge ?? null,
+          pitch: numVal(document.getElementById('newAirPitch')) ?? prevAir.pitch ?? null
+        },
+        perforation: {
+          enabled: (document.getElementById('newPerfEnabled')?.value || '').trim() || prevPerf.enabled || '',
+          side: (document.getElementById('newPerfSide')?.value || '').trim() || prevPerf.side || '',
+          offset: numVal(document.getElementById('newPerfOffset')) ?? prevPerf.offset ?? null
         },
       };
       upsertCustom(firm, editingKey || undefined);
@@ -447,9 +470,9 @@
         return p.endsWith('/') ? p : p.replace(/\/[^/]*$/, '/');
       };
       const toUrl = (file) => window.location.origin + basePath() + file;
-      const firmId = firmSelect.value;
+      const firmName = firmSelect.value;
       const typVal = typeSelect.value;
-      const chosen = (state.firms || []).find(f => f.firmId === firmId && f.vz === currentVz && f.typ === typVal);
+      const chosen = (state.firms || []).find(f => firmIdentity(f) === firmName && f.vz === currentVz && f.typ === typVal);
       if (chosen) {
         try {
           localStorage.setItem('selectedFirm', JSON.stringify(chosen));
