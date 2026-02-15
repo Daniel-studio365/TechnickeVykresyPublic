@@ -90,7 +90,7 @@
   ];
 
   const state = { firms: [], custom: [] };
-  const LS_KEY = 'customFirms';
+  const LS_KEY = 'customFirms_v2';
   const LS_VZ = 'index2_vz';
   let baseFirms = [];
   let editingKey = null;
@@ -150,16 +150,8 @@
   };
 
   const fetchBase = async () => {
-    try {
-      const res = await fetch('js/firms.json');
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length) return data;
-      }
-    } catch (_) {
-      /* ignore fetch errors */
-    }
-    return defaultFirms;
+    // User requested clean start: firm list must be empty.
+    return [];
   };
 
   const renderFirmOptions = () => {

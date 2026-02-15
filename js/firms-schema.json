@@ -1,89 +1,74 @@
 {
   "_meta": {
-    "description": "Schema pre zaznam firmy/variant (zyp) pre vz31/vz34; hodnoty v ASCII, jednotky v mm, optional polia mozu byt null alebo vynechane.",
-    "version": "0.1"
+    "description": "Schema pre zaznam firmy/specifikacie pre index2 (vz22/vz31/vz34). Hodnoty v ASCII, jednotky v mm, optional polia mozu byt null.",
+    "version": "0.2"
   },
   "schema": {
-    "firmId": "string - unikatny slug firmy",
     "firmName": "string - nazov firmy",
-    "vz": "string - 'vz31' alebo 'vz34'",
-    "zyp": "string - nazov variantu v ramci firmy (napr. default, a, b, c, x, y, z)",
+    "firmId": "string|null - legacy (volitelne, dnes sa pouziva firmName)",
+    "vz": "string - 'vz22' | 'vz31' | 'vz34'",
+    "typ": "string - specifikacia (napr. default, A, B...)",
     "notes": "string[] - volne poznamky",
-    "assets": [
-      {
-        "label": "string - popis obrazka/schem",
-        "path": "string - relativna cesta alebo URL"
-      }
-    ],
+    "techNotes": "string[] - technologicke poznamky",
     "dimensions": {
-      "W": "number - sirka vrecka",
-      "L": "number - vyska vrecka",
-      "G": "number - zlom",
-      "K": "number - chlopna",
-      "Cpitch": "number - roztec C (vz34 only)",
-      "AxisInK": "number - os v chlopni (vz34 only)"
+      "W": "number|null - legacy, zvycajne null",
+      "L": "number|null - legacy, zvycajne null",
+      "G": "number|null - legacy, zvycajne null",
+      "K": "number|null - chlopna",
+      "notchLen": "number|null - dlzka zaseku",
+      "Cpitch": "number|null - vzdialenost zavesnych otvorov",
+      "AxisInK": "number|null - umiestnenie stredu otvorov (z lavej strany chlopne)"
     },
     "clip": {
-      "count": "number - pocet spon (napr. 6)",
-      "offsetX": "number - vzdialenost od bocnej hrany (mm)",
-      "offsetY": "number - vzdialenost od hornej hrany (mm)",
-      "pitch": "number - roztec medzi sponami (mm)",
-      "packageCount": "number - ks/blok (napr. 150)",
-      "type": "string - typ spony (plast)",
-      "easyOpen": "boolean - easy-open ano/nie",
-      "notes": "string[] - napr. 'Z rez musi byt prevedeny do konca chlopne'"
-    },
-    "cut": {
-      "fromCutWidth": "number - sirka rezu (napr. 6 mm z rezu)",
-      "fromNonCutWidth": "number - sirka bez rezu (napr. 9-7 mm)",
-      "toFlapEnd": "boolean - rez az po koniec chlopne"
+      "count": "number|null - legacy",
+      "offsetX": "number|null - legacy",
+      "offsetY": "number|null - legacy",
+      "packageCount": "number|null - legacy",
+      "type": "string|null - legacy"
     },
     "air": {
-      "count": "number - pocet otvorov (napr. 6)",
-      "diameter": "number - priemer (napr. 3)",
-      "offsetFromEdge": "number - vzdialenost od bocnej hrany (napr. 30)",
-      "offsetY": "number - vzdialenost od hornej hrany (ak je znama)",
-      "pitch": "number - roztec (ak je znama)",
-      "notes": "string[] - napr. 'nezasiahnut EAN kod'"
+      "count": "number|null - pocet vzduchovych otvorov",
+      "diameter": "number|null - priemer otvorov",
+      "offsetFromEdge": "number|null - vzdialenost od okraja/zalozky",
+      "pitch": "number|null - roztec vzduchovych otvorov"
     },
     "perforation": {
-      "shape": "string - tvar/perforacia",
-      "side": "string - strana",
-      "offset": "number - offset od kraja",
-      "halfLen": "number - polovicna dlzka/hlbka"
+      "enabled": "string - 'yes' | 'no' | ''",
+      "side": "string - 'lava' | 'prava' | ''",
+      "offset": "number|null - vzdialenost od stredu"
     },
-    "fingerHole": {
-      "diameter": "number",
-      "posX": "number",
-      "posY": "number"
-    },
-    "warnings": "string[] - dalsie varovania"
+    "clipImages": "string[] - ['zhora'] | ['zdola'] | []"
   },
   "example": {
-    "firmId": "epicom",
-    "firmName": "EPICOM SP",
-    "vz": "vz31",
-    "zyp": "default",
+    "firmName": "Demo firma",
+    "firmId": "Demo firma",
+    "vz": "vz22",
+    "typ": "default",
     "notes": [
-      "Plastove spony 150 ks/blok",
-      "Z rez musi byt prevedeny do konca chlopne"
+      "Ukazkova poznamka"
     ],
-    "assets": [],
-    "dimensions": { "W": null, "L": null, "G": null, "K": null, "Cpitch": null, "AxisInK": null },
+    "techNotes": [
+      "Ukazkova technologicka poznamka"
+    ],
+    "dimensions": { "W": null, "L": null, "G": null, "K": 45, "notchLen": 7, "Cpitch": 160, "AxisInK": 22 },
     "clip": {
-      "count": 6,
+      "count": null,
       "offsetX": null,
       "offsetY": null,
-      "pitch": null,
-      "packageCount": 150,
-      "type": "plast",
-      "easyOpen": false,
-      "notes": []
+      "packageCount": null,
+      "type": null
     },
-    "cut": { "fromCutWidth": 6, "fromNonCutWidth": 9, "toFlapEnd": true },
-    "air": { "count": 6, "diameter": 3, "offsetFromEdge": 30, "offsetY": null, "pitch": null, "notes": [ "nezasiahnut EAN kod" ] },
-    "perforation": { "shape": null, "side": null, "offset": null, "halfLen": null },
-    "fingerHole": { "diameter": null, "posX": null, "posY": null },
-    "warnings": []
+    "air": { "count": 3, "diameter": 3, "offsetFromEdge": 30, "pitch": 125 },
+    "perforation": { "enabled": "yes", "side": "prava", "offset": 7 },
+    "clipImages": [
+      "zhora"
+    ]
+  },
+  "notes": {
+    "important": [
+      "Index2 teraz startuje s prazdnym zoznamom firiem.",
+      "Firmy sa tvoria manualne cez formular.",
+      "Starsie polia (W/L/G/clip legacy) su ponechane pre kompatibilitu."
+    ]
   }
 }
