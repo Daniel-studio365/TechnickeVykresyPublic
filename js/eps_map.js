@@ -62,7 +62,6 @@ window.EPS_MAP = {
     "vz22": "L",
     "vz31": "L",
     "vz34": "L",
-    "folia": "L",
     "vz108": "L"
   },
   "dim_C": {
@@ -107,7 +106,7 @@ window.EPS_MAP = {
     "vz22": "W",
     "vz31": "W",
     "vz34": "W",
-    "folia": "W",
+    "folia": "L",
     "vz108": "W"
   },
   "seam_mode": {
