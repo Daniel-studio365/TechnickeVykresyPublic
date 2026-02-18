@@ -34,7 +34,8 @@ window.EPS_MAP = {
   "dim_bag_width": {
     "vz22": "BagWidth",
     "vz31": "BagWidth",
-    "vz34": "BagWidth"
+    "vz34": "BagWidth",
+    "folia": "L"
   },
   "hole_pitch_C": {
     "vz22": "Cpitch",

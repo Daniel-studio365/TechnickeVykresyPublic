@@ -333,20 +333,9 @@
     if(!src) return null;
     if(src.startsWith('data:')) return src;
     const lower = src.toLowerCase();
-    if(lower.includes('zhora.png')) return INLINE_ASSETS.zhora;
-    if(lower.includes('zdola.png')) return INLINE_ASSETS.zdola;
-    try{
-      const resp = await fetch(src);
-      const blob = await resp.blob();
-      return await new Promise((res,rej)=>{
-        const fr=new FileReader();
-        fr.onload=()=>res(fr.result);
-        fr.onerror=()=>rej(new Error('read fail'));
-        fr.readAsDataURL(blob);
-      });
-    }catch(_){
-      return null;
-    }
+    if(lower.includes('zhora.png')) return 'img/zhora.png';
+    if(lower.includes('zdola.png')) return 'img/zdola.png';
+    return src;
   }
 
   function prefillFromFirm(){
@@ -449,8 +438,8 @@
   function applyClipPreset(preset, fromUser=false){
     const p = (preset || 'none').toLowerCase();
     if (p === 'none') { clearBottomImage(); return; }
-    if (p === 'zhora') { setBottomImage(INLINE_ASSETS.zhora); return; }
-    if (p === 'zdola') { setBottomImage(INLINE_ASSETS.zdola); return; }
+    if (p === 'zhora') { setBottomImage('img/zhora.png'); return; }
+    if (p === 'zdola') { setBottomImage('img/zdola.png'); return; }
     if (p === 'file' && fromUser) { bottomImgInput?.click(); return; }
     if (p === 'file') { clearBottomImage(); }
   }
@@ -801,6 +790,9 @@
     if ($('PerfEnabled')) $('PerfEnabled').value='ano';
     $('PerfOffset').value=7;
     $('PerfSide').value='prava';
+    if (refPartA) refPartA.value='';
+    if (refPartB) refPartB.value='';
+    if (porCislo) porCislo.value='';
     if (noteModeEl) noteModeEl.value='hygiena';
     if (motivInput) motivInput.value='';
     if (clipPresetEl) clipPresetEl.value='none';
@@ -811,6 +803,14 @@
     if(rezanieNo) rezanieNo.checked=true;
     $('fontPx').value=14; $('toggle-grid').checked=false;
     bgFile.value=''; bgWidthEl.value=''; bgHeightEl.value=''; bgState.data=null; bgState.natural={w:0,h:0}; bgState.offset={x:0,y:0}; bgState.rotation=0; bgState.flip=false;
+    document.querySelectorAll('.epsfilled').forEach(el=> el.classList.remove('epsfilled'));
+    try{
+      localStorage.removeItem('selectedFirm');
+      localStorage.removeItem('prefill_source');
+      localStorage.removeItem('eps_payload');
+    }catch(_){}
+    updateRefDisplay();
+    updatePorCisloDisplay();
     updateNavinTlac();
     updateMotivDisplay();
     updateSideTitles();

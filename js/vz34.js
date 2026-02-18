@@ -280,20 +280,9 @@
     if(!src) return null;
     if(src.startsWith('data:')) return src;
     const lower = src.toLowerCase();
-    if(lower.includes('zhora.png')) return INLINE_ASSETS.zhora;
-    if(lower.includes('zdola.png')) return INLINE_ASSETS.zdola;
-    try{
-      const resp = await fetch(src);
-      const blob = await resp.blob();
-      return await new Promise((res,rej)=>{
-        const fr=new FileReader();
-        fr.onload=()=>res(fr.result);
-        fr.onerror=()=>rej(new Error('read fail'));
-        fr.readAsDataURL(blob);
-      });
-    }catch(_){
-      return null;
-    }
+    if(lower.includes('zhora.png')) return 'img/zhora.png';
+    if(lower.includes('zdola.png')) return 'img/zdola.png';
+    return src;
   }
   function prefillFromFirm(){
     let source = '';
@@ -392,8 +381,8 @@
   function applyClipPreset(preset, fromUser=false){
     const p = (preset || 'none').toLowerCase();
     if (p === 'none') { clearBottomImage(); return; }
-    if (p === 'zhora') { setBottomImage(INLINE_ASSETS.zhora); return; }
-    if (p === 'zdola') { setBottomImage(INLINE_ASSETS.zdola); return; }
+    if (p === 'zhora') { setBottomImage('img/zhora.png'); return; }
+    if (p === 'zdola') { setBottomImage('img/zdola.png'); return; }
     if (p === 'file' && fromUser) { bottomImgInput?.click(); return; }
     if (p === 'file') { clearBottomImage(); }
   }
@@ -814,6 +803,9 @@
     if(finalNavinLetter) finalNavinLetter.value='A';
     if(rezanieYes) rezanieYes.checked=false;
     if(rezanieNo) rezanieNo.checked=true;
+    if (refPartA) refPartA.value='';
+    if (refPartB) refPartB.value='';
+    if (porCislo) porCislo.value='';
     if (motivInput) motivInput.value='';
     if (clipPresetEl) clipPresetEl.value='none';
     bgFile.value=''; bgWidthEl.value=''; bgHeightEl.value=''; bgState.data=null; bgState.natural={w:0,h:0}; bgState.offset={x:0,y:0}; bgState.rotation=0; bgState.flip=false;
@@ -825,7 +817,10 @@
     try{
       localStorage.removeItem('selectedFirm');
       localStorage.removeItem('prefill_source');
+      localStorage.removeItem('eps_payload');
     }catch(_){}
+    updateRefDisplay();
+    updatePorCisloDisplay();
     updateNavinTlac();
     updateMotivDisplay();
     draw();
@@ -1423,7 +1418,17 @@ ${svgText}
   updateNavinTlac();
   updatePorCisloDisplay();
   updateMotivDisplay();
-  if (window.applyEpsPayload) { window.applyEpsPayload('vz34'); }
+  let epsSource = '';
+  try { epsSource = localStorage.getItem('prefill_source') || ''; } catch (_) {}
+  if (epsSource === 'eps' && window.applyEpsPayload) {
+    const applied = window.applyEpsPayload('vz34');
+    if (applied) {
+      try {
+        localStorage.removeItem('eps_payload');
+        localStorage.removeItem('prefill_source');
+      } catch (_) {}
+    }
+  }
   draw();
   pushUndoSnapshot(true);
 })();

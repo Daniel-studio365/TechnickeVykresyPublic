@@ -39,7 +39,9 @@
       'dim_bag_width','dim_L','dim_G','dim_K','dim_SEK',
       'seg_bzp','perf_enabled','air_enabled','hole_pitch_C','air_count',
       'side_handle','photo_note','photo_width','photo_height',
-      'roll_final_code','roll_final_variant'
+      'roll_final_code','roll_final_variant',
+      'print_side_bottom','print_side_top','print_ops',
+      'lacquer_next_yes','lacquer_next_no'
     ]);
     // Riadky sa budu pridavat v poradi podla papieroveho tlaciva.
     // Zaciatok: Poradove cislo vyrobku -> order_serial.
@@ -124,12 +126,12 @@
 
     const formLabel4 = document.createElement('label');
     const formSpan4 = document.createElement('span');
-    formSpan4.textContent = 'Pozadovana sirka vrecka (Sirka)';
+    formSpan4.textContent = 'Sirka (pozadovana sirka vrecka)';
     formLabel4.appendChild(formSpan4);
     const formInp4 = document.createElement('input');
     formInp4.type = 'text';
     formInp4.setAttribute('data-key', 'dim_bag_width');
-    formInp4.placeholder = 'Pozadovana sirka vrecka (Sirka)';
+    formInp4.placeholder = 'Sirka (pozadovana sirka vrecka)';
     formInp4.addEventListener('input', updatePreview);
     formLabel4.appendChild(formInp4);
     const formMap4 = document.createElement('span');
@@ -585,6 +587,96 @@
     formMap30.textContent = 'roll_final_variant - Finalny navin - varianta';
     formLabel30.appendChild(formMap30);
     formGroup.appendChild(formLabel30);
+
+    const formLabel31 = document.createElement('label');
+    const formSpan31 = document.createElement('span');
+    formSpan31.textContent = 'Sposob tlace - spodna';
+    formLabel31.appendChild(formSpan31);
+    const formInp31 = document.createElement('input');
+    formInp31.type = 'text';
+    formInp31.setAttribute('data-key', 'print_side_bottom');
+    formInp31.placeholder = 'Sposob tlace = spodna';
+    formInp31.addEventListener('input', updatePreview);
+    formLabel31.appendChild(formInp31);
+    const formMap31 = document.createElement('span');
+    formMap31.className = 'kv';
+    formMap31.style.flex = '1 1 auto';
+    formMap31.style.maxWidth = 'none';
+    formMap31.textContent = 'print_side_bottom - Sposob tlace = spodna';
+    formLabel31.appendChild(formMap31);
+    formGroup.appendChild(formLabel31);
+
+    const formLabel32 = document.createElement('label');
+    const formSpan32 = document.createElement('span');
+    formSpan32.textContent = 'Sposob tlace - vrchna';
+    formLabel32.appendChild(formSpan32);
+    const formInp32 = document.createElement('input');
+    formInp32.type = 'text';
+    formInp32.setAttribute('data-key', 'print_side_top');
+    formInp32.placeholder = 'Sposob tlace = vrchna';
+    formInp32.addEventListener('input', updatePreview);
+    formLabel32.appendChild(formInp32);
+    const formMap32 = document.createElement('span');
+    formMap32.className = 'kv';
+    formMap32.style.flex = '1 1 auto';
+    formMap32.style.maxWidth = 'none';
+    formMap32.textContent = 'print_side_top - Sposob tlace = vrchna';
+    formLabel32.appendChild(formMap32);
+    formGroup.appendChild(formLabel32);
+
+    const formLabel33 = document.createElement('label');
+    const formSpan33 = document.createElement('span');
+    formSpan33.textContent = 'Pocet operacii';
+    formLabel33.appendChild(formSpan33);
+    const formInp33 = document.createElement('input');
+    formInp33.type = 'text';
+    formInp33.setAttribute('data-key', 'print_ops');
+    formInp33.placeholder = 'Pocet operacii tlace';
+    formInp33.addEventListener('input', updatePreview);
+    formLabel33.appendChild(formInp33);
+    const formMap33 = document.createElement('span');
+    formMap33.className = 'kv';
+    formMap33.style.flex = '1 1 auto';
+    formMap33.style.maxWidth = 'none';
+    formMap33.textContent = 'print_ops - Pocet operacii tlace';
+    formLabel33.appendChild(formMap33);
+    formGroup.appendChild(formLabel33);
+
+    const formLabel34 = document.createElement('label');
+    const formSpan34 = document.createElement('span');
+    formSpan34.textContent = 'Lak v dalsom kroku - ano';
+    formLabel34.appendChild(formSpan34);
+    const formInp34 = document.createElement('input');
+    formInp34.type = 'text';
+    formInp34.setAttribute('data-key', 'lacquer_next_yes');
+    formInp34.placeholder = 'Lak v dalsom kroku = ano';
+    formInp34.addEventListener('input', updatePreview);
+    formLabel34.appendChild(formInp34);
+    const formMap34 = document.createElement('span');
+    formMap34.className = 'kv';
+    formMap34.style.flex = '1 1 auto';
+    formMap34.style.maxWidth = 'none';
+    formMap34.textContent = 'lacquer_next_yes - Lak v dalsom kroku = ano';
+    formLabel34.appendChild(formMap34);
+    formGroup.appendChild(formLabel34);
+
+    const formLabel35 = document.createElement('label');
+    const formSpan35 = document.createElement('span');
+    formSpan35.textContent = 'Lak v dalsom kroku - nie';
+    formLabel35.appendChild(formSpan35);
+    const formInp35 = document.createElement('input');
+    formInp35.type = 'text';
+    formInp35.setAttribute('data-key', 'lacquer_next_no');
+    formInp35.placeholder = 'Lak v dalsom kroku = nie';
+    formInp35.addEventListener('input', updatePreview);
+    formLabel35.appendChild(formInp35);
+    const formMap35 = document.createElement('span');
+    formMap35.className = 'kv';
+    formMap35.style.flex = '1 1 auto';
+    formMap35.style.maxWidth = 'none';
+    formMap35.textContent = 'lacquer_next_no - Lak v dalsom kroku = nie';
+    formLabel35.appendChild(formMap35);
+    formGroup.appendChild(formLabel35);
 
     fieldsWrap.appendChild(formGroup);
 
