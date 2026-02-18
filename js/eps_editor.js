@@ -4,6 +4,7 @@
   const fieldsWrap = $('fields');
   const preview = $('jsonPreview');
   const tmplSel = $('targetTemplate');
+  let keyInputsMap = new Map();
 
   function parseCSV(text){
     const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
@@ -33,6 +34,7 @@
 
   function buildFieldsFromList(list){
     fieldsWrap.innerHTML = '';
+    keyInputsMap = new Map();
     const groups = new Map();
     (list || []).forEach(it=>{
       const key = (it.key || '').trim();
@@ -59,7 +61,14 @@
         inp.type = 'text';
         inp.setAttribute('data-key', it.key);
         inp.placeholder = it.desc || '';
-        inp.addEventListener('input', updatePreview);
+        if (!keyInputsMap.has(it.key)) keyInputsMap.set(it.key, []);
+        keyInputsMap.get(it.key).push(inp);
+        inp.addEventListener('input', ()=>{
+          // Keep duplicate fields with the same key synchronized.
+          const groupInputs = keyInputsMap.get(it.key) || [];
+          groupInputs.forEach(other=>{ if (other !== inp) other.value = inp.value; });
+          updatePreview();
+        });
         lab.appendChild(inp);
         g.appendChild(lab);
       });
@@ -69,10 +78,9 @@
 
   function collectValues(){
     const values = {};
-    fieldsWrap.querySelectorAll('input[data-key]').forEach(inp=>{
-      const k = inp.getAttribute('data-key');
-      const v = inp.value;
-      if (v !== '') values[k] = v;
+    keyInputsMap.forEach((inputs, k)=>{
+      const firstFilled = inputs.find(inp=>inp.value !== '');
+      if (firstFilled) values[k] = firstFilled.value;
     });
     return values;
   }
@@ -98,9 +106,9 @@
   function loadPayload(payload){
     tmplSel.value = payload.target_template || tmplSel.value;
     const values = payload.values || {};
-    fieldsWrap.querySelectorAll('input[data-key]').forEach(inp=>{
-      const k = inp.getAttribute('data-key');
-      inp.value = (values[k] !== undefined && values[k] !== null) ? String(values[k]) : '';
+    keyInputsMap.forEach((inputs, k)=>{
+      const val = (values[k] !== undefined && values[k] !== null) ? String(values[k]) : '';
+      inputs.forEach(inp=>{ inp.value = val; });
     });
     updatePreview();
   }
