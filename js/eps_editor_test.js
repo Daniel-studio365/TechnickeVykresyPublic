@@ -5,15 +5,6 @@
   const preview = $('jsonPreview');
   const tmplSel = $('targetTemplate');
 
-  function syncDuplicateInputs(sourceInput){
-    const key = sourceInput && sourceInput.getAttribute('data-key');
-    if (!key) return;
-    const value = sourceInput.value;
-    fieldsWrap.querySelectorAll(`input[data-key="${key}"]`).forEach((inp)=>{
-      if (inp !== sourceInput) inp.value = value;
-    });
-  }
-
   function parseCSV(text){
     const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
     const rows = [];
@@ -813,14 +804,6 @@
     try{ localStorage.setItem('eps_payload', JSON.stringify(payload)); }catch(_){}
     try{ localStorage.setItem('prefill_source', 'eps'); }catch(_){}
     window.location.href = `${tmplSel.value}.html`;
-  });
-
-  // Pri duplicitnych canonical key poliach drzi vsetky hodnoty rovnake.
-  fieldsWrap.addEventListener('input', (e)=>{
-    const inp = e.target && e.target.closest ? e.target.closest('input[data-key]') : null;
-    if (!inp) return;
-    syncDuplicateInputs(inp);
-    updatePreview();
   });
 
   tmplSel.addEventListener('change', ()=>{ updatePreview(); highlightFieldsForTemplate(); });
