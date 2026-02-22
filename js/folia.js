@@ -60,6 +60,12 @@ const historyState = {
 let historyTimer = null;
 
 function num(el, fallback=0){ const v=parseFloat(el?.value); return Number.isFinite(v)?v:fallback; }
+function numOrNull(el){
+  const raw = (el?.value ?? '').toString().trim();
+  if (raw === '') return null;
+  const v = parseFloat(raw);
+  return Number.isFinite(v) ? v : null;
+}
 function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 function isUndoTrackable(el){
   if (!el) return false;
@@ -286,8 +292,8 @@ function draw(){
   state.printSide = document.querySelector('input[name="printSide"]:checked')?.value || 'bottom';
   state.rollCode = $('rollType')?.value || '1';
   state.rollVariant = $('rollVariant')?.value || 'A';
-  state.photoW = num($('photoW'),15);
-  state.photoH = num($('photoH'),7);
+  state.photoW = numOrNull($('photoW'));
+  state.photoH = numOrNull($('photoH'));
   state.photoNote = $('photoNote')?.value || '';
   state.motiv = $('motivInput')?.value || '';
   state.refPartA = $('refPartA')?.value || '';
@@ -592,31 +598,34 @@ function draw(){
 
     // varianty fotoznakov v navine
     if(['A','B','C','E'].includes(rollVariantDraw)){
-      const markW = Math.max(1, Number.isFinite(state.photoW) ? state.photoW : 15);
-      const markH = Math.max(1, Number.isFinite(state.photoH) ? state.photoH : 7);
+      const hasPhotoMark = Number.isFinite(state.photoW) && state.photoW > 0 && Number.isFinite(state.photoH) && state.photoH > 0;
+      const markW = hasPhotoMark ? Math.max(1, state.photoW) : 0;
+      const markH = hasPhotoMark ? Math.max(1, state.photoH) : 0;
       const topY = yTop - 5 - markH;
-    const mirrorMark = (navinMode === 'tlac' && state.printSide === 'bottom');
-    const drawMark = (x)=> {
-      const mx = mirrorMark ? (2 * (offsetX + L/2) - (x + markW)) : x;
-      create('rect',{x: mx, y:topY, width:markW, height:markH, fill:'#000'}, navParent);
-    };
-      if(rollVariantDraw==='A' || rollVariantDraw==='B'){
-        drawMark(offsetX);
-      }
-      if(rollVariantDraw==='A' || rollVariantDraw==='C'){
-        drawMark(offsetX + L - markW);
-      }
-      if(rollVariantDraw==='E'){
-        const centerX = offsetX + L/2;
-        if(['1','2','3','4'].includes(rollCodeDraw)){
-          drawMark(centerX + markW/2 + 5);
-        }else{
-          let posX = centerX;
-          if(rollCodeDraw==='5') posX = centerX - 25;
-          else if(rollCodeDraw==='6') posX = centerX + 25;
-          else if(rollCodeDraw==='7') posX = centerX - 25;
-          else if(rollCodeDraw==='8') posX = centerX + 25;
-          drawMark(posX - markW/2);
+      if (hasPhotoMark){
+        const mirrorMark = (navinMode === 'tlac' && state.printSide === 'bottom');
+        const drawMark = (x)=> {
+          const mx = mirrorMark ? (2 * (offsetX + L/2) - (x + markW)) : x;
+          create('rect',{x: mx, y:topY, width:markW, height:markH, fill:'#000'}, navParent);
+        };
+        if(rollVariantDraw==='A' || rollVariantDraw==='B'){
+          drawMark(offsetX);
+        }
+        if(rollVariantDraw==='A' || rollVariantDraw==='C'){
+          drawMark(offsetX + L - markW);
+        }
+        if(rollVariantDraw==='E'){
+          const centerX = offsetX + L/2;
+          if(['1','2','3','4'].includes(rollCodeDraw)){
+            drawMark(centerX + markW/2 + 5);
+          }else{
+            let posX = centerX;
+            if(rollCodeDraw==='5') posX = centerX - 25;
+            else if(rollCodeDraw==='6') posX = centerX + 25;
+            else if(rollCodeDraw==='7') posX = centerX - 25;
+            else if(rollCodeDraw==='8') posX = centerX + 25;
+            drawMark(posX - markW/2);
+          }
         }
       }
     }
@@ -647,12 +656,15 @@ function draw(){
   // spodny textovy blok (mimo kresliace platno, pod vykresom)
   const baseBottom = Math.max(offsetY + W, rollBounds ? rollBounds.maxY : 0);
   const noteY = baseBottom + 120;
-  const photoText = `Rozmer fotobunky: ${state.photoW} x ${state.photoH}`;
+  const hasPhotoText = Number.isFinite(state.photoW) && state.photoW > 0 && Number.isFinite(state.photoH) && state.photoH > 0;
+  const photoText = hasPhotoText ? `Rozmer fotobunky: ${state.photoW} x ${state.photoH}` : '';
   const noteText = state.photoNote || '';
   const stamp = new Date().toLocaleString('sk-SK');
   const footerGroup = create('g',{class:'footer-ui'}, allGroup);
-  textWithBg(photoText, offsetX, noteY, {anchor:'start', baseline:'middle', parent:footerGroup, color:'#0f172a', fontWeight:'700', fontSize:14});
-  textWithBg(noteText, offsetX + 260, noteY, {anchor:'start', baseline:'middle', parent:footerGroup, color:'#0f172a', fontWeight:'400', fontSize:14});
+  if (photoText){
+    textWithBg(photoText, offsetX, noteY, {anchor:'start', baseline:'middle', parent:footerGroup, color:'#0f172a', fontWeight:'700', fontSize:14});
+  }
+  textWithBg(noteText, photoText ? (offsetX + 260) : offsetX, noteY, {anchor:'start', baseline:'middle', parent:footerGroup, color:'#0f172a', fontWeight:'400', fontSize:14});
   textWithBg(stamp, offsetX, noteY + 18, {anchor:'start', baseline:'middle', parent:footerGroup, color:'#64748b', fontWeight:'400', fontSize:12});
 
   // hlavicka nad vykresom (vlozene do allGroup, aby bola viditelna)
@@ -759,6 +771,7 @@ function reset(){
   state.calibActive=false; state.calibPoints=[]; $('bg-calib-cancel').style.display='none'; $('bg-calib').style.display='inline-block'; svgRoot.style.cursor='';
   $('segments').innerHTML=''; state.segments.length=0; addSegmentInput('');
   $('segmentsH').innerHTML=''; state.segmentsH.length=0; addSegmentInputH('');
+  document.querySelectorAll('.epsfilled').forEach(el=> el.classList.remove('epsfilled'));
   draw();
   if (!historyState.isApplying) pushUndoSnapshot(true);
 }
@@ -1014,8 +1027,8 @@ function loadData(data){
   if ($('porCislo')) $('porCislo').value = data.porCislo ?? '';
   if ($('orderNo')) $('orderNo').value = data.orderNo ?? '';
   if ($('orderNote')) $('orderNote').value = data.orderNote ?? '';
-  state.photoW = num($('photoW'),15);
-  state.photoH = num($('photoH'),7);
+  state.photoW = numOrNull($('photoW'));
+  state.photoH = numOrNull($('photoH'));
   state.photoNote = $('photoNote')?.value || '';
   state.motiv = $('motivInput')?.value || '';
   state.refPartA = $('refPartA')?.value || '';
@@ -1180,7 +1193,13 @@ document.addEventListener('input', (e)=>{
 document.addEventListener('change', (e)=>{
   if (isUndoTrackable(e.target)) scheduleUndoSnapshot();
 }, true);
-$('btn-reset')?.addEventListener('click', reset);
+$('btn-reset')?.addEventListener('click', ()=>{
+  try {
+    localStorage.removeItem('prefill_source');
+    localStorage.removeItem('eps_payload');
+  } catch (_) {}
+  reset();
+});
 $('btn-export')?.addEventListener('click', ()=>{ draw(); exportPDF(); });
 $('btn-export-png')?.addEventListener('click', ()=>{ draw(); exportPNG(); });
 $('btn-save')?.addEventListener('click', saveJSON);

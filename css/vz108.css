@@ -22,6 +22,6 @@ body{margin:0;font-family:"Roboto","Noto Sans",system-ui,-apple-system,Segoe UI,
 svg{display:block;width:auto;height:auto;}
 .photo-title{font-weight:700;font-size:13px;letter-spacing:0.04em;}
 .section-title{font-weight:700;font-size:15px;margin:6px 0 4px 0;}
-.calc{background:#fff2a8;border-color:#f59e0b;}
+.calc{background:#dbeafe;border-color:#60a5fa;}
 #lacquerRow.lacquer-yes{background:#ffedd5;border-radius:6px;padding:4px 6px;color:#b91c1c;font-weight:700;}
 #lacquerRow.lacquer-yes span{color:#b91c1c;}

@@ -106,6 +106,11 @@ window.EPS_FIELDS = [
   },
   {
     "group": "Perforation",
+    "key": "easy_open",
+    "desc": "Easy open (P/L/prazdne)"
+  },
+  {
+    "group": "Perforation",
     "key": "perf_side",
     "desc": "Strana perforacie"
   },

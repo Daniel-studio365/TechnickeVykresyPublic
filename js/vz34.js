@@ -9,8 +9,7 @@
   const porCisloText = $('porCisloText');
   const finalNavinNumber = $('finalNavinNumber');
   const finalNavinLetter = $('finalNavinLetter');
-  const rezanieYes = $('rezanie-ano');
-  const rezanieNo = $('rezanie-nie');
+  const printOps = $('printOps');
   const navinTlacText = $('navinTlacText');
   const finalNavinText = $('finalNavinText');
   const btnOpenFirmManager = $('btnOpenFirmManager');
@@ -30,9 +29,8 @@
   }
   const stampEl = $('stamp');
   const printSide = $('printSide');
-  const lblNavinTlac = $('lblNavinTlac');
   const printSideText = $('printSideText');
-  const rezanieText = $('rezanieText');
+  const printOpsText = $('printOpsText');
   const vzCodeEl = $('vzCode');
   const bgFile = $('bgFile');
   const bgWidthEl = $('bgWidth');
@@ -98,12 +96,12 @@
 
   const inputs = [
     'W','SideHandle','L','G','K','BagWidth','P','Ph','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirXAuto','AirCount','AirPitch','fontPx','toggle-grid','toggle-notches',
-    'finalNavinNumber','finalNavinLetter','rezanie-ano','rezanie-nie'
+    'finalNavinNumber','finalNavinLetter','printOps'
   ].map(id => $(id));
 
   const prefillableIds = [
     'W','SideHandle','L','G','K','BagWidth','P','Ph','Cpitch','AxisInK','NotchLen','AirEdge','AirCount','AirPitch',
-    'refPartA','refPartB','printSide','finalNavinNumber','finalNavinLetter','rezanie-ano','rezanie-nie',
+    'refPartA','refPartB','printSide','finalNavinNumber','finalNavinLetter','printOps',
     'bottomText1','bottomText2','motivInput'
   ];
   const prefillableEls = prefillableIds.map(id=>$(id)).filter(Boolean);
@@ -111,8 +109,7 @@
   if (printSide) printSide.addEventListener('change', updateNavinTlac);
   if (finalNavinNumber) finalNavinNumber.addEventListener('change', updateNavinTlac);
   if (finalNavinLetter) finalNavinLetter.addEventListener('change', updateNavinTlac);
-  if (rezanieYes) rezanieYes.addEventListener('change', updateNavinTlac);
-  if (rezanieNo) rezanieNo.addEventListener('change', updateNavinTlac);
+  if (printOps) printOps.addEventListener('change', updateNavinTlac);
   if (refPartA) refPartA.addEventListener('input', updateRefDisplay);
   if (refPartB) refPartB.addEventListener('input', updateRefDisplay);
   if (porCislo) porCislo.addEventListener('input', updatePorCisloDisplay);
@@ -246,7 +243,7 @@
     };
     let effectiveCode = finalCode;
     let effectiveVariant = finalVariant;
-    if(rezanieYes?.checked){
+    if((printOps?.value || '0') === '1'){
       const mapped = printMap[`${finalCode}${finalVariant}`];
       if(mapped){
         effectiveCode = mapped.code;
@@ -257,12 +254,14 @@
   }
   function updateNavinTlac(){
     const {effectiveCode, effectiveVariant, finalCode, finalVariant} = getEffectiveNavin();
-    if(navinTlacText) navinTlacText.textContent = `${effectiveCode}${effectiveVariant}`;
-    if(finalNavinText) finalNavinText.textContent = `${finalCode}${finalVariant}`;
     const prefix = (printSide?.value === 'spodna') ? 'S' : 'V';
-    if(lblNavinTlac) lblNavinTlac.textContent = `${prefix}${effectiveCode}`;
+    if(navinTlacText) navinTlacText.textContent = `${effectiveCode}${effectiveVariant} / ${prefix}${effectiveCode}`;
+    if(finalNavinText) finalNavinText.textContent = `${finalCode}${finalVariant}`;
     if (printSideText) printSideText.textContent = printSide?.value || 'vrchna';
-    if (rezanieText) rezanieText.textContent = (rezanieYes?.checked ? 'ano' : 'nie');
+    if (printOpsText) {
+      const ops = (printOps?.value || '0');
+      printOpsText.textContent = ops === '1' ? '1 - rezanie' : (ops === '2' ? '2 - kasirka + rezanie' : '0 - vreckaren');
+    }
     updateRefDisplay();
   }
   function fmtVal(n){
@@ -801,8 +800,7 @@
     $('fontPx').value=14; $('toggle-grid').checked=false; if(lineOnlyEl) lineOnlyEl.checked=false;
     if(finalNavinNumber) finalNavinNumber.value='1';
     if(finalNavinLetter) finalNavinLetter.value='A';
-    if(rezanieYes) rezanieYes.checked=false;
-    if(rezanieNo) rezanieNo.checked=true;
+    if(printOps) printOps.value='0';
     if (refPartA) refPartA.value='';
     if (refPartB) refPartB.value='';
     if (porCislo) porCislo.value='';
@@ -1100,7 +1098,7 @@
         printSide:printSide.value,
         finalNavinNumber:finalNavinNumber?.value || '',
         finalNavinLetter:finalNavinLetter?.value || '',
-        rezanie:!!rezanieYes?.checked,
+        printOps: printOps?.value || '0',
         porCislo:$('porCislo').value,
         motiv:motivInput?.value || '',
         bottomText1:bottomText1.value,
@@ -1158,8 +1156,7 @@
       printSide.value=i.printSide||'vrchna';
       if(finalNavinNumber) finalNavinNumber.value=i.finalNavinNumber||'1';
       if(finalNavinLetter) finalNavinLetter.value=i.finalNavinLetter||'A';
-      if(rezanieYes) rezanieYes.checked = (i.rezanie===true || i.rezanie==='ano');
-      if(rezanieNo) rezanieNo.checked = !rezanieYes?.checked;
+      if(printOps) printOps.value = (i.printOps !== undefined && i.printOps !== null) ? String(i.printOps) : ((i.rezanie===true || i.rezanie==='ano') ? '1' : '0');
       $('porCislo').value=i.porCislo||'';
       if (motivInput) motivInput.value = i.motiv || i.otherNotes || '';
       bottomText1.value=i.bottomText1||'';
@@ -1318,13 +1315,13 @@ ${svgText}
       const rightX = pageW/2 + margin/2;
       const refLabel = buildRefLabel();
       const {effectiveCode, effectiveVariant, finalCode, finalVariant} = getEffectiveNavin();
-      const navText = `${effectiveCode}${effectiveVariant}`;
+      const navText = `${effectiveCode}${effectiveVariant} / ${(printSide?.value === 'spodna') ? 'S' : 'V'}${effectiveCode}`;
       const finalNavText = `${finalCode}${finalVariant}`;
       ctx.fillText(`Nazov suboru: ${refLabel}`, leftX, y);
       ctx.fillText(`Finalny navin: ${finalNavText||'-'}`, leftX, y+=lineH);
-      ctx.fillText(`Rezanie: ${(rezanieYes?.checked ? 'ano' : 'nie')}`, leftX, y+=lineH);
+      const opsLabel = (printOps?.value === '1') ? '1 - rezanie' : ((printOps?.value === '2') ? '2 - kasirka + rezanie' : '0 - vreckaren');
+      ctx.fillText(`Pocet operacii: ${opsLabel}`, leftX, y+=lineH);
       ctx.fillText(`Navin tlac: ${navText}`, leftX, y+=lineH);
-      ctx.fillText(`Navin montaz: ${lblNavinTlac.textContent||"V1"}`, leftX, y+=lineH);
       ctx.fillStyle="#dc2626"; ctx.fillText("PREDNA STRANA / FOTOBUNKA NA STRANE OBSLUHY", leftX, y+=lineH);
 
       ctx.fillStyle="#0f172a";

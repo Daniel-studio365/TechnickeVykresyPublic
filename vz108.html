@@ -45,8 +45,14 @@
       </label>
       <label>Zlep:
         <select id="seamMode">
-          <option value="center" selected>zlep stred - stary stroj</option>
-          <option value="edge">zlep kraj - novy stroj</option>
+          <option value="center" selected>zlep stred</option>
+          <option value="edge">zlep kraj</option>
+        </select>
+      </label>
+      <label>Stroj:
+        <select id="machineMode">
+          <option value="old" selected>stary stroj</option>
+          <option value="new">novy stroj</option>
         </select>
       </label>
 
@@ -180,8 +186,8 @@
       <span class="sep"></span>
         <label>Velkost textu:
           <div class="row">
-            <input type="range" id="fontPx" min="6" max="28" value="14">
-            <span id="fontPxVal">14 px</span>
+            <input type="range" id="fontPx" min="6" max="28" value="10">
+            <span id="fontPxVal">10 px</span>
           </div>
         </label>
         <label>Meranie (H/V):

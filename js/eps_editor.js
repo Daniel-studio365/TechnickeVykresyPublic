@@ -47,6 +47,7 @@
       'order_notes',
       'dim_bag_width','dim_L','dim_G','dim_K','dim_SEK',
       'seg_bzp','perf_enabled','air_enabled','hole_pitch_C','air_count',
+      'easy_open',
       'side_handle','photo_note','photo_width','photo_height',
       'roll_final_code','roll_final_variant',
       'print_side_bottom','print_side_top','print_ops',
@@ -429,13 +430,15 @@
     formLabel21.appendChild(formSpan21);
     const formInp21 = document.createElement('input');
     formInp21.type = 'text';
-    formInp21.placeholder = '';
+    formInp21.setAttribute('data-key', 'easy_open');
+    formInp21.placeholder = 'P/L';
+    formInp21.addEventListener('input', updatePreview);
     formLabel21.appendChild(formInp21);
     const formMap21 = document.createElement('span');
     formMap21.className = 'kv';
     formMap21.style.flex = '1 1 auto';
     formMap21.style.maxWidth = 'none';
-    formMap21.textContent = '';
+    formMap21.textContent = 'easy_open - Easy open (P/L/prazdne)';
     formLabel21.appendChild(formMap21);
     formGroup.appendChild(formLabel21);
 
@@ -740,6 +743,10 @@
     fieldsWrap.querySelectorAll('input[data-key]').forEach(inp=>{
       const k = inp.getAttribute('data-key');
       const v = inp.value;
+      if (k === 'easy_open') {
+        values[k] = v;
+        return;
+      }
       if (v !== '') values[k] = v;
     });
     return values;

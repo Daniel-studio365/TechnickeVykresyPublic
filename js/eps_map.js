@@ -35,7 +35,8 @@ window.EPS_MAP = {
     "vz22": "BagWidth",
     "vz31": "BagWidth",
     "vz34": "BagWidth",
-    "folia": "L"
+    "folia": "L",
+    "vz108": "PS"
   },
   "hole_pitch_C": {
     "vz22": "Cpitch",
@@ -84,6 +85,9 @@ window.EPS_MAP = {
   },
   "perf_shape": {
     "vz31": "PerfShape"
+  },
+  "easy_open": {
+    "vz31": "PerfSide"
   },
   "perf_side": {
     "vz22": "PerfSide",
@@ -172,14 +176,21 @@ window.EPS_MAP = {
     "vz108": "porCislo"
   },
   "print_ops": {
+    "vz22": "printOps",
+    "vz31": "printOps",
+    "vz34": "printOps",
     "folia": "printOps"
   },
   "print_side_bottom": {
     "vz22": "printSide",
+    "vz31": "printSide",
+    "vz34": "printSide",
     "folia": "printSideBottom"
   },
   "print_side_top": {
     "vz22": "printSide",
+    "vz31": "printSide",
+    "vz34": "printSide",
     "folia": "printSideTop"
   },
   "rezanie_yes": {

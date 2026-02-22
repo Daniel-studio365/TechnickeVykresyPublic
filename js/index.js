@@ -19,11 +19,126 @@
   const btnCancelPanel = document.getElementById('btnCancelPanel');
   const formAdd = document.getElementById('formAddFirm');
   const btnDeleteFirm = document.getElementById('btnDeleteFirm');
+  const btnLoadEps = document.getElementById('btnLoadEpsFromIndex');
+  const loadEpsFile = document.getElementById('loadEpsFileFromIndex');
+  const epsFileInfo = document.getElementById('epsFileInfo');
+  const epsRecentSelect = document.getElementById('epsRecentSelect');
 
   if (!radios.length || !vreckoSelect || !vreckoRow || !btnGo) return;
 
   const simpleMode = !firmSelect || !typeSelect || !firmModal || !formAdd;
   if (simpleMode) {
+    const EPS_RECENT_KEY = 'eps_recent_history_v1';
+    const EPS_LAST_KEY = 'eps_last_file_name_v1';
+    const loadRecent = () => {
+      try {
+        const raw = localStorage.getItem(EPS_RECENT_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      } catch (_) {
+        return [];
+      }
+    };
+    const saveRecent = (arr) => {
+      try { localStorage.setItem(EPS_RECENT_KEY, JSON.stringify(arr)); } catch (_) {}
+    };
+
+    const openTemplateFromEps = (template) => {
+      const basePath = () => {
+        const p = window.location.pathname;
+        return p.endsWith('/') ? p : p.replace(/\/[^/]*$/, '/');
+      };
+      const toUrl = (file) => window.location.origin + basePath() + file;
+      const t = String(template || '').toLowerCase().trim();
+      if (t === 'folia') { window.location.href = toUrl('folia.html'); return; }
+      if (t === 'vz22') { window.location.href = toUrl('vz22.html'); return; }
+      if (t === 'vz31') { window.location.href = toUrl('vz31.html'); return; }
+      if (t === 'vz34') { window.location.href = toUrl('vz34.html'); return; }
+      if (t === 'vz108') { window.location.href = toUrl('vz108.html'); return; }
+      alert('V EPS JSON chyba alebo je neplatny target_template.');
+    };
+
+    const openPayload = (payload, fileName) => {
+      try {
+        localStorage.setItem('eps_payload', JSON.stringify(payload));
+        localStorage.setItem('prefill_source', 'eps');
+        localStorage.setItem(EPS_LAST_KEY, fileName || '');
+      } catch (_) {}
+      if (epsFileInfo) epsFileInfo.textContent = `Nacitane: ${fileName || 'EPS JSON'}`;
+      openTemplateFromEps(payload.target_template);
+    };
+
+    const renderRecent = () => {
+      if (!epsRecentSelect) return;
+      const recent = loadRecent();
+      epsRecentSelect.innerHTML = '';
+      const ph = document.createElement('option');
+      ph.value = '';
+      ph.textContent = recent.length ? 'Vyber zoznam naposledy nacitanych EPS' : 'Historia nacitanych EPS (max 10)';
+      epsRecentSelect.appendChild(ph);
+      recent.forEach((item, idx) => {
+        const opt = document.createElement('option');
+        opt.value = String(idx);
+        opt.textContent = `${item.name || 'EPS JSON'} - ${item.template || '-'}`;
+        epsRecentSelect.appendChild(opt);
+      });
+    };
+
+    const pushRecent = (fileName, payload) => {
+      const template = String(payload?.target_template || '').trim();
+      if (!template) return;
+      const signature = `${fileName || ''}|${template}|${JSON.stringify(payload?.values || {})}`;
+      const next = loadRecent().filter((x) => x.signature !== signature);
+      next.unshift({
+        name: fileName || 'EPS JSON',
+        template,
+        payload,
+        signature,
+        ts: Date.now()
+      });
+      saveRecent(next.slice(0, 10));
+      renderRecent();
+    };
+
+      if (btnLoadEps && loadEpsFile) {
+      btnLoadEps.addEventListener('click', () => loadEpsFile.click());
+      loadEpsFile.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const r = new FileReader();
+        r.onload = (ev) => {
+          try {
+            const payload = JSON.parse(ev.target.result);
+            if (!payload || typeof payload !== 'object') throw new Error('invalid');
+            if (!payload.target_template) throw new Error('missing_template');
+            pushRecent(file.name || 'EPS JSON', payload);
+            openPayload(payload, file.name || 'EPS JSON');
+          } catch (_) {
+            alert('Nepodarilo sa nacitat EPS JSON.');
+          }
+        };
+        r.readAsText(file);
+      });
+      try {
+        const lastName = localStorage.getItem(EPS_LAST_KEY) || '';
+        if (epsFileInfo && lastName) epsFileInfo.textContent = `Naposledy: ${lastName}`;
+      } catch (_) {}
+    }
+    renderRecent();
+    if (epsRecentSelect) {
+      epsRecentSelect.addEventListener('change', () => {
+        const idx = parseInt(epsRecentSelect.value, 10);
+        if (!Number.isInteger(idx) || idx < 0) return;
+        const recent = loadRecent();
+        const item = recent[idx];
+        if (!item || !item.payload || !item.payload.target_template) {
+          alert('Polozka historie nema validny payload.');
+          return;
+        }
+        openPayload(item.payload, item.name || 'EPS JSON');
+      });
+    }
+
     const syncWorkType = () => {
       const selected = radios.find(r => r.checked)?.value;
       const isVrecko = selected === 'vrecko';
@@ -59,6 +174,8 @@
         window.location.href = toUrl('vz34.html');
       } else if (vz === 'vz22') {
         window.location.href = toUrl('vz22.html');
+      } else if (vz === 'vz108') {
+        window.location.href = toUrl('vz108.html');
       } else {
         alert('Pre vybrany vzor zatial nie je preklik.');
       }
@@ -583,6 +700,8 @@
         window.location.href = toUrl('vz34.html');
       } else if (vz === 'vz22') {
         window.location.href = toUrl('vz22.html');
+      } else if (vz === 'vz108') {
+        window.location.href = toUrl('vz108.html');
       } else {
         alert('Pre vybrany vzor zatial nie je preklik.');
       }

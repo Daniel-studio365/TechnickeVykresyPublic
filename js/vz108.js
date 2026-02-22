@@ -2,7 +2,7 @@
 const svgRoot = $('svgRoot');
 
 const state = {
-    fontPx:14,
+    fontPx:10,
     bounds:{width:800,height:800},
     zoom:1,
     segments:[],
@@ -10,6 +10,7 @@ const state = {
   segMeta:[],
   widthManual:false,
   seamMode:'center',
+  machineMode:'old',
   extraSegments:[],
   extraSegmentsH:[],
   units:'mm',
@@ -165,10 +166,19 @@ const TABLE_EDGE = [
 function uniqueSorted(list){
   return [...new Set(list)].filter(v=>Number.isFinite(v)).sort((a,b)=>a-b);
 }
-const BZ_CENTER = uniqueSorted(TABLE_CENTER.map(r=>r.BZ));
-const BZ_EDGE = uniqueSorted(TABLE_EDGE.map(r=>r.BZ));
-const PS_CENTER = uniqueSorted(TABLE_CENTER.map(r=>r.W));
-const PS_EDGE = uniqueSorted(TABLE_EDGE.map(r=>r.W));
+const PS_OLD = uniqueSorted(TABLE_CENTER.map(r=>r.W));
+const PS_NEW = uniqueSorted(TABLE_EDGE.map(r=>r.W));
+
+function getMachineMode(){
+  const v = (($('machineMode')?.value || state.machineMode || 'old') + '').toLowerCase();
+  return v === 'new' ? 'new' : 'old';
+}
+function getActiveTable(){
+  return getMachineMode() === 'new' ? TABLE_EDGE : TABLE_CENTER;
+}
+function getActivePSOptions(){
+  return getMachineMode() === 'new' ? PS_NEW : PS_OLD;
+}
 
 function initLengthOptions(){
   const sel = $('L');
@@ -183,9 +193,9 @@ function initLengthOptions(){
   sel.value = sel.value || '200';
 }
 
-function findCValue(mode, ps, bz){
+function findCValue(machineMode, ps, bz){
   if(!Number.isFinite(ps) || !Number.isFinite(bz)) return null;
-  const table = mode === 'edge' ? TABLE_EDGE : TABLE_CENTER;
+  const table = machineMode === 'new' ? TABLE_EDGE : TABLE_CENTER;
   const row = table.find(r => r.W === ps && r.BZ === bz);
   return row ? row.C : null;
 }
@@ -297,6 +307,7 @@ function buildWidthSegments(){
   if(container) container.innerHTML = '';
   const mode = $('seamMode')?.value || 'center';
   state.seamMode = mode;
+  state.machineMode = getMachineMode();
   state.widthManual = false;
   const cInput = $('C');
   if(cInput) cInput.dataset.manual = '0';
@@ -304,8 +315,7 @@ function buildWidthSegments(){
   const extraWrap = $('segments-extra');
   if(extraWrap) extraWrap.innerHTML = '';
 
-  const table = (mode === 'edge') ? TABLE_EDGE : TABLE_CENTER;
-  const psOptions = (mode === 'edge') ? PS_EDGE : PS_CENTER;
+  const psOptions = getActivePSOptions();
 
   if(mode === 'edge'){
     createSegField({key:'ZSP',label:'ZSP',calc:true,default:25}, container);
@@ -325,14 +335,35 @@ function buildWidthSegments(){
     createSegField({key:'ZLEP2',label:'ZLEP',calc:true,default:10}, container);
     createSegField({key:'PRID',label:'PRID',calc:true,default:0}, container);
   }
+  updatePSOptions();
   updateBZOptions();
   updateComputedWidth();
   updateWidthTotal();
   updateCAndHeight();
 }
 
+function updatePSOptions(){
+  const psSeg = state.segMeta.find(s=>s.key==='PS');
+  if(!psSeg) return;
+  const select = psSeg.input;
+  if(!select || select.tagName !== 'SELECT') return;
+  const current = num(select, NaN);
+  const opts = getActivePSOptions();
+  select.innerHTML = '';
+  opts.forEach(v=>{
+    const opt = document.createElement('option');
+    opt.value = String(v);
+    opt.textContent = String(v);
+    select.appendChild(opt);
+  });
+  if(opts.length){
+    if(Number.isFinite(current) && opts.includes(current)) select.value = String(current);
+    else select.value = String(opts[0]);
+  }
+}
+
 function updateBZOptions(){
-  const table = (state.seamMode === 'edge') ? TABLE_EDGE : TABLE_CENTER;
+  const table = getActiveTable();
   const psVal = num(state.segMeta.find(s=>s.key==='PS')?.input, 0);
   const bzSeg = state.segMeta.find(s=>s.key==='BZP');
   if(!bzSeg) return;
@@ -401,7 +432,7 @@ function updateCAndHeight(){
     const segVals = getSegValues();
     const ps = segVals.PS;
     const bz = segVals.BZP;
-    const cVal = findCValue(state.seamMode, ps, bz);
+    const cVal = findCValue(getMachineMode(), ps, bz);
     if(Number.isFinite(cVal)){
       cInput.value = cVal;
     }
@@ -1042,8 +1073,10 @@ function draw(){
 function reset(){
   $('W').value=0; $('H').value=0; $('L').value='200'; $('C').value='0'; $('C').dataset.manual='0';
   $('seamMode').value='center';
+  if($('machineMode')) $('machineMode').value='old';
+  state.machineMode='old';
   state.widthManual=false;
-  $('fontPx').value=14; $('fontPxVal').textContent='14 px'; $('toggle-grid').checked=false; $('lineStyle').value='dashed';
+  $('fontPx').value=10; $('fontPxVal').textContent='10 px'; $('toggle-grid').checked=false; $('lineStyle').value='dashed';
   $('strokeWidth').value=1; $('dimPos').value='bottom'; $('dimOffset').value=25; $('dimPosH').value='right'; $('dimOffsetH').value=25; $('lineStyleH').value='solid';
   $('units').value='none'; $('decimals').value='0';
   $('rollEnabled').checked=true; $('rollPrint').checked=false; $('rollAssembly').checked=false; $('rollType').value='1'; $('rollVariant').value='A';
@@ -1238,6 +1271,7 @@ function collectState(){
     C:num($('C'),0),
     cManual: $('C')?.dataset.manual === '1' ? 1 : 0,
     seamMode:$('seamMode')?.value || 'center',
+    machineMode:getMachineMode(),
     widthManual: state.widthManual,
     fontPx:state.fontPx,
     strokeWidth:state.strokeWidth,
@@ -1304,8 +1338,13 @@ function loadData(data){
   $('C').value = data.C ?? 0;
   if($('C')) $('C').dataset.manual = data.cManual ? '1' : '0';
   $('seamMode').value = data.seamMode ?? 'center';
+  const legacyMachine = (data.machineMode !== undefined && data.machineMode !== null)
+    ? String(data.machineMode)
+    : ((data.seamMode === 'edge') ? 'new' : 'old');
+  if($('machineMode')) $('machineMode').value = legacyMachine;
+  state.machineMode = getMachineMode();
   state.widthManual = !!data.widthManual;
-  $('fontPx').value = data.fontPx ?? 14;
+  $('fontPx').value = data.fontPx ?? 10;
   $('strokeWidth').value = data.strokeWidth ?? 1;
   $('dimPos').value = data.dimPos ?? 'bottom';
   $('dimOffset').value = data.dimOffset ?? 80;
@@ -1521,6 +1560,16 @@ $('btn-save')?.addEventListener('click', saveJSON);
 $('btn-load')?.addEventListener('click', ()=> $('loadFile')?.click());
 $('loadFile')?.addEventListener('change', (e)=> handleLoadFile(e.target.files?.[0]));
 $('seamMode')?.addEventListener('change', ()=>{ buildWidthSegments(); updateCAndHeight(); draw(); pushUndoSnapshot(true); });
+$('machineMode')?.addEventListener('change', ()=>{
+  state.machineMode = getMachineMode();
+  updatePSOptions();
+  updateBZOptions();
+  updateComputedWidth();
+  updateWidthTotal();
+  updateCAndHeight();
+  draw();
+  pushUndoSnapshot(true);
+});
 $('L')?.addEventListener('change', ()=>{ updateCAndHeight(); draw(); });
 $('C')?.addEventListener('input', ()=>{ const c=$('C'); if(c){ c.dataset.manual='1'; } updateCAndHeight(); draw(); });
 $('W')?.addEventListener('input', ()=>{ state.widthManual = true; updateCAndHeight(); draw(); });

@@ -11,8 +11,7 @@
   const finalNavinLetter = $('finalNavinLetter');
   const navinTlacText = $('navinTlacText');
   const finalNavinText = $('finalNavinText');
-  const rezanieYes = $('rezanie-ano');
-  const rezanieNo = $('rezanie-nie');
+  const printOps = $('printOps');
   const btnOpenFirmManager = $('btnOpenFirmManager');
 
   function buildRefLabel(){
@@ -31,9 +30,8 @@
   }
   const stampEl = $('stamp');
   const printSide = $('printSide');
-  const lblNavinTlac = $('lblNavinTlac');
   const printSideText = $('printSideText');
-  const rezanieText = $('rezanieText');
+  const printOpsText = $('printOpsText');
   const vzCodeEl = $('vzCode');
   const bgFile = $('bgFile');
   const bgWidthEl = $('bgWidth');
@@ -73,7 +71,7 @@
   const prefillableIds = [
     'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirInGOnly',
     'PerfEnabled','PerfOffset','PerfSide','printSide',
-    'finalNavinNumber','finalNavinLetter','rezanie-ano','rezanie-nie',
+    'finalNavinNumber','finalNavinLetter','printOps',
     'porCislo','motivInput','bottomText1','bottomText2','refPartA','refPartB',
     'bgWidth','bgHeight'
   ];
@@ -111,7 +109,7 @@
   const inputs = [
     'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirInGOnly',
     'PerfEnabled','PerfOffset','PerfSide','fontPx','toggle-grid','toggle-notches',
-    'bgWidth','bgHeight','finalNavinNumber','finalNavinLetter','rezanie-ano','rezanie-nie'
+    'bgWidth','bgHeight','finalNavinNumber','finalNavinLetter','printOps'
   ].map(id => $(id));
 
   const airXInput = $('AirXAbs');
@@ -121,8 +119,7 @@
   if (printSide) printSide.addEventListener('change', updateNavinTlac);
   if (finalNavinNumber) finalNavinNumber.addEventListener('change', updateNavinTlac);
   if (finalNavinLetter) finalNavinLetter.addEventListener('change', updateNavinTlac);
-  if (rezanieYes) rezanieYes.addEventListener('change', updateNavinTlac);
-  if (rezanieNo) rezanieNo.addEventListener('change', updateNavinTlac);
+  if (printOps) printOps.addEventListener('change', updateNavinTlac);
   if (refPartA) refPartA.addEventListener('input', updateRefDisplay);
   if (refPartB) refPartB.addEventListener('input', updateRefDisplay);
   if (porCislo) porCislo.addEventListener('input', updatePorCisloDisplay);
@@ -151,7 +148,7 @@
   const airXAbsEl = $('AirXAbs');
   const airInGOnlyEl = $('AirInGOnly');
   function updateAirUiState(){
-    const enabled = ((airEnabledEl?.value || 'ano').toLowerCase() === 'ano');
+    const enabled = ((airEnabledEl?.value || '').toLowerCase() === 'ano');
     if (airEdgeEl) airEdgeEl.disabled = !enabled;
     if (airXAbsEl) airXAbsEl.disabled = !enabled;
     if (airInGOnlyEl) airInGOnlyEl.disabled = !enabled;
@@ -161,7 +158,7 @@
   const perfSideEl = $('PerfSide');
   const perfOffsetEl = $('PerfOffset');
   function updatePerfUiState(){
-    const enabled = ((perfEnabledEl?.value || 'ano').toLowerCase() === 'ano');
+    const enabled = ((perfEnabledEl?.value || '').toLowerCase() === 'ano');
     if (perfSideEl) perfSideEl.disabled = !enabled;
     if (perfOffsetEl) perfOffsetEl.disabled = !enabled;
   }
@@ -302,7 +299,7 @@
     };
     let effectiveCode = finalCode;
     let effectiveVariant = finalVariant;
-    if(rezanieYes?.checked){
+    if((printOps?.value || '0') === '1'){
       const mapped = printMap[`${finalCode}${finalVariant}`];
       if(mapped){
         effectiveCode = mapped.code;
@@ -313,12 +310,14 @@
   }
   function updateNavinTlac(){
     const {effectiveCode, effectiveVariant, finalCode, finalVariant} = getEffectiveNavin();
-    if(navinTlacText) navinTlacText.textContent = `${effectiveCode}${effectiveVariant}`;
-    if(finalNavinText) finalNavinText.textContent = `${finalCode}${finalVariant}`;
     const prefix = (printSide?.value === 'spodna') ? 'S' : 'V';
-    if(lblNavinTlac) lblNavinTlac.textContent = `${prefix}${effectiveCode}`;
+    if(navinTlacText) navinTlacText.textContent = `${effectiveCode}${effectiveVariant} / ${prefix}${effectiveCode}`;
+    if(finalNavinText) finalNavinText.textContent = `${finalCode}${finalVariant}`;
     if (printSideText) printSideText.textContent = printSide?.value || 'vrchna';
-    if (rezanieText) rezanieText.textContent = (rezanieYes?.checked ? 'ano' : 'nie');
+    if (printOpsText) {
+      const ops = (printOps?.value || '0');
+      printOpsText.textContent = ops === '1' ? '1 - rezanie' : (ops === '2' ? '2 - kasirka + rezanie' : '0 - vreckaren');
+    }
     updateRefDisplay();
   }
 
@@ -355,8 +354,8 @@
     const perfEnabledEl = $('PerfEnabled');
     if (perfEnabledEl) perfEnabledEl.classList.remove('prefilled');
     const perfEnabledVal = (perf.enabled || '').toLowerCase();
-    if (perfEnabledEl && (perfEnabledVal === 'yes' || perfEnabledVal === 'no')) {
-      perfEnabledEl.value = perfEnabledVal;
+    if (perfEnabledEl && (perfEnabledVal === 'yes' || perfEnabledVal === 'no' || perfEnabledVal === 'ano' || perfEnabledVal === 'nie')) {
+      perfEnabledEl.value = (perfEnabledVal === 'yes') ? 'ano' : (perfEnabledVal === 'no' ? 'nie' : perfEnabledVal);
       perfEnabledEl.classList.add('prefilled');
     }
     Object.values(map).forEach(id=>{
@@ -546,13 +545,13 @@
     const showNotches = $('toggle-notches').checked;
     const notchLen = Math.max(1,num($('NotchLen'),7));
     const bagWidth = Math.max(0,num($('BagWidth'), 0));
-    const airEnabled = (($('AirEnabled')?.value)||'ano').toLowerCase()==='ano';
+    const airEnabled = (($('AirEnabled')?.value)||'').toLowerCase()==='ano';
     const airEdge = Math.max(0,num($('AirEdge'),30));
     const airInGOnly = !!$('AirInGOnly')?.checked;
     const airXAbsRaw = num($('AirXAbs'), NaN);
     const airCount = 2; // 4 otvory total (2 na kazdej strane)
     const airPitch = 40; // fixna roztec
-    const perfEnabled = (($('PerfEnabled')?.value)||'ano').toLowerCase()==='ano';
+    const perfEnabled = (($('PerfEnabled')?.value)||'').toLowerCase()==='ano';
     const perfSide = (($('PerfSide')?.value)||'prava').toLowerCase()==='lava'?'lava':'prava';
     const perfOffset = Math.max(0,num($('PerfOffset'),7));
     state.fontPx = parseInt($('fontPx').value,10)||14;
@@ -799,8 +798,7 @@
     clearBottomImage();
     if(finalNavinNumber) finalNavinNumber.value='1';
     if(finalNavinLetter) finalNavinLetter.value='A';
-    if(rezanieYes) rezanieYes.checked=false;
-    if(rezanieNo) rezanieNo.checked=true;
+    if(printOps) printOps.value='0';
     $('fontPx').value=14; $('toggle-grid').checked=false;
     bgFile.value=''; bgWidthEl.value=''; bgHeightEl.value=''; bgState.data=null; bgState.natural={w:0,h:0}; bgState.offset={x:0,y:0}; bgState.rotation=0; bgState.flip=false;
     document.querySelectorAll('.epsfilled').forEach(el=> el.classList.remove('epsfilled'));
@@ -860,9 +858,9 @@
         BagWidth:$('BagWidth').value,
         Cpitch:$('Cpitch').value, AxisInK:$('AxisInK').value,
         NotchLen:$('NotchLen').value, toggleNotches:$('toggle-notches').checked,
-        AirEnabled:$('AirEnabled')?.value || 'ano',
+        AirEnabled:$('AirEnabled')?.value || '',
         AirEdge:$('AirEdge').value, AirXAbs:$('AirXAbs').value, AirInGOnly:$('AirInGOnly').checked,
-        PerfEnabled:$('PerfEnabled')?.value || 'ano',
+        PerfEnabled:$('PerfEnabled')?.value || '',
         PerfOffset:$('PerfOffset').value,
         PerfSide:$('PerfSide').value,
         fontPx:$('fontPx').value, grid:$('toggle-grid').checked,
@@ -876,7 +874,7 @@
         measureMode:state.measureMode,
         finalNavinNumber:finalNavinNumber?.value || '',
         finalNavinLetter:finalNavinLetter?.value || '',
-        rezanie:!!rezanieYes?.checked
+        printOps: printOps?.value || '0'
       },
       measures: state.measures,
       bottomImage: (bottomImgPreview && bottomImgPreview.style.display!=='none') ? bottomImgPreview.src : null,
@@ -902,12 +900,12 @@
       $('BagWidth').value=i.BagWidth||'';
       $('Cpitch').value=i.Cpitch||'';
       $('AxisInK').value=i.AxisInK||'';
-      if ($('AirEnabled')) $('AirEnabled').value=i.AirEnabled||'ano';
+      if ($('AirEnabled')) $('AirEnabled').value = (i.AirEnabled === undefined || i.AirEnabled === null) ? 'ano' : String(i.AirEnabled);
       $('AirEdge').value=(i.AirEdge!==undefined && i.AirEdge!==null)?i.AirEdge:30;
       $('AirXAbs').value=(i.AirXAbs!==undefined && i.AirXAbs!==null)?i.AirXAbs:'';
       $('AirInGOnly').checked=!!i.AirInGOnly;
       if(airXInput) airXInput.dataset.userSet = (i.AirXAbs!==undefined && i.AirXAbs!=='') ? '1' : '';
-      if ($('PerfEnabled')) $('PerfEnabled').value=i.PerfEnabled||'ano';
+      if ($('PerfEnabled')) $('PerfEnabled').value = (i.PerfEnabled === undefined || i.PerfEnabled === null) ? 'ano' : String(i.PerfEnabled);
       $('NotchLen').value=i.NotchLen||'';
       $('toggle-notches').checked=!!i.toggleNotches;
       $('PerfOffset').value=i.PerfOffset||'';
@@ -917,8 +915,7 @@
       printSide.value=i.printSide||'vrchna';
       if(finalNavinNumber) finalNavinNumber.value=i.finalNavinNumber||'1';
       if(finalNavinLetter) finalNavinLetter.value=i.finalNavinLetter||'A';
-      if(rezanieYes) rezanieYes.checked = (i.rezanie===true || i.rezanie==='ano');
-      if(rezanieNo) rezanieNo.checked = !rezanieYes?.checked;
+      if(printOps) printOps.value = (i.printOps !== undefined && i.printOps !== null) ? String(i.printOps) : ((i.rezanie===true || i.rezanie==='ano') ? '1' : '0');
       $('porCislo').value=i.porCislo||'';
       if (motivInput) motivInput.value = i.motiv || i.otherNotes || '';
       if (noteModeEl) noteModeEl.value = i.noteMode || 'hygiena';
@@ -1081,13 +1078,13 @@ ${svgText}
       const refLabel = buildRefLabel();
       ctx.fillText(`Nazov suboru: ${refLabel}`, leftX, y);
       const {effectiveCode, effectiveVariant, finalCode, finalVariant} = getEffectiveNavin();
-      const navText = `${effectiveCode}${effectiveVariant}`;
+      const navText = `${effectiveCode}${effectiveVariant} / ${(printSide?.value === 'spodna') ? 'S' : 'V'}${effectiveCode}`;
       const finalNavText = `${finalCode}${finalVariant}`;
       const sideTitles = getSideTitles();
       ctx.fillText(`Finalny navin: ${finalNavText||'-'}`, leftX, y+=lineH);
-      ctx.fillText(`Rezanie: ${(rezanieYes?.checked ? 'ano' : 'nie')}`, leftX, y+=lineH);
+      const opsLabel = (printOps?.value === '1') ? '1 - rezanie' : ((printOps?.value === '2') ? '2 - kasirka + rezanie' : '0 - vreckaren');
+      ctx.fillText(`Pocet operacii: ${opsLabel}`, leftX, y+=lineH);
       ctx.fillText(`Navin tlac: ${navText}`, leftX, y+=lineH);
-      ctx.fillText(`Navin montaz: ${lblNavinTlac.textContent||"V1"}`, leftX, y+=lineH);
       ctx.fillStyle="#dc2626"; ctx.fillText(sideTitles.left, leftX, y+=lineH);
 
       ctx.fillStyle="#0f172a";

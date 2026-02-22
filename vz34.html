@@ -51,15 +51,12 @@
             <option value="vrchna" selected>vrchna</option>
             <option value="spodna">spodna</option>
           </select>
-          <strong>Rezanie:</strong>
-          <label style="display:flex;align-items:center;gap:4px;">
-            <input type="radio" name="rezanie" id="rezanie-ano" value="ano">
-            ano
-          </label>
-          <label style="display:flex;align-items:center;gap:4px;">
-            <input type="radio" name="rezanie" id="rezanie-nie" value="nie" checked>
-            nie
-          </label>
+          <strong>Pocet operacii:</strong>
+          <select id="printOps">
+            <option value="0" selected>0 - vreckaren</option>
+            <option value="1">1 - rezanie</option>
+            <option value="2">2 - kasirka + rezanie</option>
+          </select>
         </div>
         <div class="row" style="margin-top:6px;">
           <button id="btnOpenFirmManager" type="button" class="secondary">Firmy (sprava)</button>
@@ -201,14 +198,13 @@
           <span id="finalNavinText" class="pill">1A</span>
           <strong>Sposob tlace:</strong>
           <span id="printSideText" class="pill">vrchna</span>
-          <strong>Rezanie:</strong>
-          <span id="rezanieText" class="pill">nie</span>
+          <strong>Pocet operacii:</strong>
+          <span id="printOpsText" class="pill">0 - vreckaren</span>
         </div>
         <div class="field two-cols">
           <strong>Navin tlac:</strong>
-          <span id="navinTlacText" class="pill">1A</span>
+          <span id="navinTlacText" class="pill">1A / V1</span>
         </div>
-        <div class="field"><strong>Navin montaz:</strong> <span id="lblNavinTlac" class="pill">V1</span></div>
         <div class="wide"><span class="note">ZADNA STRANA</span></div>
       </div>
 <div class="card" id="right-notes">

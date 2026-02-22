@@ -15,6 +15,16 @@
           <div class="brand-name">Chemosvit Folie</div>
           <div class="brand-sub">Vstupny formular</div>
         </div>
+        <div class="entry-top-actions">
+          <button id="btnLoadEpsFromIndex" type="button" class="top-action-btn">Nacitat udaje EPS</button>
+          <input id="loadEpsFileFromIndex" type="file" accept="application/json" style="display:none;" />
+          <div class="eps-top-meta">
+            <span id="epsFileInfo" class="top-action-info"></span>
+            <select id="epsRecentSelect" class="eps-recent-select">
+              <option value="">Historia nacitanych EPS (max 10)</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <div class="options">
@@ -34,7 +44,7 @@
               <option value="vz-34">Vz-34</option>
               <option value="vz-51">Vz-51 (v priprave)</option>
               <option value="vz-107">Vz-107 (v priprave)</option>
-              <option value="vz-108">Vz-108 (v priprave)</option>
+              <option value="vz-108">Vz-108</option>
             </select>
           </div>
         </div>
