@@ -349,6 +349,12 @@
     if(lower.includes('zdola.png')) return 'img/zdola.png';
     return src;
   }
+  function inlineSvgAssetRefs(svgText){
+    if(!svgText) return svgText;
+    return svgText
+      .replace(/(["'])[^"']*zhora\.png\1/ig, m => `${m[0]}${INLINE_ASSETS.zhora}${m[0]}`)
+      .replace(/(["'])[^"']*zdola\.png\1/ig, m => `${m[0]}${INLINE_ASSETS.zdola}${m[0]}`);
+  }
 
   function prefillFromFirm(){
     let source = '';
@@ -694,7 +700,7 @@
     }
 
     const xBagDim = rightOuter + 40;
-    const bagLabel = `sirka vrecka ${Math.round(bagWidth)}`;
+    const bagLabel = `sirka vrecka ${fmtVal(bagWidth)}`;
     let yBagStart = yTop + (W - bagWidth)/2;
     let yBagEnd = yBagStart + bagWidth;
     vDim(xBagDim, yBagStart, yBagEnd, bagLabel, 10, '#0f172a');
@@ -783,10 +789,8 @@
       const c2 = mapFold(xAxis, y2);
       create('circle',{cx:c1.x, cy:c1.y, r:rHole, fill:'none', stroke:'#0f172a','stroke-width':1});
       create('circle',{cx:c2.x, cy:c2.y, r:rHole, fill:'none', stroke:'#0f172a','stroke-width':1});
-      const xDimFold = foldedX - 26;
-      hDim(foldedX, c1.y - 16, c1.x, Math.round(W/2 - C/2), 8, '#0f172a');
+      // V bocnom/zlozenom vykrese nezobrazovat kotu umiestnenia zavesneho otvoru od okraja.
       hDim(c1.x, c2.y + 16, c2.x, Math.round(C), 8, '#dc2626');
-      vDim(xDimFold, foldedY, foldedY + K, Math.round(K), 8, '#0f172a');
     }
     if (showNotches) {
       const n1 = mapFold(xKstart, y1);
@@ -835,7 +839,7 @@
     vDim(foldDimX, foldedY, yK, Math.round(K), 8, '#0f172a');
     vDim(foldDimX, yK, yL, Math.round(L), 8, '#0f172a');
     vDim(foldDimX + 20, gHiddenTop, yL, Math.round(G), 8, '#64748b');
-    hDim(foldedX, foldedY + foldedH + 20, foldedX + foldedW, `Pozadovana sirka vrecka ${Math.round(bagWidth)}`, 8, '#0f172a');
+    hDim(foldedX, foldedY + foldedH + 20, foldedX + foldedW, `Pozadovana sirka vrecka ${fmtVal(bagWidth)}`, 8, '#0f172a');
 
     // Bocny profil podla vzoru: zvisle hrany + spodny "V" pre prekryte G.
     const sideGap = 90;
@@ -857,7 +861,7 @@
 
     const sideMinY = Math.min(sideYTopLeft, sideYTopRight, sideYApex);
     const sideMaxY = Math.max(sideYBottom, sideYTopLeft, sideYTopRight);
-    textWithBg('BOKORYS', (sideXLeft + sideXRight)/2, sideMinY - Math.max(12, Math.round(state.fontPx*1.3)), {anchor:'middle', baseline:'middle', color:'#334155', fontWeight:'700'});
+    textWithBg('BOKORYS', ((sideXLeft + sideXRight)/2) - 20, sideMinY - Math.max(12, Math.round(state.fontPx*1.3)), {anchor:'middle', baseline:'middle', color:'#334155', fontWeight:'700'});
 
     maxRight = Math.max(maxRight, foldDimX + 20, sideXRight) + 20;
 
@@ -1141,6 +1145,7 @@ ${svgText}
       const txt = serializer.serializeToString(svgRoot);
       return {svgText:txt, w: state.bounds.width || 800, h: state.bounds.height || 800};
     });
+    const svgTextInlined = inlineSvgAssetRefs(svgText);
     const safeVal = (el, def)=> (el && el.value) ? el.value : def;
     const size = safeVal(exportSizeEl,'A3');
     const orient = safeVal(exportOrientEl,'landscape');
@@ -1163,7 +1168,7 @@ ${svgText}
       h:pageH-2*margin-notesH-bottomH-2*gap
     };
 
-    const svgBlob = new Blob([svgText], {type:'image/svg+xml'});
+    const svgBlob = new Blob([svgTextInlined], {type:'image/svg+xml'});
     const svgUrl = URL.createObjectURL(svgBlob);
 
     function loadImage(src){
@@ -1298,7 +1303,8 @@ ${svgText}
       a.href = pngUrl;
       a.download = `${buildRefSlug()}_${size}_${orient}.png`;
       a.click();
-    }catch(_){
+    }catch(err){
+      console.error('PNG export failed:', err);
       alert('Nepodarilo sa vygenerovat PNG.');
     } finally {
       URL.revokeObjectURL(svgUrl);

@@ -7,7 +7,7 @@ window.EPS_FIELDS = [
   {
     "group": "Air holes",
     "key": "air_count",
-    "desc": "Pocet otvorov"
+    "desc": "VzduchOtvPocet"
   },
   {
     "group": "Air holes",

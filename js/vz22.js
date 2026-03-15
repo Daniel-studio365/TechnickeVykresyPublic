@@ -681,7 +681,7 @@
     }
 
     const xBagDim = rightOuter + 40;
-    const bagLabel = `sirka vrecka ${Math.round(bagWidth)}`;
+    const bagLabel = `sirka vrecka ${fmtVal(bagWidth)}`;
     let yBagStart = yTop + (W - bagWidth)/2;
     let yBagEnd = yBagStart + bagWidth;
     vDim(xBagDim, yBagStart, yBagEnd, bagLabel, 10, '#0f172a');

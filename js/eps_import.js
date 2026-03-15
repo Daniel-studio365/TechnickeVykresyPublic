@@ -228,6 +228,22 @@
         } catch (_) {}
         markEps(el);
       });
+      // vz22: ak VzduchOtvPocet = 2, zapni pravidlo "Vzduchove otvory len v zalozke".
+      if (templateName === 'vz22') {
+        const rawCount = values.air_count;
+        const cnt = Number(String(rawCount ?? '').replace(',', '.'));
+        if (Number.isFinite(cnt) && cnt === 2) {
+          const inGOnlyEl = document.getElementById('AirInGOnly');
+          if (inGOnlyEl) {
+            inGOnlyEl.checked = true;
+            try {
+              inGOnlyEl.dispatchEvent(new Event('input', { bubbles: true }));
+              inGOnlyEl.dispatchEvent(new Event('change', { bubbles: true }));
+            } catch (_) {}
+            markEps(inGOnlyEl);
+          }
+        }
+      }
       // vz108: PS musi byt nastavene skor ako BZP, inak BZP select nema spravne volby.
       if (templateName === 'vz108') {
         const psRaw = (values.seg_ps !== undefined && values.seg_ps !== null && values.seg_ps !== '')

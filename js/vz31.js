@@ -519,7 +519,7 @@
     const bagWidthInput = $('BagWidth');
     const bagWidthRaw = num(bagWidthInput, NaN);
     const bagWidth = Number.isFinite(bagWidthRaw) && bagWidthRaw > 0 ? bagWidthRaw : W;
-    if(bagWidthInput && (bagWidthInput.value==='' || !Number.isFinite(bagWidthRaw))){ bagWidthInput.value = Math.round(bagWidth); }
+    if(bagWidthInput && (bagWidthInput.value==='' || !Number.isFinite(bagWidthRaw))){ bagWidthInput.value = fmtVal(bagWidth); }
     const C = Math.max(0,num($('Cpitch'),160));
     const axisInK = $('AxisInK').value==='' ? null : num($('AxisInK'), K/2);
     const showNotches = $('toggle-notches').checked;
@@ -699,7 +699,7 @@
     hDim(xRightGEnd, yAirBase, xFirstRightL, Math.round(X),10,'#dc2626');
 
     const xBagDim = xStart - 25;
-    const bagLabel = `sirka vrecka ${Math.round(bagWidth)}`;
+    const bagLabel = `sirka vrecka ${fmtVal(bagWidth)}`;
     let yBagStart = yTop + (W - bagWidth)/2;
     let yBagEnd = yBagStart + bagWidth;
     vDim(xBagDim, yBagStart, yBagEnd, bagLabel, 10, '#0f172a');

@@ -71,17 +71,12 @@
   <script>
     (function(){
       var pass = 'test123';
-      var passEps = '2026_EPS';
       var ok = false;
       try{ ok = sessionStorage.getItem('auth_ok') === '1'; }catch(_){}
       if(!ok){
         var input = prompt('Zadaj heslo:');
         if(input === pass){
           try{ sessionStorage.setItem('auth_ok','1'); }catch(_){}
-        } else if(input === passEps){
-          try{ sessionStorage.setItem('auth_ok','1'); sessionStorage.setItem('auth_mode','eps'); }catch(_){}
-          window.location.href = 'eps_index.html';
-          return;
         } else {
           alert('Nespravne heslo.');
           document.body.innerHTML = '';

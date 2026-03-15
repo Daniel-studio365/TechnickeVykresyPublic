@@ -230,7 +230,8 @@ function hDim(x1,y,x2,val,ext=10,color='#0f172a', fontScale=1, textOffset=null, 
   const txtOffset = (textOffset!==null ? textOffset : 6);
   const label = useUnits ? formatVal(val) : formatPlain(val);
   const g = parent || svgRoot;
-  textWithBg(label,(x1+x2)/2,y-txtOffset,{color,parent:g});
+  const lbl = textWithBg(label,(x1+x2)/2,y-txtOffset,{color,parent:g});
+  if(lbl) lbl.setAttribute('class', `${lbl.getAttribute('class') || ''} dim-label`.trim());
   state.fontPx = original;
 }
 function vDim(x,y1,y2,val,ext=10,color='#0f172a', fontScale=1, textOffset=null, useUnits=true, parent=svgRoot){
@@ -242,12 +243,27 @@ function vDim(x,y1,y2,val,ext=10,color='#0f172a', fontScale=1, textOffset=null, 
   arrowUp(x,y1,color,parent); arrowDown(x,y2,color,parent);
   const baseOffset = Math.max(1, ext*0.6 + Math.round(state.fontPx*0.12));
   const offset = (textOffset!==null ? textOffset : baseOffset);
-  const g = create('g',{transform:`translate(${x - offset} ${(y1+y2)/2}) rotate(-90)`}, parent);
+  const g = create('g',{transform:`translate(${x - offset} ${(y1+y2)/2}) rotate(-90)`, class:'dim-label-v'}, parent);
   const original = state.fontPx;
   state.fontPx = Math.max(6, original * fontScale);
   const t = create('text',{'text-anchor':'middle','dominant-baseline':'middle','font-size':state.fontPx,fill:color},g);
   t.textContent = useUnits ? formatVal(val) : formatPlain(val);
   state.fontPx = original;
+}
+
+function keepDimTextReadable(parent){
+  if(!parent) return;
+  parent.querySelectorAll('.dim-label').forEach((el)=>{
+    const bb = el.getBBox();
+    const cx = bb.x + bb.width/2;
+    const cy = bb.y + bb.height/2;
+    const base = el.getAttribute('transform') || '';
+    el.setAttribute('transform', `${base} rotate(180 ${cx} ${cy})`.trim());
+  });
+  parent.querySelectorAll('.dim-label-v').forEach((el)=>{
+    const base = el.getAttribute('transform') || '';
+    el.setAttribute('transform', `${base} rotate(180 0 0)`.trim());
+  });
 }
 
 function drawMeasurements(parent){
@@ -287,7 +303,10 @@ function draw(){
   state.rollEnabled = !!$('rollEnabled')?.checked;
   state.rollPrintEnabled = !!$('rollPrint')?.checked;
   state.rollAssemblyEnabled = !!$('rollAssembly')?.checked;
-  state.printOps = parseInt($('printOps')?.value,10) || 1;
+  {
+    const parsedPrintOps = parseInt($('printOps')?.value,10);
+    state.printOps = Number.isFinite(parsedPrintOps) ? parsedPrintOps : 1;
+  }
     state.lacquerNext = document.querySelector('input[name="lacquerStep"]:checked')?.value === 'yes';
   state.printSide = document.querySelector('input[name="printSide"]:checked')?.value || 'bottom';
   state.rollCode = $('rollType')?.value || '1';
@@ -375,6 +394,8 @@ function draw(){
     navinLabelText = `Finalny navin: ${rollCodeDraw}${rollVariantDraw}`;
   }
   const mirrorABC = (navinMode==='montaz' && state.printSide==='bottom') || (navinMode==='tlac' && state.printSide==='bottom');
+  const mirrorDims = (navinMode==='tlac' && state.printSide==='bottom');
+  const dimPosHEff = mirrorDims ? (dimPosH === 'left' ? 'right' : 'left') : dimPosH;
   state.rollType = (['1','2','5','6'].includes(state.rollCode) ? 'std' : 'alt');
   state.bgOpacity = clamp(num($('bgOpacity'), 0.6),0,1);
   $('bgOpacityVal').textContent = `${Math.round(state.bgOpacity*100)} %`;
@@ -439,6 +460,7 @@ function draw(){
   const remainder = Math.max(L - sumSeg, 0);
   const parts = [...segValues];
   if (remainder > 0 || parts.length===0) parts.push(remainder);
+  const partsEff = mirrorDims ? [...parts].reverse() : parts;
 
   // delenie vysky
   const segValuesH = state.segmentsH.map(inp => num(inp,0)).filter(v=>v>0);
@@ -451,10 +473,10 @@ function draw(){
   const segOffset = Number.isFinite(baseDimOffset) ? baseDimOffset : 25;
   const segY = dimPosEff === 'top' ? yTop - segOffset : yBottom + segOffset;
   let cursor = offsetX;
-  parts.forEach((len, idx)=>{
+  partsEff.forEach((len, idx)=>{
     const next = cursor + len;
     hDim(cursor, segY, next, len, 10, '#0f172a', 0.9, null, true, contentGroup);
-    if (idx < parts.length - 1){
+    if (idx < partsEff.length - 1){
       create('line',{x1:next,y1:offsetY,x2:next,y2:offsetY+W,stroke:'#475569','stroke-width':state.strokeWidth,'stroke-dasharray':lineStyle || ''}, contentGroup);
     }
     cursor = next;
@@ -463,7 +485,7 @@ function draw(){
 
   // koty vysky
   const segOffsetH = dimOffsetH || Math.max(50, Math.round(state.fontPx*3.2));
-  const segX = dimPosH === 'left' ? offsetX - segOffsetH : offsetX + L + segOffsetH;
+  const segX = dimPosHEff === 'left' ? offsetX - segOffsetH : offsetX + L + segOffsetH;
   cursor = offsetY;
   partsH.forEach((len, idx)=>{
     const next = cursor + len;
@@ -473,7 +495,7 @@ function draw(){
     }
     cursor = next;
   });
-  vDim(segX + (dimPosH==='left' ? -20 : 20), offsetY, offsetY+W, W, 10, '#0f172a', 1.1, null, true, contentGroup);
+  vDim(segX + (dimPosHEff==='left' ? -20 : 20), offsetY, offsetY+W, W, 10, '#0f172a', 1.1, null, true, contentGroup);
 
   let rollBounds = null;
   // navin (preberene z predchadzajucej verzie)
@@ -721,6 +743,7 @@ function draw(){
     const cx = offsetX + L / 2;
     const cy = offsetY + W / 2;
     contentGroup.setAttribute('transform', `rotate(180 ${cx} ${cy})`);
+    keepDimTextReadable(contentGroup);
   }
 
   // viewBox to content (bez mriezky) pre zachovanie mierky
@@ -785,7 +808,8 @@ function exportPDF(){
   clone.querySelectorAll('.header-ui, .footer-ui').forEach(n=> n.remove());
   const width = bb.width || state.bounds.width || 800;
   const height = bb.height || state.bounds.height || 800;
-  const baseName = (state.orderNo || 'folia2').trim();
+  const refName = [state.refPartA, state.refPartB].map(v => (v || '').trim()).filter(Boolean).join('_');
+  const baseName = (refName || state.orderNo || 'folia2').trim();
 
   // remove zoom sizing/styles so PDF is 1:1
   clone.removeAttribute('style');
@@ -824,96 +848,207 @@ function exportPNG(){
   const pxW = orient==='portrait' ? 3508 : 4961; // A3 at 300dpi
   const pxH = orient==='portrait' ? 4961 : 3508;
   const marginPx = Math.round(0.04 * Math.min(pxW, pxH));
-
-  const svgFull = svgRoot.cloneNode(true);
-  // remove header boxes, keep only text
-  svgFull.querySelectorAll('.header-ui rect').forEach(n=> n.remove());
-  svgFull.removeAttribute('style');
-  const bbFull = svgRoot.getBBox();
-  svgFull.setAttribute('width', bbFull.width);
-  svgFull.setAttribute('height', bbFull.height);
-  svgFull.setAttribute('viewBox', `${bbFull.x} ${bbFull.y} ${bbFull.width} ${bbFull.height}`);
-  svgFull.setAttribute('preserveAspectRatio','xMidYMid meet');
+  const finalCode = state.rollCode || $('rollType')?.value || '1';
+  const finalVariant = state.rollVariant || $('rollVariant')?.value || 'A';
+  const printMap = {
+    '1A':{code:'2',variant:'A'}, '1B':{code:'2',variant:'C'}, '1C':{code:'2',variant:'B'}, '1D':{code:'2',variant:'D'}, '1E':{code:'2',variant:'E'},
+    '2A':{code:'1',variant:'A'}, '2B':{code:'1',variant:'C'}, '2C':{code:'1',variant:'B'}, '2D':{code:'1',variant:'D'}, '2E':{code:'1',variant:'E'},
+    '3A':{code:'4',variant:'A'}, '3B':{code:'4',variant:'C'}, '3C':{code:'4',variant:'B'}, '3D':{code:'4',variant:'D'}, '3E':{code:'4',variant:'D'},
+    '4A':{code:'3',variant:'A'}, '4B':{code:'3',variant:'C'}, '4C':{code:'3',variant:'B'}, '4D':{code:'3',variant:'D'}, '4E':{code:'4',variant:'E'},
+    '5A':{code:'6',variant:'A'}, '5B':{code:'6',variant:'C'}, '5C':{code:'6',variant:'B'}, '5D':{code:'6',variant:'D'}, '5E':{code:'6',variant:'E'},
+    '6A':{code:'5',variant:'A'}, '6B':{code:'6',variant:'C'}, '6C':{code:'5',variant:'B'}, '6D':{code:'5',variant:'D'}, '6E':{code:'5',variant:'E'},
+    '7A':{code:'8',variant:'A'}, '7B':{code:'7',variant:'C'}, '7C':{code:'8',variant:'B'}, '7D':{code:'8',variant:'D'}, '7E':{code:'8',variant:'E'},
+    '8A':{code:'7',variant:'A'}, '8B':{code:'7',variant:'C'}, '8C':{code:'7',variant:'B'}, '8D':{code:'7',variant:'D'}, '8E':{code:'7',variant:'E'}
+  };
+  let navinMode = 'finalny';
+  let effectiveCode = finalCode;
+  let effectiveVariant = finalVariant;
+  const opsEffective = state.printOps + (state.lacquerNext ? 1 : 0);
+  if(state.rollPrintEnabled){
+    navinMode = 'tlac';
+    if((opsEffective % 2) !== 0){
+      const mapped = printMap[`${finalCode}${finalVariant}`];
+      if(mapped){
+        effectiveCode = mapped.code;
+        effectiveVariant = mapped.variant;
+      }
+    }
+  } else if(state.rollAssemblyEnabled){
+    navinMode = 'montaz';
+    if((opsEffective % 2) !== 0){
+      const mapped = printMap[`${finalCode}${finalVariant}`];
+      if(mapped){
+        effectiveCode = mapped.code;
+        effectiveVariant = mapped.variant;
+      }
+    }
+  }
+  let navinLabelText = `Finalny navin: ${effectiveCode}${effectiveVariant}`;
+  if(navinMode === 'tlac'){
+    const sideLetter = state.printSide === 'top' ? 'V' : 'S';
+    navinLabelText = `Navin pri tlaci: ${effectiveCode}${effectiveVariant} - ${sideLetter}${effectiveCode}`;
+  } else if(navinMode === 'montaz'){
+    const sideLetter = state.printSide === 'top' ? 'V' : 'S';
+    navinLabelText = `Navin: ${sideLetter}${effectiveCode} (montaz)`;
+  }
 
   const svgDraw = svgRoot.cloneNode(true);
   svgDraw.querySelectorAll('.header-ui, .footer-ui').forEach(n=> n.remove());
   svgDraw.querySelectorAll('.header-ui rect').forEach(n=> n.remove());
   svgDraw.removeAttribute('style');
-  const liveGroup = svgRoot.querySelector('g.content-bbox') || svgRoot;
-  const bbDraw = liveGroup.getBBox();
+  const liveCore = svgRoot.querySelector('g.content-core');
+  const liveRoll = svgRoot.querySelector('g.roll-group');
+  const coreBB = liveCore ? liveCore.getBBox() : null;
+  const rollBB = liveRoll ? liveRoll.getBBox() : null;
+  let bbDraw = coreBB || rollBB || svgRoot.getBBox();
+  if(coreBB && rollBB && rollBB.width > 0 && rollBB.height > 0){
+    const minX = Math.min(coreBB.x, rollBB.x);
+    const minY = Math.min(coreBB.y, rollBB.y);
+    const maxX = Math.max(coreBB.x + coreBB.width, rollBB.x + rollBB.width);
+    const maxY = Math.max(coreBB.y + coreBB.height, rollBB.y + rollBB.height);
+    bbDraw = {x:minX, y:minY, width:maxX-minX, height:maxY-minY};
+  }
   svgDraw.setAttribute('width', bbDraw.width);
   svgDraw.setAttribute('height', bbDraw.height);
   svgDraw.setAttribute('viewBox', `${bbDraw.x} ${bbDraw.y} ${bbDraw.width} ${bbDraw.height}`);
   svgDraw.setAttribute('preserveAspectRatio','xMidYMid meet');
-
-  const headerEl = svgRoot.querySelector('.header-ui');
-  const footerEl = svgRoot.querySelector('.footer-ui');
-  const headerBB = headerEl ? headerEl.getBBox() : null;
-  const footerBB = footerEl ? footerEl.getBBox() : null;
-  const headerH = headerBB ? headerBB.height : 0;
-  const footerH = footerBB ? footerBB.height : 0;
-  const gapPx = 10;
-
-  const usableW = pxW - marginPx*2;
-  const usableH = pxH - marginPx*2;
-  const scaleW = usableW / bbDraw.width;
-  const scaleH = (usableH - (headerH + footerH) * scaleW - gapPx*2) / bbDraw.height;
-  const scale = Math.min(scaleW, scaleH > 0 ? scaleH : scaleW);
-
-  const drawW = bbDraw.width * scale;
-  const drawH = bbDraw.height * scale;
-  const headerPxH = headerH * scale;
-  const footerPxH = footerH * scale;
-  const midAvailH = usableH - headerPxH - footerPxH - gapPx*2;
-  const drawX = marginPx + (usableW - drawW) / 2;
-  const drawY = marginPx + headerPxH + gapPx + Math.max(0, (midAvailH - drawH) / 2);
-
-  const fullMarkup = new XMLSerializer().serializeToString(svgFull);
-  const fullBlob = new Blob([fullMarkup], {type:'image/svg+xml'});
-  const fullUrl = URL.createObjectURL(fullBlob);
-  const fullImg = new Image();
 
   const drawMarkup = new XMLSerializer().serializeToString(svgDraw);
   const drawBlob = new Blob([drawMarkup], {type:'image/svg+xml'});
   const drawUrl = URL.createObjectURL(drawBlob);
   const drawImg = new Image();
 
-  const baseName = (state.orderNo || 'folia2').trim();
-  let fullReady = false;
-  let drawReady = false;
+  const refName = [state.refPartA, state.refPartB].map(v => (v || '').trim()).filter(Boolean).join('_');
+  const baseName = (refName || state.orderNo || 'folia2').trim();
   const tryRender = ()=>{
-    if(!fullReady || !drawReady) return;
     const canvas = document.createElement('canvas');
     canvas.width = pxW;
     canvas.height = pxH;
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0,0,pxW,pxH);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0,pxW,pxH);
 
-    // draw header (pinned to top)
-    if(headerBB){
-      const sx = headerBB.x - bbFull.x;
-      const sy = headerBB.y - bbFull.y;
-      ctx.drawImage(
-        fullImg,
-        sx, sy, headerBB.width, headerBB.height,
-        marginPx, marginPx, headerBB.width * scale, headerBB.height * scale
-      );
+    const refA = (state.refPartA || '').trim();
+    const refB = (state.refPartB || '').trim();
+    const refLabel = refB ? `${refA}/${refB}` : refA;
+    const porTxt = (state.porCislo || '').trim();
+    const motivTxt = (state.motiv || '').trim();
+    const sideText = state.printSide === 'top' ? 'vrchna' : 'spodna';
+    const lacquerText = state.lacquerNext ? 'Lak na inom oddeleni (inseter/kasirka)' : '';
+    const headerNote = (navinMode === 'tlac' && state.printSide === 'bottom') ? 'Pohlad cez foliu' : '';
+    const hasPhotoText = Number.isFinite(state.photoW) && state.photoW > 0 && Number.isFinite(state.photoH) && state.photoH > 0;
+    const photoText = hasPhotoText ? `Rozmer fotobunky: ${state.photoW} x ${state.photoH}` : '';
+    const noteText = state.photoNote || '';
+    const stamp = new Date().toLocaleString('sk-SK');
+    const usableW = pxW - marginPx*2;
+    const usableH = pxH - marginPx*2;
+    const mmToPx300 = (mm)=> Math.round((mm / 25.4) * 300);
+    const gapPx = Math.max(16, Math.round(pxW * 0.004));
+    // Minimalne fyzicke velkosti pre citatelnost aj pri tlaci PNG zmensenej na A4.
+    const bodyFont = Math.max(mmToPx300(4.2), Math.round(pxW * 0.009));
+    const smallFont = Math.max(mmToPx300(3.2), Math.round(pxW * 0.007));
+    const titleFont = Math.max(mmToPx300(5.8), Math.round(pxW * 0.011));
+    const red = '#dc2626';
+    const ink = '#0f172a';
+    const muted = '#64748b';
+    const lineStep = Math.round(bodyFont * 1.25);
+
+    function wrapCanvasText(text, x, y, maxWidth, lineHeight, color, font){
+      if(!text) return y;
+      ctx.fillStyle = color;
+      ctx.font = font;
+      const words = String(text).split(/\s+/).filter(Boolean);
+      if(!words.length) return y;
+      let line = '';
+      let yy = y;
+      words.forEach((word)=>{
+        const test = line ? `${line} ${word}` : word;
+        if(ctx.measureText(test).width > maxWidth && line){
+          ctx.fillText(line, x, yy);
+          line = word;
+          yy += lineHeight;
+        } else {
+          line = test;
+        }
+      });
+      if(line){
+        ctx.fillText(line, x, yy);
+        yy += lineHeight;
+      }
+      return yy;
     }
+
+    function drawHeader(){
+      const leftX = marginPx;
+      const topY = marginPx + titleFont;
+      let y = topY;
+      ctx.textBaseline = 'alphabetic';
+
+      const leftColW = Math.round(usableW * 0.42);
+      const rightColX = marginPx + leftColW + gapPx * 2;
+
+      ctx.fillStyle = ink;
+      ctx.font = `700 ${bodyFont}px Arial, Helvetica, sans-serif`;
+      if(refLabel) ctx.fillText(`CRV ${refLabel}`, leftX, y);
+      if(porTxt) ctx.fillText(`PCV ${porTxt}`, rightColX, y);
+      y += lineStep;
+
+      if(motivTxt){
+        y = wrapCanvasText(`Motiv ${motivTxt}`, leftX, y, usableW, lineStep, ink, `700 ${bodyFont}px Arial, Helvetica, sans-serif`);
+      }
+
+      ctx.fillStyle = red;
+      ctx.font = `700 ${titleFont}px Arial, Helvetica, sans-serif`;
+      ctx.fillText(navinLabelText, leftX, y);
+      y += Math.round(titleFont * 1.15);
+
+      ctx.fillStyle = ink;
+      ctx.font = `700 ${bodyFont}px Arial, Helvetica, sans-serif`;
+      if(headerNote){
+        ctx.fillText(headerNote, leftX, y);
+        y += lineStep;
+      }
+
+      ctx.fillText(`Sposob tlace: ${sideText}`, leftX, y);
+      if(lacquerText){
+        const lacquerX = leftX + Math.round(usableW * 0.32);
+        wrapCanvasText(lacquerText, lacquerX, y, pxW - marginPx - lacquerX, lineStep, red, `700 ${bodyFont}px Arial, Helvetica, sans-serif`);
+      }
+      return y + gapPx;
+    }
+
+    function drawFooter(){
+      const leftX = marginPx;
+      let lines = 1;
+      if(photoText) lines += Math.max(0, Math.ceil(ctx.measureText(photoText).width / usableW) - 1);
+      if(noteText) lines += Math.max(0, Math.ceil((noteText.length * smallFont * 0.55) / usableW));
+      const footerTop = pxH - marginPx - (Math.max(2, lines) * lineStep) - smallFont;
+      let y = footerTop;
+      if(photoText){
+        y = wrapCanvasText(photoText, leftX, y, usableW, lineStep, ink, `700 ${bodyFont}px Arial, Helvetica, sans-serif`);
+      }
+      if(noteText){
+        y = wrapCanvasText(noteText, leftX, y, usableW, lineStep, ink, `${bodyFont}px Arial, Helvetica, sans-serif`);
+      }
+      ctx.fillStyle = muted;
+      ctx.font = `${smallFont}px Arial, Helvetica, sans-serif`;
+      ctx.fillText(stamp, leftX, pxH - marginPx);
+      return footerTop - gapPx;
+    }
+
+    const headerBottom = drawHeader();
+    const footerTop = drawFooter();
+    const midAvailH = Math.max(100, footerTop - headerBottom);
+    const scaleW = usableW / bbDraw.width;
+    const scaleH = midAvailH / bbDraw.height;
+    const scale = Math.min(scaleW, scaleH);
+    const drawW = bbDraw.width * scale;
+    const drawH = bbDraw.height * scale;
+    const drawX = marginPx + (usableW - drawW) / 2;
+    const drawY = headerBottom + Math.max(0, (midAvailH - drawH) / 2);
 
     // draw drawing centered between header/footer
     ctx.drawImage(drawImg, drawX, drawY, drawW, drawH);
-
-    // draw footer (pinned to bottom)
-    if(footerBB){
-      const sx = footerBB.x - bbFull.x;
-      const sy = footerBB.y - bbFull.y;
-      const fy = pxH - marginPx - footerBB.height * scale;
-      ctx.drawImage(
-        fullImg,
-        sx, sy, footerBB.width, footerBB.height,
-        marginPx, fy, footerBB.width * scale, footerBB.height * scale
-      );
-    }
 
     canvas.toBlob((blob)=>{
       if(!blob) return;
@@ -923,13 +1058,10 @@ function exportPNG(){
       link.click();
       URL.revokeObjectURL(link.href);
     }, 'image/png');
-    URL.revokeObjectURL(fullUrl);
     URL.revokeObjectURL(drawUrl);
   };
 
-  fullImg.onload = ()=>{ fullReady = true; tryRender(); };
-  drawImg.onload = ()=>{ drawReady = true; tryRender(); };
-  fullImg.src = fullUrl;
+  drawImg.onload = ()=>{ tryRender(); };
   drawImg.src = drawUrl;
 }
 

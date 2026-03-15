@@ -456,7 +456,7 @@
     formMap22.className = 'kv';
     formMap22.style.flex = '1 1 auto';
     formMap22.style.maxWidth = 'none';
-    formMap22.textContent = 'air_count - Pocet otvorov';
+    formMap22.textContent = 'air_count - VzduchOtvPocet';
     formLabel22.appendChild(formMap22);
     formGroup.appendChild(formLabel22);
 
@@ -466,7 +466,9 @@
     formLabel23.appendChild(formSpan23);
     const formInp23 = document.createElement('input');
     formInp23.type = 'text';
+    formInp23.id = 'formRucka';
     formInp23.placeholder = '';
+    formInp23.addEventListener('input', updatePreview);
     formLabel23.appendChild(formInp23);
     const formMap23 = document.createElement('span');
     formMap23.className = 'kv';
@@ -749,6 +751,11 @@
       }
       if (v !== '') values[k] = v;
     });
+    // Specialita pre vz31: v papierovom formulari je G vedene ako "Rucka".
+    if ((tmplSel?.value || '') === 'vz31'){
+      const rucka = $('formRucka');
+      if (rucka && rucka.value !== '') values.dim_G = rucka.value;
+    }
     return values;
   }
 
