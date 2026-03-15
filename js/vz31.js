@@ -119,7 +119,7 @@
 
   const inputs = [
     'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirCount','AirPitch',
-    'PerfShape','PerfSide','PerfOffset','PerfHalfLen','FingerHole','fontPx','toggle-grid','toggle-notches',
+    'PerfShape','PerfSide','PerfOffset','PerfHalfLen','FingerHole','PhotoMarkEnabled','fontPx','toggle-grid','toggle-notches',
     'bgWidth','bgHeight','finalNavinNumber','finalNavinLetter','printOps'
   ].map(id => $(id));
 
@@ -705,6 +705,20 @@
     vDim(xBagDim, yBagStart, yBagEnd, bagLabel, 10, '#0f172a');
     create('line',{x1:xBagDim,x2:xStart,y1:yBagStart,y2:yBagStart,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'4 3'});
     create('line',{x1:xBagDim,x2:xStart,y1:yBagEnd,y2:yBagEnd,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'4 3'});
+    if ($('PhotoMarkEnabled')?.checked){
+      const photoW = 20;
+      const photoH = 5;
+      const photoOffsetX = 10;
+      const photoOffsetBottom = 5;
+      const photoX = leftOuter + photoOffsetX;
+      const photoY = yBottom - photoOffsetBottom - photoH;
+      const photoColor = '#0f172a';
+      const photoDimY = yBottom + Math.max(36, Math.round(state.fontPx*3.0));
+      create('rect',{x:photoX,y:photoY,width:photoW,height:photoH,fill:photoColor,stroke:photoColor,'stroke-width':1});
+      hDim(leftOuter, photoDimY, photoX, photoOffsetX, 10, photoColor);
+      vDim(leftOuter - 42, photoY + photoH, yBottom, photoOffsetBottom, 10, photoColor);
+      textWithBg('20x5', photoX + photoW/2, photoY - 18, {anchor:'middle', baseline:'middle', color:photoColor});
+    }
     const leftPad = 60;
 
     let maxRight = xStart + totalWidth + 40;
@@ -828,6 +842,7 @@
     $('AirEdge').value=30; $('AirXAbs').value=25; $('AirCount').value='2'; $('AirPitch').value=40;
     $('PerfShape').value='U'; $('PerfSide').value='prava'; $('PerfOffset').value=70; $('PerfHalfLen').value=250;
     $('FingerHole').value='nie';
+    if($('PhotoMarkEnabled')) $('PhotoMarkEnabled').checked=false;
     if (refPartA) refPartA.value='';
     if (refPartB) refPartB.value='';
     if (porCislo) porCislo.value='';
@@ -1124,6 +1139,7 @@
         PerfShape:$('PerfShape').value, PerfSide:$('PerfSide').value,
         PerfOffset:$('PerfOffset').value, PerfHalfLen:$('PerfHalfLen').value,
         FingerHole:$('FingerHole').value,
+        PhotoMarkEnabled:$('PhotoMarkEnabled')?.checked || false,
         fontPx:$('fontPx').value, grid:$('toggle-grid').checked,
         printSide:printSide.value,
         finalNavinNumber:finalNavinNumber?.value || '',
@@ -1171,6 +1187,7 @@
       $('PerfOffset').value=i.PerfOffset||'';
       $('PerfHalfLen').value=i.PerfHalfLen||'';
       $('FingerHole').value=i.FingerHole||'nie';
+      if($('PhotoMarkEnabled')) $('PhotoMarkEnabled').checked=!!i.PhotoMarkEnabled;
       $('fontPx').value=i.fontPx||14;
       $('toggle-grid').checked=!!i.grid;
       printSide.value=i.printSide||'vrchna';

@@ -95,7 +95,7 @@
   };
 
   const inputs = [
-    'W','SideHandle','L','G','K','BagWidth','P','Ph','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirXAuto','AirCount','AirPitch','fontPx','toggle-grid','toggle-notches',
+    'W','SideHandle','L','G','K','BagWidth','P','Ph','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirXAuto','AirCount','AirPitch','PhotoMarkEnabled','fontPx','toggle-grid','toggle-notches',
     'finalNavinNumber','finalNavinLetter','printOps'
   ].map(id => $(id));
 
@@ -700,11 +700,25 @@
     const rightL = Array.from({length: airCount}, (_,i)=> xFirstRightL + i*airPitch);
     rightL.forEach(xi => { cross(xi, cyTop); cross(xi, cyBot); });
 
-    const edgeDimX = xFirstLeftL - 20;
-    vDim(edgeDimX, offsetY, cyTop, edge, 10, '#dc2626');
-
     let minX=leftOuter-20, maxX=rightOuter+220;
     let minY=30, maxY=yBottomBody+220;
+    const edgeDimX = xFirstLeftL - 20;
+    vDim(edgeDimX, offsetY, cyTop, edge, 10, '#dc2626');
+    if ($('PhotoMarkEnabled')?.checked){
+      const photoW = 20;
+      const photoH = 5;
+      const photoOffsetX = 10;
+      const photoOffsetBottom = 5;
+      const photoX = leftOuter + photoOffsetX;
+      const photoY = yBottomBody - photoOffsetBottom - photoH;
+      const photoColor = '#0f172a';
+      const photoDimY = yBottomBody + Math.max(36, Math.round(state.fontPx*3.0));
+      create('rect',{x:photoX,y:photoY,width:photoW,height:photoH,fill:photoColor,stroke:photoColor,'stroke-width':1});
+      hDim(leftOuter, photoDimY, photoX, photoOffsetX, 10, photoColor);
+      vDim(leftOuter - 42, photoY + photoH, yBottomBody, photoOffsetBottom, 10, photoColor);
+      textWithBg('20x5', photoX + photoW/2, photoY - 18, {anchor:'middle', baseline:'middle', color:photoColor});
+      minX = Math.min(minX, leftOuter - 70);
+    }
     if(!state.lineOnly){
       const topGap1=28, topStep=20;
       const yHandleTotal=offsetYTop-topGap1-2*topStep;
@@ -797,6 +811,7 @@
     $('NotchLen').value=7; $('toggle-notches').checked=true;
     $('AirEdge').value=30; $('AirXAbs').value=25; $('AirXAuto').checked=true;
     $('AirCount').value='2'; $('AirPitch').value=40;
+    if($('PhotoMarkEnabled')) $('PhotoMarkEnabled').checked=false;
     $('fontPx').value=14; $('toggle-grid').checked=false; if(lineOnlyEl) lineOnlyEl.checked=false;
     if(finalNavinNumber) finalNavinNumber.value='1';
     if(finalNavinLetter) finalNavinLetter.value='A';
@@ -1094,6 +1109,7 @@
         NotchLen:$('NotchLen').value, toggleNotches:$('toggle-notches').checked,
         AirEdge:$('AirEdge').value, AirXAbs:$('AirXAbs').value, AirXAuto:$('AirXAuto').checked,
         AirCount:$('AirCount').value, AirPitch:$('AirPitch').value,
+        PhotoMarkEnabled:$('PhotoMarkEnabled')?.checked || false,
         fontPx:$('fontPx').value, grid:$('toggle-grid').checked,
         printSide:printSide.value,
         finalNavinNumber:finalNavinNumber?.value || '',
@@ -1151,6 +1167,7 @@
       $('AirXAuto').checked=!!i.AirXAuto;
       $('AirCount').value=i.AirCount||'1';
       $('AirPitch').value=i.AirPitch||'';
+      if($('PhotoMarkEnabled')) $('PhotoMarkEnabled').checked=!!i.PhotoMarkEnabled;
       $('fontPx').value=i.fontPx||14;
       $('toggle-grid').checked=!!i.grid;
       printSide.value=i.printSide||'vrchna';
