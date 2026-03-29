@@ -43,10 +43,10 @@ window.EPS_MAP = {
     "vz31": "Cpitch",
     "vz34": "Cpitch"
   },
-  "perf_finger_hole": {
+  "easy_open_finger_hole": {
     "vz31": "FingerHole"
   },
-  "perf_enabled": {
+  "perf_bottom_enabled": {
     "vz22": "PerfEnabled"
   },
   "dim_G": {
@@ -73,27 +73,28 @@ window.EPS_MAP = {
     "vz31": "NotchLen",
     "vz34": "NotchLen"
   },
-  "perf_offset_P": {
+  "easy_open_bottom_offset": {
     "vz34": "P"
   },
-  "perf_half_len": {
+  "easy_open_half_len": {
     "vz31": "PerfHalfLen"
   },
-  "perf_offset": {
-    "vz22": "PerfOffset",
+  "perf_bottom_offset": {
+    "vz22": "PerfOffset"
+  },
+  "easy_open_offset": {
     "vz31": "PerfOffset"
   },
-  "perf_shape": {
+  "easy_open_shape": {
     "vz31": "PerfShape"
   },
-  "easy_open": {
+  "easy_open_side": {
     "vz31": "PerfSide"
   },
-  "perf_side": {
-    "vz22": "PerfSide",
-    "vz31": "PerfSide"
+  "perf_bottom_side": {
+    "vz22": "PerfSide"
   },
-  "perf_height": {
+  "easy_open_height": {
     "vz34": "Ph"
   },
   "dim_SEK": {
@@ -160,13 +161,16 @@ window.EPS_MAP = {
     "vz108": "motivInput"
   },
   "photo_height": {
-    "folia": "photoH"
+    "folia": "photoH",
+    "vz108": "photoH"
   },
   "photo_note": {
-    "folia": "photoNote"
+    "folia": "photoNote",
+    "vz108": "photoNote"
   },
   "photo_width": {
-    "folia": "photoW"
+    "folia": "photoW",
+    "vz108": "photoW"
   },
   "order_serial": {
     "vz22": "porCislo",
@@ -208,11 +212,17 @@ window.EPS_MAP = {
   },
   "roll_final_code": {
     "vz22": "finalNavinNumber",
-    "folia": "rollType"
+    "vz31": "finalNavinNumber",
+    "vz34": "finalNavinNumber",
+    "folia": "rollType",
+    "vz108": "rollType"
   },
   "roll_final_variant": {
     "vz22": "finalNavinLetter",
-    "folia": "rollVariant"
+    "vz31": "finalNavinLetter",
+    "vz34": "finalNavinLetter",
+    "folia": "rollVariant",
+    "vz108": "rollVariant"
   },
   "notch_toggle": {
     "vz22": "toggle-notches",

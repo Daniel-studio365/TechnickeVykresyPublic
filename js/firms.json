@@ -29,7 +29,9 @@
       "count": 6,
       "diameter": 3,
       "offsetFromEdge": 30,
-      "pitch": null
+      "fromBottom": null,
+      "pitch": null,
+      "onlyInG": false
     },
     "perforation": {
       "enabled": "",
@@ -37,5 +39,46 @@
       "offset": null
     },
     "clipImages": []
+  },
+  {
+    "firmName": "ESSITY",
+    "vz": "vz22",
+    "typ": "235x180x35",
+    "notes": [
+      "ak dobre rozumiem, maximalna vyska balika 30-32mm (pocet ks neuvedeny)"
+    ],
+    "techNotes": [],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": null,
+      "K": 35,
+      "notchLen": 4,
+      "Cpitch": 75,
+      "AxisInK": 17
+    },
+    "clip": {
+      "count": null,
+      "offsetX": null,
+      "offsetY": null,
+      "packageCount": null,
+      "type": null
+    },
+    "air": {
+      "count": 2,
+      "diameter": 6,
+      "offsetFromEdge": 20,
+      "fromBottom": 10,
+      "pitch": null,
+      "onlyInG": true
+    },
+    "perforation": {
+      "enabled": "yes",
+      "side": "lava",
+      "offset": 5
+    },
+    "clipImages": [
+      "zhora"
+    ]
   }
 ]

@@ -75,6 +75,7 @@
         <select id="PerfShape">
           <option value="none">bez perforacie</option>
           <option value="rovna">rovna</option>
+          <option value="vodorovna">vodorovna</option>
           <option value="U" selected>U</option>
           <option value="zahnut">zahnut</option>
         </select>
@@ -104,6 +105,8 @@
 
       <h3>Zaseky pri zavesnych otvoroch</h3>
       <label>Dlzka zaseku: <input type="number" id="NotchLen" value="7"></label>
+      <label><input type="checkbox" id="toggle-notch-shift"> Zaseky posunute</label>
+      <label>Posun zasekov: <input type="number" id="NotchShift" value="0" step="0.1"></label>
       <label>Mostik: <input type="number" id="Mostik" value="0" readonly tabindex="-1"></label>
       <label><input type="checkbox" id="toggle-notches"> Zobrazit zaseky</label>
       <span class="sep"></span>
@@ -114,6 +117,13 @@
       <label>Pocet otvorov:
         <select id="AirCount">
           <option>2</option><option>4</option><option>6</option><option selected>8</option>
+        </select>
+      </label>
+      <label>Typ vzduchovych otvorov:
+        <select id="AirType">
+          <option value="1" selected>1 - pomlcka</option>
+          <option value="2">2 - krizik v kruhu</option>
+          <option value="3">3 - X</option>
         </select>
       </label>
       <label>Roztec otvorov: <input type="number" id="AirPitch" value="40"></label>

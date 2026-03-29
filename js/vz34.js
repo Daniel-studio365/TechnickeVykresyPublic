@@ -95,16 +95,27 @@
   };
 
   const inputs = [
-    'W','SideHandle','L','G','K','BagWidth','P','Ph','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirXAuto','AirCount','AirPitch','PhotoMarkEnabled','fontPx','toggle-grid','toggle-notches',
+    'W','SideHandle','L','G','K','BagWidth','P','Ph','Cpitch','AxisInK','NotchLen','toggle-notch-shift','NotchShift','AirEdge','AirXAbs','AirXAuto','AirCount','AirType','AirPitch','PhotoMarkEnabled','fontPx','toggle-grid','toggle-notches',
     'finalNavinNumber','finalNavinLetter','printOps'
   ].map(id => $(id));
 
   const prefillableIds = [
-    'W','SideHandle','L','G','K','BagWidth','P','Ph','Cpitch','AxisInK','NotchLen','AirEdge','AirCount','AirPitch',
+    'W','SideHandle','L','G','K','BagWidth','P','Ph','Cpitch','AxisInK','NotchLen','toggle-notch-shift','NotchShift','AirEdge','AirCount','AirType','AirPitch',
     'refPartA','refPartB','printSide','finalNavinNumber','finalNavinLetter','printOps',
     'bottomText1','bottomText2','motivInput'
   ];
   const prefillableEls = prefillableIds.map(id=>$(id)).filter(Boolean);
+
+  function updateNotchShiftUiState(){
+    const shiftEnabled = !!$('toggle-notch-shift')?.checked;
+    const shiftInput = $('NotchShift');
+    const mostikInput = $('Mostik');
+    if (shiftInput) shiftInput.disabled = !shiftEnabled;
+    if (mostikInput) {
+      mostikInput.disabled = shiftEnabled;
+      if (shiftEnabled) mostikInput.value = '';
+    }
+  }
 
   if (printSide) printSide.addEventListener('change', updateNavinTlac);
   if (finalNavinNumber) finalNavinNumber.addEventListener('change', updateNavinTlac);
@@ -200,6 +211,7 @@
     updatePorCisloDisplay();
     updateNavinTlac();
     updateMotivDisplay();
+    updateNotchShiftUiState();
     draw();
   }
   function doUndo(){
@@ -279,8 +291,8 @@
     if(!src) return null;
     if(src.startsWith('data:')) return src;
     const lower = src.toLowerCase();
-    if(lower.includes('zhora.png')) return 'img/zhora.png';
-    if(lower.includes('zdola.png')) return 'img/zdola.png';
+    if(lower.includes('zhora.png')) return INLINE_ASSETS.zhora;
+    if(lower.includes('zdola.png')) return INLINE_ASSETS.zdola;
     return src;
   }
   function prefillFromFirm(){
@@ -297,12 +309,14 @@
     const air = data.air || {};
     const perf = data.perforation || {};
     const clip = data.clip || {};
-    const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', notchLen:'NotchLen', Cpitch:'Cpitch', AxisInK:'AxisInK', AirEdge:'AirEdge', AirCount:'AirCount', AirPitch:'AirPitch' };
+    const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', notchLen:'NotchLen', notchShiftEnabled:'toggle-notch-shift', notchShift:'NotchShift', Cpitch:'Cpitch', AxisInK:'AxisInK', AirEdge:'AirEdge', AirCount:'AirCount', AirType:'AirType', AirPitch:'AirPitch' };
     prefillableEls.forEach(el=> el.classList.remove('prefilled'));
     Object.entries(map).forEach(([key,id])=>{
       const el=$(id);
       let val=null;
       if (key === 'notchLen') val = dims.notchLen;
+      else if (key === 'notchShiftEnabled') val = !!dims.notchShiftEnabled;
+      else if (key === 'notchShift') val = dims.notchShift;
       else if (key === 'P') val = (perf.offset != null ? perf.offset : dims.P);
       else if (key === 'AirEdge') val = air.offsetFromEdge;
       else if (key === 'AirCount') {
@@ -310,22 +324,25 @@
         const half = hasAir ? Math.max(1, Math.min(4, Math.round(air.count / 2))) : null;
         val = half ? Math.min(8, Math.max(2, half * 2)) : null; // dropdown zobrazuje celkovy pocet (2,4,6,8)
       }
+      else if (key === 'AirType') val = air.diameter;
       else if (key === 'AirPitch') val = air.pitch;
       else if (key === 'AxisInK') val = (dims.AxisInK != null) ? dims.AxisInK : (dims.K != null ? dims.K/2 : null);
       else if (key === 'bagWidth') val = (dims.W != null ? dims.W : null);
       else val = dims[key];
       if (el && val != null && val !== '') {
-        el.value = (el.tagName === 'SELECT') ? String(val) : val;
+        if (el.type === 'checkbox') el.checked = !!val;
+        else el.value = (el.tagName === 'SELECT') ? String(val) : val;
         el.classList.add('prefilled');
       }
     });
+    updateNotchShiftUiState();
 
     const lines = [];
     if (clip.count) {
       const typTxt = clip.type ? ` (TYP: ${clip.type})` : '';
       lines.push(`POCET SPON V BALENI ${clip.count}${typTxt}`);
     }
-    if (air.diameter) lines.push(`PRIEMER OTVOROV TYP: ${air.diameter}`);
+    if (air.diameter) lines.push(`TYP VZDUCHOVYCH OTVOROV: ${air.diameter}`);
     const noteLine = Array.isArray(data.notes) ? data.notes.filter(Boolean).join('; ').trim() : '';
     if (noteLine) lines.push(noteLine);
     bottomText1.classList.remove('prefilled');
@@ -470,9 +487,20 @@
   function roundedRect(x,y,w,h,r){
     create('rect',{x,y,width:w,height:h,rx:r,ry:r,fill:'none',stroke:'#0f172a','stroke-width':1});
   }
-  function cross(cx,cy,size=6){
+  function drawAirMark(cx,cy,type='1',size=6){
+    const t = String(type || '1');
+    if(t === '2'){
+      create('circle',{cx,cy,r:size*0.9,fill:'none',stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx-size,x2:cx+size,y1:cy,y2:cy,stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx,y1:cy-size,x2:cx,y2:cy+size,stroke:'#0f172a','stroke-width':1});
+      return;
+    }
+    if(t === '3'){
+      create('line',{x1:cx-size,x2:cx+size,y1:cy-size,y2:cy+size,stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx-size,x2:cx+size,y1:cy+size,y2:cy-size,stroke:'#0f172a','stroke-width':1});
+      return;
+    }
     create('line',{x1:cx-size,x2:cx+size,y1:cy,y2:cy,stroke:'#0f172a','stroke-width':1});
-    create('line',{x1:cx,y1:cy-size,x2:cx,y2:cy+size,stroke:'#0f172a','stroke-width':1});
   }
 
   function draw(){
@@ -493,11 +521,14 @@
     const axisInK = $('AxisInK').value==='' ? null : num($('AxisInK'), K/2);
     const showNotches = $('toggle-notches').checked;
     const notchLen = Math.max(1,num($('NotchLen'),7));
+    const notchShiftEnabled = !!$('toggle-notch-shift')?.checked;
+    const notchShiftRaw = num($('NotchShift'), 0);
     const airEdge = Math.max(0,num($('AirEdge'),30));
     const airXAuto = $('AirXAuto').checked;
     const airXAbs = airXAuto ? (G/2) : Math.max(0,num($('AirXAbs'),25));
     const displayCount = parseInt($('AirCount').value,10)||2;
     const airCount = clamp(Math.round(displayCount/2)||1,1,4);
+    const airType = $('AirType')?.value || '1';
     const airPitch = Math.max(0,num($('AirPitch'),40));
     state.fontPx = parseInt($('fontPx').value,10)||14;
     state.lineOnly = !!lineOnlyEl?.checked;
@@ -554,6 +585,12 @@
     const rHole=7;
     const yMid=offsetY+(filmW)/2;
     const y1=yMid-(C/2), y2=yMid+(C/2);
+    const maxNotchShift = Math.max(0, (filmW - C) / 2);
+    const minNotchShift = -Math.max(0, C / 2);
+    const notchShift = notchShiftEnabled ? clamp(notchShiftRaw, minNotchShift, maxNotchShift) : 0;
+    if (notchShiftEnabled && $('NotchShift') && $('NotchShift').value !== fmtVal(notchShift)) $('NotchShift').value = fmtVal(notchShift);
+    const yNotchTop = y1 - notchShift;
+    const yNotchBottom = y2 + notchShift;
     const topLimit=yTopBody+rHole, botLimit=yBottomBody-rHole;
     $('warnC').style.display = (y1<topLimit)||(y2>botLimit) ? 'block' : 'none';
 
@@ -671,13 +708,13 @@
     const xHoleRight = xAxis + rHole;
     const bridgeRaw = Math.max(0, xNotchStart - xHoleRight);
     const bridgeVal = Number(bridgeRaw.toFixed(1));
-    if ($('Mostik')) $('Mostik').value = bridgeVal.toFixed(1);
+    if ($('Mostik') && !notchShiftEnabled) $('Mostik').value = bridgeVal.toFixed(1);
 
     if(showNotches){
       const x1=xNotchStart, x2=xKend;
-      create('line',{x1,y1:y1,x2,y2:y1,stroke:'#0f172a'});
-      create('line',{x1,y1:y2,x2,y2:y2,stroke:'#0f172a'});
-      if(!state.lineOnly){
+      create('line',{x1,y1:yNotchTop,x2,y2:yNotchTop,stroke:'#0f172a'});
+      create('line',{x1,y1:yNotchBottom,x2,y2:yNotchBottom,stroke:'#0f172a'});
+      if(!state.lineOnly && !notchShiftEnabled){
         const upY   = y2 - Math.max(14, Math.round(state.fontPx*2.0));
         const downY = y2 + Math.max(18, Math.round(state.fontPx*2.2));
         hDim(x1, upY, x2, notchLenPx, 10, '#dc2626');
@@ -691,14 +728,14 @@
     const cyBot = yBottomBody - edge;
     const xRefLeftG = xLeftGStart + X;
     const xFirstLeftL = xLeftGStart - X;
-    cross(xRefLeftG, cyTop); cross(xRefLeftG, cyBot);
+    drawAirMark(xRefLeftG, cyTop, airType); drawAirMark(xRefLeftG, cyBot, airType);
     const leftL = Array.from({length: airCount}, (_,i)=> xFirstLeftL - i*airPitch);
-    leftL.forEach(xi => { cross(xi, cyTop); cross(xi, cyBot); });
+    leftL.forEach(xi => { drawAirMark(xi, cyTop, airType); drawAirMark(xi, cyBot, airType); });
     const xRefRightG = xRightGEnd - X;
     const xFirstRightL = xRightGEnd + X;
-    cross(xRefRightG, cyTop); cross(xRefRightG, cyBot);
+    drawAirMark(xRefRightG, cyTop, airType); drawAirMark(xRefRightG, cyBot, airType);
     const rightL = Array.from({length: airCount}, (_,i)=> xFirstRightL + i*airPitch);
-    rightL.forEach(xi => { cross(xi, cyTop); cross(xi, cyBot); });
+    rightL.forEach(xi => { drawAirMark(xi, cyTop, airType); drawAirMark(xi, cyBot, airType); });
 
     let minX=leftOuter-20, maxX=rightOuter+220;
     let minY=30, maxY=yBottomBody+220;
@@ -737,9 +774,24 @@
       hDim(xLeft, yDimPInside, xLeftGStart, P, 10, '#dc2626');
       hDim(xLeft, pBot+20, xRight, 2*G + 2*P);
       const xDim=xKend+25, xDimW=xDim+30;
-      vDim(xDim, yTopBody, y1, filmW/2 - C/2);
-      vDim(xDim, y1, y2, C, 10, '#dc2626');
-      vDim(xDim, yBottomBody, y2, filmW/2 - C/2);
+      if (notchShiftEnabled && notchShift < 0){
+        const xDimShift = xDimW + 30;
+        vDim(xDim, yTopBody, y1, filmW/2 - C/2);
+        vDim(xDim, y1, y2, fmtVal(C), 10, '#dc2626');
+        vDim(xDim, yBottomBody, y2, filmW/2 - C/2);
+        vDim(xDimShift, yNotchTop, y1, fmtVal(y1 - yNotchTop), 10, '#dc2626');
+        vDim(xDimShift, y2, yNotchBottom, fmtVal(yNotchBottom - y2), 10, '#dc2626');
+      } else if (notchShiftEnabled){
+        vDim(xDim, yTopBody, yNotchTop, fmtVal(yNotchTop - yTopBody), 10, '#dc2626');
+        vDim(xDim, yNotchTop, y1, fmtVal(y1 - yNotchTop), 10, '#dc2626');
+        vDim(xDim, y1, y2, fmtVal(C), 10, '#dc2626');
+        vDim(xDim, y2, yNotchBottom, fmtVal(yNotchBottom - y2), 10, '#dc2626');
+        vDim(xDim, yBottomBody, yNotchBottom, fmtVal(yBottomBody - yNotchBottom), 10, '#dc2626');
+      } else {
+        vDim(xDim, yTopBody, y1, filmW/2 - C/2);
+        vDim(xDim, y1, y2, C, 10, '#dc2626');
+        vDim(xDim, yBottomBody, y2, filmW/2 - C/2);
+      }
       vDim(xDimW, yTopBody, yBottomBody, filmW);
     const xBagDim = leftOuter - 18;
       const bagLabel = `sirka vrecka ${fmtVal(bagWidth)}`;
@@ -793,6 +845,7 @@
     const ev = el && el.type==='range'?'input':'change';
     el && el.addEventListener(ev, draw);
   });
+  $('toggle-notch-shift')?.addEventListener('change', updateNotchShiftUiState);
   if(lineOnlyEl){ lineOnlyEl.addEventListener('change', draw); }
   bgOpacityEl.addEventListener('input', ()=>{
     bgState.opacity = parseFloat(bgOpacityEl.value)||0;
@@ -808,9 +861,9 @@
     $('W').value=460; $('SideHandle').value=60; $('FilmW').value=400; $('L').value=600; $('G').value=50; $('K').value=45; if($('BagWidth')) $('BagWidth').value=400;
     $('P').value=55; $('Ph').value=240;
     $('Cpitch').value=160; $('AxisInK').value='';
-    $('NotchLen').value=7; $('toggle-notches').checked=true;
+    $('NotchLen').value=7; $('toggle-notches').checked=true; $('toggle-notch-shift').checked=false; $('NotchShift').value=0;
     $('AirEdge').value=30; $('AirXAbs').value=25; $('AirXAuto').checked=true;
-    $('AirCount').value='2'; $('AirPitch').value=40;
+    $('AirCount').value='2'; $('AirType').value='1'; $('AirPitch').value=40;
     if($('PhotoMarkEnabled')) $('PhotoMarkEnabled').checked=false;
     $('fontPx').value=14; $('toggle-grid').checked=false; if(lineOnlyEl) lineOnlyEl.checked=false;
     if(finalNavinNumber) finalNavinNumber.value='1';
@@ -836,6 +889,7 @@
     updatePorCisloDisplay();
     updateNavinTlac();
     updateMotivDisplay();
+    updateNotchShiftUiState();
     draw();
     pushUndoSnapshot(true);
   });
@@ -1106,9 +1160,9 @@
         W:$('W').value, SideHandle:$('SideHandle').value, FilmW:$('FilmW').value, L:$('L').value, G:$('G').value, K:$('K').value, BagWidth:$('BagWidth')?.value || '',
         P:$('P').value, Ph:$('Ph').value,
         Cpitch:$('Cpitch').value, AxisInK:$('AxisInK').value,
-        NotchLen:$('NotchLen').value, toggleNotches:$('toggle-notches').checked,
+        NotchLen:$('NotchLen').value, toggleNotches:$('toggle-notches').checked, toggleNotchShift:$('toggle-notch-shift').checked, NotchShift:$('NotchShift').value,
         AirEdge:$('AirEdge').value, AirXAbs:$('AirXAbs').value, AirXAuto:$('AirXAuto').checked,
-        AirCount:$('AirCount').value, AirPitch:$('AirPitch').value,
+        AirCount:$('AirCount').value, AirType:$('AirType').value, AirPitch:$('AirPitch').value,
         PhotoMarkEnabled:$('PhotoMarkEnabled')?.checked || false,
         fontPx:$('fontPx').value, grid:$('toggle-grid').checked,
         printSide:printSide.value,
@@ -1162,10 +1216,13 @@
       $('AxisInK').value=i.AxisInK||'';
       $('NotchLen').value=i.NotchLen||'';
       $('toggle-notches').checked=!!i.toggleNotches;
+      $('toggle-notch-shift').checked=!!i.toggleNotchShift;
+      $('NotchShift').value=(i.NotchShift!==undefined && i.NotchShift!==null)?i.NotchShift:0;
       $('AirEdge').value=i.AirEdge||'';
       $('AirXAbs').value=i.AirXAbs||'';
       $('AirXAuto').checked=!!i.AirXAuto;
       $('AirCount').value=i.AirCount||'1';
+      $('AirType').value=i.AirType||'1';
       $('AirPitch').value=i.AirPitch||'';
       if($('PhotoMarkEnabled')) $('PhotoMarkEnabled').checked=!!i.PhotoMarkEnabled;
       $('fontPx').value=i.fontPx||14;
@@ -1183,6 +1240,7 @@
       if(lineOnlyEl) lineOnlyEl.checked = !!i.lineOnly;
       updateNavinTlac();
       updateMotivDisplay();
+      updateNotchShiftUiState();
     }
     state.measures = Array.isArray(data.measures)? data.measures : [];
 
@@ -1432,6 +1490,7 @@ ${svgText}
   updateNavinTlac();
   updatePorCisloDisplay();
   updateMotivDisplay();
+  updateNotchShiftUiState();
   let epsSource = '';
   try { epsSource = localStorage.getItem('prefill_source') || ''; } catch (_) {}
   if (epsSource === 'eps' && window.applyEpsPayload) {

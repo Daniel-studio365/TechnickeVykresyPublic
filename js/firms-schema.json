@@ -16,6 +16,8 @@
       "G": "number|null - legacy, zvycajne null",
       "K": "number|null - chlopna",
       "notchLen": "number|null - dlzka zaseku",
+      "notchShiftEnabled": "boolean|null - zaseky posunute",
+      "notchShift": "number|null - posun zasekov oproti zavesnym otvorom",
       "Cpitch": "number|null - vzdialenost zavesnych otvorov",
       "AxisInK": "number|null - umiestnenie stredu otvorov (z lavej strany chlopne)"
     },
@@ -28,13 +30,16 @@
     },
     "air": {
       "count": "number|null - pocet vzduchovych otvorov",
-      "diameter": "number|null - priemer otvorov",
+      "diameter": "string|null - typ vzduchovych otvorov (1|2|3)",
       "offsetFromEdge": "number|null - vzdialenost od okraja/zalozky",
-      "pitch": "number|null - roztec vzduchovych otvorov"
+      "fromBottom": "number|null - vzdialenost vzduchoveho otvoru od zalozky",
+      "pitch": "number|null - roztec vzduchovych otvorov",
+      "onlyInG": "boolean - vzduchove otvory len v zalozke"
     },
     "perforation": {
       "enabled": "string - 'yes' | 'no' | ''",
       "side": "string - 'lava' | 'prava' | ''",
+      "shape": "string - 'rovna' | 'vodorovna' | 'U' | 'zahnut' | ''",
       "offset": "number|null - vzdialenost od stredu"
     },
     "clipImages": "string[] - ['zhora'] | ['zdola'] | []"
@@ -58,7 +63,7 @@
       "packageCount": null,
       "type": null
     },
-    "air": { "count": 3, "diameter": 3, "offsetFromEdge": 30, "pitch": 125 },
+    "air": { "count": 3, "diameter": "1", "offsetFromEdge": 30, "fromBottom": 25, "pitch": 125, "onlyInG": false },
     "perforation": { "enabled": "yes", "side": "prava", "offset": 7 },
     "clipImages": [
       "zhora"

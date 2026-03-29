@@ -10,6 +10,40 @@
     return false;
   }
 
+  function normalizedValues(rawValues, templateName){
+    const values = { ...(rawValues || {}) };
+    const copy = (fromKey, toKey) => {
+      if ((values[toKey] === undefined || values[toKey] === null || values[toKey] === '') &&
+          values[fromKey] !== undefined && values[fromKey] !== null && values[fromKey] !== '') {
+        values[toKey] = values[fromKey];
+      }
+    };
+
+    // legacy -> new separated keys
+    copy('perf_enabled', 'perf_bottom_enabled');
+    copy('perf_side', 'perf_bottom_side');
+    copy('perf_offset', 'perf_bottom_offset');
+
+    copy('easy_open', 'easy_open_side');
+    copy('perf_shape', 'easy_open_shape');
+    copy('perf_side', 'easy_open_side');
+    copy('perf_offset', 'easy_open_offset');
+    copy('perf_half_len', 'easy_open_half_len');
+    copy('perf_finger_hole', 'easy_open_finger_hole');
+    copy('perf_offset_P', 'easy_open_bottom_offset');
+    copy('perf_height', 'easy_open_height');
+
+    // template-specific cleanup
+    if (templateName === 'vz22') {
+      delete values.easy_open_side;
+      delete values.easy_open_shape;
+      delete values.easy_open_offset;
+      delete values.easy_open_half_len;
+      delete values.easy_open_finger_hole;
+    }
+    return values;
+  }
+
   function clearEpsMarks(root){
     if (!root) return;
     root.querySelectorAll('.epsfilled').forEach(el=> el.classList.remove('epsfilled'));
@@ -55,7 +89,7 @@
       if(!raw) return false;
       const payload = JSON.parse(raw);
       if (payload.target_template && payload.target_template !== templateName) return false;
-      const values = payload.values || payload;
+      const values = normalizedValues(payload.values || payload, templateName);
       const hasPhotoWidth = Object.prototype.hasOwnProperty.call(values || {}, 'photo_width');
       const hasPhotoHeight = Object.prototype.hasOwnProperty.call(values || {}, 'photo_height');
       const map = window.EPS_MAP || {};
@@ -63,7 +97,7 @@
       clearEpsMarks(root);
       Object.keys(values || {}).forEach((ck)=>{
         const v = values[ck];
-        if (ck === 'easy_open' && templateName === 'vz31') {
+        if (ck === 'easy_open_side' && templateName === 'vz31') {
           const sideEl = document.getElementById('PerfSide');
           const shapeEl = document.getElementById('PerfShape');
           const sv = String(v ?? '').toLowerCase().trim();
@@ -99,31 +133,7 @@
           }
           return;
         }
-        if (ck === 'perf_side' && templateName === 'vz31') {
-          const sideEl = document.getElementById('PerfSide');
-          const shapeEl = document.getElementById('PerfShape');
-          const sv = String(v ?? '').toLowerCase().trim();
-          const targetSide = (sv === 'l' || sv === 'lava' || sv === 'left') ? 'lava'
-            : ((sv === 'p' || sv === 'prava' || sv === 'right') ? 'prava' : null);
-          if (sideEl && targetSide) {
-            sideEl.value = targetSide;
-            try {
-              sideEl.dispatchEvent(new Event('input', { bubbles: true }));
-              sideEl.dispatchEvent(new Event('change', { bubbles: true }));
-            } catch (_) {}
-            markEps(sideEl);
-          }
-          if (shapeEl && targetSide && (shapeEl.value || '').toLowerCase() === 'none') {
-            shapeEl.value = 'U';
-            try {
-              shapeEl.dispatchEvent(new Event('input', { bubbles: true }));
-              shapeEl.dispatchEvent(new Event('change', { bubbles: true }));
-            } catch (_) {}
-            markEps(shapeEl);
-          }
-          if (targetSide) return;
-        }
-        if ((ck === 'perf_enabled' || ck === 'air_enabled') && templateName === 'vz22') {
+        if ((ck === 'perf_bottom_enabled' || ck === 'air_enabled') && templateName === 'vz22') {
           const id = map[ck] && map[ck][templateName];
           const el = id ? document.getElementById(id) : null;
           if (el && el.tagName.toLowerCase() === 'select') {
@@ -148,7 +158,7 @@
             }
           }
         }
-        if ((ck === 'perf_enabled' || ck === 'air_enabled') && templateName === 'vz22' && (v === '' || v === null || v === undefined)) {
+        if ((ck === 'perf_bottom_enabled' || ck === 'air_enabled') && templateName === 'vz22' && (v === '' || v === null || v === undefined)) {
           const id = map[ck] && map[ck][templateName];
           const el = id ? document.getElementById(id) : null;
           if (el && el.tagName.toLowerCase() === 'select') {
@@ -157,6 +167,18 @@
               el.dispatchEvent(new Event('input', { bubbles: true }));
               el.dispatchEvent(new Event('change', { bubbles: true }));
             } catch (_) {}
+          }
+          return;
+        }
+        if (ck === 'easy_open_shape' && templateName === 'vz31') {
+          const shapeEl = document.getElementById('PerfShape');
+          if (shapeEl) {
+            shapeEl.value = String(v);
+            try {
+              shapeEl.dispatchEvent(new Event('input', { bubbles: true }));
+              shapeEl.dispatchEvent(new Event('change', { bubbles: true }));
+            } catch (_) {}
+            markEps(shapeEl);
           }
           return;
         }

@@ -69,7 +69,7 @@
   const rightSideTitleEl = $('rightSideTitle');
 
   const prefillableIds = [
-    'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirInGOnly',
+    'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirType','AirInGOnly',
     'PerfEnabled','PerfOffset','PerfSide','printSide',
     'finalNavinNumber','finalNavinLetter','printOps',
     'porCislo','motivInput','bottomText1','bottomText2','refPartA','refPartB',
@@ -107,14 +107,24 @@
   };
 
   const inputs = [
-    'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirInGOnly',
-    'PerfEnabled','PerfOffset','PerfSide','fontPx','toggle-grid','toggle-notches',
+    'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirType','AirInGOnly',
+    'PerfEnabled','PerfOffset','PerfSide','fontPx','toggle-grid','toggle-notches','toggle-notch-shift','NotchShift',
     'bgWidth','bgHeight','finalNavinNumber','finalNavinLetter','printOps'
   ].map(id => $(id));
 
   const airXInput = $('AirXAbs');
   if (airXInput){
     airXInput.addEventListener('input', ()=>{ airXInput.dataset.userSet = '1'; });
+  }
+  function updateNotchShiftUiState(){
+    const shiftEnabled = !!$('toggle-notch-shift')?.checked;
+    const shiftInput = $('NotchShift');
+    const mostikInput = $('Mostik');
+    if (shiftInput) shiftInput.disabled = !shiftEnabled;
+    if (mostikInput) {
+      mostikInput.disabled = shiftEnabled;
+      if (shiftEnabled) mostikInput.value = '';
+    }
   }
   if (printSide) printSide.addEventListener('change', updateNavinTlac);
   if (finalNavinNumber) finalNavinNumber.addEventListener('change', updateNavinTlac);
@@ -146,11 +156,13 @@
   const airEnabledEl = $('AirEnabled');
   const airEdgeEl = $('AirEdge');
   const airXAbsEl = $('AirXAbs');
+  const airTypeEl = $('AirType');
   const airInGOnlyEl = $('AirInGOnly');
   function updateAirUiState(){
     const enabled = ((airEnabledEl?.value || '').toLowerCase() === 'ano');
     if (airEdgeEl) airEdgeEl.disabled = !enabled;
     if (airXAbsEl) airXAbsEl.disabled = !enabled;
+    if (airTypeEl) airTypeEl.disabled = !enabled;
     if (airInGOnlyEl) airInGOnlyEl.disabled = !enabled;
   }
   if (airEnabledEl) airEnabledEl.addEventListener('change', ()=>{ updateAirUiState(); draw(); });
@@ -251,6 +263,7 @@
     updateNavinTlac();
     updateAirUiState();
     updatePerfUiState();
+    updateNotchShiftUiState();
     draw();
   }
   function doUndo(){
@@ -332,8 +345,8 @@
     if(!src) return null;
     if(src.startsWith('data:')) return src;
     const lower = src.toLowerCase();
-    if(lower.includes('zhora.png')) return 'img/zhora.png';
-    if(lower.includes('zdola.png')) return 'img/zdola.png';
+    if(lower.includes('zhora.png')) return INLINE_ASSETS.zhora;
+    if(lower.includes('zdola.png')) return INLINE_ASSETS.zdola;
     return src;
   }
 
@@ -350,7 +363,8 @@
     const dims = data.dimensions || {};
     const perf = data.perforation || {};
     const clip = data.clip || {};
-    const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', Cpitch:'Cpitch', AxisInK:'AxisInK', notchLen:'NotchLen', AirEdge:'AirEdge', AirXAbs:'AirXAbs', AirInGOnly:'AirInGOnly', PerfOffset:'PerfOffset', PerfSide:'PerfSide' };
+    const air = data.air || {};
+    const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', Cpitch:'Cpitch', AxisInK:'AxisInK', notchLen:'NotchLen', AirEdge:'AirEdge', AirXAbs:'AirXAbs', AirType:'AirType', AirInGOnly:'AirInGOnly', PerfOffset:'PerfOffset', PerfSide:'PerfSide' };
     const perfEnabledEl = $('PerfEnabled');
     if (perfEnabledEl) perfEnabledEl.classList.remove('prefilled');
     const perfEnabledVal = (perf.enabled || '').toLowerCase();
@@ -368,12 +382,18 @@
       if (key === 'notchLen') val = dims.notchLen;
       else if (key === 'Cpitch') val = dims.Cpitch;
       else if (key === 'AxisInK') val = (dims.AxisInK != null) ? dims.AxisInK : (dims.K != null ? dims.K/2 : null);
+      else if (key === 'AirEdge') val = air.offsetFromEdge;
+      else if (key === 'AirXAbs') val = air.fromBottom ?? air.offsetFromBottom ?? dims.AirXAbs;
+      else if (key === 'AirType') val = air.diameter;
+      else if (key === 'AirInGOnly') val = !!(air.onlyInG ?? air.inGOnly);
       else if (key === 'PerfSide') val = perf.side || dims.PerfSide;
       else if (key === 'PerfOffset') val = (perf.offset != null ? perf.offset : dims.PerfOffset);
       else if (key === 'bagWidth') val = dims.W;
       else val = dims[key];
       if (el && val != null && val !== '') {
-        el.value = (el.tagName === 'SELECT') ? String(val) : val;
+        if (el.type === 'checkbox') el.checked = !!val;
+        else el.value = (el.tagName === 'SELECT') ? String(val) : val;
+        if (id === 'AirXAbs' && airXInput) airXInput.dataset.userSet = '1';
         el.classList.add('prefilled');
       }
     });
@@ -530,9 +550,20 @@
   function roundedRect(x,y,w,h,r){
     create('rect',{x,y,width:w,height:h,rx:r,ry:r,fill:'none',stroke:'#0f172a','stroke-width':1});
   }
-  function cross(cx,cy,size=6){
+  function drawAirMark(cx,cy,type='1',size=6){
+    const t = String(type || '1');
+    if(t === '2'){
+      create('circle',{cx,cy,r:size*0.9,fill:'none',stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx-size,x2:cx+size,y1:cy,y2:cy,stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx,y1:cy-size,x2:cx,y2:cy+size,stroke:'#0f172a','stroke-width':1});
+      return;
+    }
+    if(t === '3'){
+      create('line',{x1:cx-size,x2:cx+size,y1:cy-size,y2:cy+size,stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx-size,x2:cx+size,y1:cy+size,y2:cy-size,stroke:'#0f172a','stroke-width':1});
+      return;
+    }
     create('line',{x1:cx-size,x2:cx+size,y1:cy,y2:cy,stroke:'#0f172a','stroke-width':1});
-    create('line',{x1:cx,y1:cy-size,x2:cx,y2:cy+size,stroke:'#0f172a','stroke-width':1});
   }
 
   function draw(){
@@ -544,9 +575,12 @@
     const axisInK = $('AxisInK').value==='' ? null : num($('AxisInK'), K/2);
     const showNotches = $('toggle-notches').checked;
     const notchLen = Math.max(1,num($('NotchLen'),7));
+    const notchShiftEnabled = !!$('toggle-notch-shift')?.checked;
+    const notchShiftRaw = num($('NotchShift'), 0);
     const bagWidth = Math.max(0,num($('BagWidth'), 0));
     const airEnabled = (($('AirEnabled')?.value)||'').toLowerCase()==='ano';
     const airEdge = Math.max(0,num($('AirEdge'),30));
+    const airType = $('AirType')?.value || '1';
     const airInGOnly = !!$('AirInGOnly')?.checked;
     const airXAbsRaw = num($('AirXAbs'), NaN);
     const airCount = 2; // 4 otvory total (2 na kazdej strane)
@@ -629,9 +663,30 @@
 
     const xDim = xKstart - 25;
     const xDimW = xDim - 30;
-    vDim(xDim, yTop, y1, Math.round(W/2 - C/2));
-    vDim(xDim, y1, y2, Math.round(C), 10, '#dc2626');
-    vDim(xDim, yBottom, y2, Math.round(W/2 - C/2));
+    const maxNotchShift = Math.max(0, (W - C) / 2);
+    const minNotchShift = -Math.max(0, C / 2);
+    const notchShift = notchShiftEnabled ? clamp(notchShiftRaw, minNotchShift, maxNotchShift) : 0;
+    if (notchShiftEnabled && $('NotchShift') && $('NotchShift').value !== fmtVal(notchShift)) $('NotchShift').value = fmtVal(notchShift);
+    const yNotchTop = y1 - notchShift;
+    const yNotchBottom = y2 + notchShift;
+    if (notchShiftEnabled && notchShift < 0){
+      const xDimShift = xDimW - 30;
+      vDim(xDim, yTop, y1, Math.round(W/2 - C/2));
+      vDim(xDim, y1, y2, fmtVal(C), 10, '#dc2626');
+      vDim(xDim, yBottom, y2, Math.round(W/2 - C/2));
+      vDim(xDimShift, y1, yNotchTop, fmtVal(y1 - yNotchTop), 10, '#dc2626');
+      vDim(xDimShift, yNotchBottom, y2, fmtVal(yNotchBottom - y2), 10, '#dc2626');
+    } else if (notchShiftEnabled){
+      vDim(xDim, yTop, yNotchTop, fmtVal(yNotchTop - yTop));
+      vDim(xDim, yNotchTop, y1, fmtVal(y1 - yNotchTop), 10, '#dc2626');
+      vDim(xDim, y1, y2, fmtVal(C), 10, '#dc2626');
+      vDim(xDim, y2, yNotchBottom, fmtVal(yNotchBottom - y2), 10, '#dc2626');
+      vDim(xDim, yNotchBottom, yBottom, fmtVal(yBottom - yNotchBottom));
+    } else {
+      vDim(xDim, yTop, y1, Math.round(W/2 - C/2));
+      vDim(xDim, y1, y2, Math.round(C), 10, '#dc2626');
+      vDim(xDim, yBottom, y2, Math.round(W/2 - C/2));
+    }
     vDim(xDimW, yTop, yBottom, Math.round(W));
 
     let rightLegendX = 0;
@@ -667,17 +722,19 @@
 
     const bridgeRaw = Math.max(0, (xAxis - rHole) - (xKstart + notchLen));
     const bridgeVal = Number(bridgeRaw.toFixed(1));
-    if ($('Mostik')) $('Mostik').value = bridgeVal.toFixed(1);
+    if ($('Mostik') && !notchShiftEnabled) $('Mostik').value = bridgeVal.toFixed(1);
 
     if (showNotches){
       const x1n = xKstart;
       const x2n = xKstart + notchLen;
-      create('line',{x1:x1n,y1:y1,x2:x2n,y2:y1,stroke:'#0f172a'});
-      create('line',{x1:x1n,y1:y2,x2:x2n,y2:y2,stroke:'#0f172a'});
-      const upY = y2 - Math.max(18, Math.round(state.fontPx*2.2));
-      const downY = y2 + Math.max(18, Math.round(state.fontPx*2.2));
-      hDim(x1n, upY, x2n, Math.round(notchLen), 10, '#dc2626');
-      hDim(x2n, downY, xAxis - rHole, bridgeVal.toFixed(1), 10, '#dc2626');
+      create('line',{x1:x1n,y1:yNotchTop,x2:x2n,y2:yNotchTop,stroke:'#0f172a'});
+      create('line',{x1:x1n,y1:yNotchBottom,x2:x2n,y2:yNotchBottom,stroke:'#0f172a'});
+      if (!notchShiftEnabled){
+        const upY = y2 - Math.max(18, Math.round(state.fontPx*2.2));
+        const downY = y2 + Math.max(18, Math.round(state.fontPx*2.2));
+        hDim(x1n, upY, x2n, Math.round(notchLen), 10, '#dc2626');
+        hDim(x2n, downY, xAxis - rHole, bridgeVal.toFixed(1), 10, '#dc2626');
+      }
     }
 
     const xBagDim = rightOuter + 40;
@@ -704,7 +761,7 @@
       xFirstRight = xRightGEnd + X;
       const airXs = airInGOnly ? [xRefLeftG, xRefRightG] : [xRefLeftG,xFirstLeft,xRefRightG,xFirstRight];
       airXs.forEach(x=>{
-        if(x!=null) { cross(x, cyTop); cross(x, cyBot); }
+        if(x!=null) { drawAirMark(x, cyTop, airType); drawAirMark(x, cyBot, airType); }
       });
 
       const yAirTop = yTop - Math.max(22, Math.round(state.fontPx*1.8));
@@ -763,6 +820,7 @@
     const ev = el && el.type==='range'?'input':'change';
     el && el.addEventListener(ev, draw);
   });
+  $('toggle-notch-shift')?.addEventListener('change', updateNotchShiftUiState);
   bgOpacityEl.addEventListener('input', ()=>{
     bgState.opacity = parseFloat(bgOpacityEl.value)||0;
     bgOpacityVal.textContent = `${Math.round(bgState.opacity*100)} %`;
@@ -783,8 +841,8 @@
     $('BagWidth').value=400;
     $('Cpitch').value=160; $('AxisInK').value='';
     if ($('AirEnabled')) $('AirEnabled').value='ano';
-    $('NotchLen').value=7; $('toggle-notches').checked=false;
-    $('AirEdge').value=30; $('AirXAbs').value=''; $('AirInGOnly').checked=false;
+    $('NotchLen').value=7; $('toggle-notches').checked=false; $('toggle-notch-shift').checked=false; $('NotchShift').value=0;
+    $('AirEdge').value=30; $('AirXAbs').value=''; $('AirType').value='1'; $('AirInGOnly').checked=false;
     if (airXInput) airXInput.dataset.userSet='';
     if ($('PerfEnabled')) $('PerfEnabled').value='ano';
     $('PerfOffset').value=7;
@@ -814,6 +872,7 @@
     updateSideTitles();
     updateAirUiState();
     updatePerfUiState();
+    updateNotchShiftUiState();
     draw();
     pushUndoSnapshot(true);
   });
@@ -857,9 +916,9 @@
         W:$('W').value, L:$('L').value, G:$('G').value, K:$('K').value,
         BagWidth:$('BagWidth').value,
         Cpitch:$('Cpitch').value, AxisInK:$('AxisInK').value,
-        NotchLen:$('NotchLen').value, toggleNotches:$('toggle-notches').checked,
+        NotchLen:$('NotchLen').value, toggleNotches:$('toggle-notches').checked, toggleNotchShift:$('toggle-notch-shift').checked, NotchShift:$('NotchShift').value,
         AirEnabled:$('AirEnabled')?.value || '',
-        AirEdge:$('AirEdge').value, AirXAbs:$('AirXAbs').value, AirInGOnly:$('AirInGOnly').checked,
+        AirEdge:$('AirEdge').value, AirXAbs:$('AirXAbs').value, AirType:$('AirType').value, AirInGOnly:$('AirInGOnly').checked,
         PerfEnabled:$('PerfEnabled')?.value || '',
         PerfOffset:$('PerfOffset').value,
         PerfSide:$('PerfSide').value,
@@ -903,11 +962,14 @@
       if ($('AirEnabled')) $('AirEnabled').value = (i.AirEnabled === undefined || i.AirEnabled === null) ? 'ano' : String(i.AirEnabled);
       $('AirEdge').value=(i.AirEdge!==undefined && i.AirEdge!==null)?i.AirEdge:30;
       $('AirXAbs').value=(i.AirXAbs!==undefined && i.AirXAbs!==null)?i.AirXAbs:'';
+      $('AirType').value=i.AirType||'1';
       $('AirInGOnly').checked=!!i.AirInGOnly;
       if(airXInput) airXInput.dataset.userSet = (i.AirXAbs!==undefined && i.AirXAbs!=='') ? '1' : '';
       if ($('PerfEnabled')) $('PerfEnabled').value = (i.PerfEnabled === undefined || i.PerfEnabled === null) ? 'ano' : String(i.PerfEnabled);
       $('NotchLen').value=i.NotchLen||'';
       $('toggle-notches').checked=!!i.toggleNotches;
+      $('toggle-notch-shift').checked=!!i.toggleNotchShift;
+      $('NotchShift').value=(i.NotchShift!==undefined && i.NotchShift!==null)?i.NotchShift:0;
       $('PerfOffset').value=i.PerfOffset||'';
       $('PerfSide').value=i.PerfSide||'prava';
       $('fontPx').value=i.fontPx||14;
@@ -928,6 +990,7 @@
       updateSideTitles();
       updateAirUiState();
       updatePerfUiState();
+      updateNotchShiftUiState();
     }
     state.measures = Array.isArray(data.measures)? data.measures : [];
 
@@ -1424,6 +1487,7 @@ ${svgText}
   updateSideTitles();
   updateAirUiState();
   updatePerfUiState();
+  updateNotchShiftUiState();
   let epsSource = '';
   try { epsSource = localStorage.getItem('prefill_source') || ''; } catch (_) {}
   if (epsSource === 'eps' && window.applyEpsPayload) {

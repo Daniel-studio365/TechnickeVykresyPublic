@@ -40,14 +40,29 @@
     return rows;
   }
 
+  const numericKeys = new Set([
+    'air_count','air_edge','air_pitch','air_x_abs','axis_in_K',
+    'dim_bag_width','dim_C','dim_G','dim_K','dim_L','dim_SEK','dim_W',
+    'easy_open_bottom_offset','easy_open_half_len','easy_open_height','easy_open_offset',
+    'hole_pitch_C','notch_length','perf_bottom_offset','photo_height','photo_width',
+    'print_ops','seg_bzp','side_handle'
+  ]);
+
+  function normalizeEditorValue(key, value){
+    if (value === null || value === undefined) return value;
+    const trimmed = String(value).trim();
+    if (!numericKeys.has(key)) return trimmed;
+    return trimmed.replace(',', '.');
+  }
+
   function buildFieldsFromList(list){
     fieldsWrap.innerHTML = '';
     const topFormKeys = new Set([
       'order_serial','ref_code_a','ref_code_b',
       'order_notes',
       'dim_bag_width','dim_L','dim_G','dim_K','dim_SEK',
-      'seg_bzp','perf_enabled','air_enabled','hole_pitch_C','air_count',
-      'easy_open',
+      'seg_bzp','perf_bottom_enabled','air_enabled','hole_pitch_C','air_count',
+      'easy_open_side','easy_open_shape',
       'side_handle','photo_note','photo_width','photo_height',
       'roll_final_code','roll_final_variant',
       'print_side_bottom','print_side_top','print_ops',
@@ -328,7 +343,7 @@
     formLabel15.appendChild(formSpan15);
     const formInp15 = document.createElement('input');
     formInp15.type = 'text';
-    formInp15.setAttribute('data-key', 'perf_enabled');
+    formInp15.setAttribute('data-key', 'perf_bottom_enabled');
     formInp15.placeholder = 'Perforacia dna';
     formInp15.addEventListener('input', updatePreview);
     formLabel15.appendChild(formInp15);
@@ -336,7 +351,7 @@
     formMap15.className = 'kv';
     formMap15.style.flex = '1 1 auto';
     formMap15.style.maxWidth = 'none';
-    formMap15.textContent = 'perf_enabled - Perforacia (ano/nie)';
+    formMap15.textContent = 'perf_bottom_enabled - Perforacia dna (ano/nie)';
     formLabel15.appendChild(formMap15);
     formGroup.appendChild(formLabel15);
 
@@ -426,11 +441,11 @@
 
     const formLabel21 = document.createElement('label');
     const formSpan21 = document.createElement('span');
-    formSpan21.textContent = 'Easy open';
+    formSpan21.textContent = 'Easy open strana';
     formLabel21.appendChild(formSpan21);
     const formInp21 = document.createElement('input');
     formInp21.type = 'text';
-    formInp21.setAttribute('data-key', 'easy_open');
+    formInp21.setAttribute('data-key', 'easy_open_side');
     formInp21.placeholder = 'P/L';
     formInp21.addEventListener('input', updatePreview);
     formLabel21.appendChild(formInp21);
@@ -438,9 +453,27 @@
     formMap21.className = 'kv';
     formMap21.style.flex = '1 1 auto';
     formMap21.style.maxWidth = 'none';
-    formMap21.textContent = 'easy_open - Easy open (P/L/prazdne)';
+    formMap21.textContent = 'easy_open_side - Strana easy open (P/L/prazdne)';
     formLabel21.appendChild(formMap21);
     formGroup.appendChild(formLabel21);
+
+    const formLabel21b = document.createElement('label');
+    const formSpan21b = document.createElement('span');
+    formSpan21b.textContent = 'Easy open tvar';
+    formLabel21b.appendChild(formSpan21b);
+    const formInp21b = document.createElement('input');
+    formInp21b.type = 'text';
+    formInp21b.setAttribute('data-key', 'easy_open_shape');
+    formInp21b.placeholder = 'rovna/U/zahnut/vodorovna';
+    formInp21b.addEventListener('input', updatePreview);
+    formLabel21b.appendChild(formInp21b);
+    const formMap21b = document.createElement('span');
+    formMap21b.className = 'kv';
+    formMap21b.style.flex = '1 1 auto';
+    formMap21b.style.maxWidth = 'none';
+    formMap21b.textContent = 'easy_open_shape - Tvar easy open';
+    formLabel21b.appendChild(formMap21b);
+    formGroup.appendChild(formLabel21b);
 
     const formLabel22 = document.createElement('label');
     const formSpan22 = document.createElement('span');
@@ -744,8 +777,8 @@
     const values = {};
     fieldsWrap.querySelectorAll('input[data-key]').forEach(inp=>{
       const k = inp.getAttribute('data-key');
-      const v = inp.value;
-      if (k === 'easy_open') {
+      const v = normalizeEditorValue(k, inp.value);
+      if (k === 'easy_open_side') {
         values[k] = v;
         return;
       }
@@ -754,7 +787,7 @@
     // Specialita pre vz31: v papierovom formulari je G vedene ako "Rucka".
     if ((tmplSel?.value || '') === 'vz31'){
       const rucka = $('formRucka');
-      if (rucka && rucka.value !== '') values.dim_G = rucka.value;
+      if (rucka && rucka.value !== '') values.dim_G = normalizeEditorValue('dim_G', rucka.value);
     }
     return values;
   }

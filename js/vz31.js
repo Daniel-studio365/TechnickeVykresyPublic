@@ -66,7 +66,7 @@
   const motivText = $('motivText');
 
   const prefillableIds = [
-    'W','L','G','K','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirCount','AirPitch',
+    'W','L','G','K','Cpitch','AxisInK','NotchLen','toggle-notch-shift','NotchShift','AirEdge','AirXAbs','AirCount','AirType','AirPitch',
     'PerfShape','PerfSide','PerfOffset','PerfHalfLen','FingerHole','printSide',
     'finalNavinNumber','finalNavinLetter','printOps',
     'porCislo','motivInput','bottomText1','bottomText2','refPartA','refPartB',
@@ -77,6 +77,7 @@
   function normalizePerfShape(val){
     const v = (val || '').toString().toLowerCase().trim();
     if(v.startsWith('r')) return 'rovna';
+    if(v.startsWith('v')) return 'vodorovna';
     if(v.startsWith('u')) return 'U';
     if(v.startsWith('z')) return 'zahnut';
     return 'none';
@@ -118,10 +119,21 @@
   };
 
   const inputs = [
-    'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirCount','AirPitch',
+    'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','toggle-notch-shift','NotchShift','AirEdge','AirXAbs','AirCount','AirType','AirPitch',
     'PerfShape','PerfSide','PerfOffset','PerfHalfLen','FingerHole','PhotoMarkEnabled','fontPx','toggle-grid','toggle-notches',
     'bgWidth','bgHeight','finalNavinNumber','finalNavinLetter','printOps'
   ].map(id => $(id));
+
+  function updateNotchShiftUiState(){
+    const shiftEnabled = !!$('toggle-notch-shift')?.checked;
+    const shiftInput = $('NotchShift');
+    const mostikInput = $('Mostik');
+    if (shiftInput) shiftInput.disabled = !shiftEnabled;
+    if (mostikInput) {
+      mostikInput.disabled = shiftEnabled;
+      if (shiftEnabled) mostikInput.value = '';
+    }
+  }
 
   if (printSide) printSide.addEventListener('change', updateNavinTlac);
   if (finalNavinNumber) finalNavinNumber.addEventListener('change', updateNavinTlac);
@@ -221,6 +233,7 @@
     updatePorCisloDisplay();
     updateNavinTlac();
     updateMotivDisplay();
+    updateNotchShiftUiState();
     draw();
   }
   function doUndo(){
@@ -302,8 +315,8 @@
     if(!src) return null;
     if(src.startsWith('data:')) return src;
     const lower = src.toLowerCase();
-    if(lower.includes('zhora.png')) return 'img/zhora.png';
-    if(lower.includes('zdola.png')) return 'img/zdola.png';
+    if(lower.includes('zhora.png')) return INLINE_ASSETS.zhora;
+    if(lower.includes('zdola.png')) return INLINE_ASSETS.zdola;
     return src;
   }
 
@@ -321,7 +334,7 @@
     const air = data.air || {};
     const perf = data.perforation || {};
     const clip = data.clip || {};
-    const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', Cpitch:'Cpitch', AxisInK:'AxisInK', notchLen:'NotchLen', AirEdge:'AirEdge', AirCount:'AirCount', AirPitch:'AirPitch', PerfShape:'PerfShape', PerfSide:'PerfSide', PerfOffset:'PerfOffset' };
+    const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', Cpitch:'Cpitch', AxisInK:'AxisInK', notchLen:'NotchLen', notchShiftEnabled:'toggle-notch-shift', notchShift:'NotchShift', AirEdge:'AirEdge', AirCount:'AirCount', AirType:'AirType', AirPitch:'AirPitch', PerfShape:'PerfShape', PerfSide:'PerfSide', PerfOffset:'PerfOffset' };
     Object.values(map).forEach(id=>{
       const el=$(id);
       if (el) el.classList.remove('prefilled');
@@ -330,10 +343,13 @@
       const el=$(id);
       let val=null;
       if (key === 'notchLen') val = dims.notchLen;
+      else if (key === 'notchShiftEnabled') val = !!dims.notchShiftEnabled;
+      else if (key === 'notchShift') val = dims.notchShift;
       else if (key === 'Cpitch') val = dims.Cpitch;
       else if (key === 'AxisInK') val = (dims.AxisInK != null) ? dims.AxisInK : (dims.K != null ? dims.K/2 : null);
       else if (key === 'PerfShape') {
-        if ((perf.enabled || '').toLowerCase() === 'no') val = 'none';
+        if (perf.shape) val = normalizePerfShape(perf.shape);
+        else if ((perf.enabled || '').toLowerCase() === 'no') val = 'none';
         else if ((perf.enabled || '').toLowerCase() === 'yes') val = 'rovna';
       }
       else if (key === 'PerfSide') val = perf.side || dims.PerfSide;
@@ -344,21 +360,24 @@
         const half = hasAir ? Math.max(1, Math.min(4, Math.round(air.count / 2))) : null;
         val = half ? Math.min(8, Math.max(2, half * 2)) : null; // dropdown zobrazuje celkovy pocet (2,4,6,8)
       }
+      else if (key === 'AirType') val = air.diameter;
       else if (key === 'AirPitch') val = air.pitch;
       else if (key === 'bagWidth') val = (dims.W != null ? dims.W : null);
       else val = dims[key];
       if (el && val != null && val !== '') {
-        el.value = (el.tagName === 'SELECT') ? String(val) : val;
+        if (el.type === 'checkbox') el.checked = !!val;
+        else el.value = (el.tagName === 'SELECT') ? String(val) : val;
         el.classList.add('prefilled');
       }
     });
+    updateNotchShiftUiState();
 
     const lines = [];
     if (clip.count) {
       const typTxt = clip.type ? ` (TYP: ${clip.type})` : '';
       lines.push(`POCET SPON V BALENI ${clip.count}${typTxt}`);
     }
-    if (air.diameter) lines.push(`PRIEMER OTVOROV TYP: ${air.diameter}`);
+    if (air.diameter) lines.push(`TYP VZDUCHOVYCH OTVOROV: ${air.diameter}`);
     const noteLine = Array.isArray(data.notes) ? data.notes.filter(Boolean).join('; ').trim() : '';
     if (noteLine) lines.push(noteLine);
     bottomText1.classList.remove('prefilled');
@@ -506,9 +525,20 @@
   function roundedRect(x,y,w,h,r){
     create('rect',{x,y,width:w,height:h,rx:r,ry:r,fill:'none',stroke:'#0f172a','stroke-width':1});
   }
-  function cross(cx,cy,size=6){
+  function drawAirMark(cx,cy,type='1',size=6){
+    const t = String(type || '1');
+    if(t === '2'){
+      create('circle',{cx,cy,r:size*0.9,fill:'none',stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx-size,x2:cx+size,y1:cy,y2:cy,stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx,y1:cy-size,x2:cx,y2:cy+size,stroke:'#0f172a','stroke-width':1});
+      return;
+    }
+    if(t === '3'){
+      create('line',{x1:cx-size,x2:cx+size,y1:cy-size,y2:cy+size,stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx-size,x2:cx+size,y1:cy+size,y2:cy-size,stroke:'#0f172a','stroke-width':1});
+      return;
+    }
     create('line',{x1:cx-size,x2:cx+size,y1:cy,y2:cy,stroke:'#0f172a','stroke-width':1});
-    create('line',{x1:cx,y1:cy-size,x2:cx,y2:cy+size,stroke:'#0f172a','stroke-width':1});
   }
 
   function draw(){
@@ -524,10 +554,13 @@
     const axisInK = $('AxisInK').value==='' ? null : num($('AxisInK'), K/2);
     const showNotches = $('toggle-notches').checked;
     const notchLen = Math.max(1,num($('NotchLen'),7));
+    const notchShiftEnabled = !!$('toggle-notch-shift')?.checked;
+    const notchShiftRaw = num($('NotchShift'), 0);
     const airEdge = Math.max(0,num($('AirEdge'),30));
     const airXAbs = Math.max(0,num($('AirXAbs'),25));
     const displayCount = parseInt($('AirCount').value,10)||2;
     const airCount = clamp(Math.round(displayCount/2)||1,1,4);
+    const airType = $('AirType')?.value || '1';
     const airPitch = Math.max(0,num($('AirPitch'),40));
     const perfShape = normalizePerfShape($('PerfShape').value);
     const perfSide = normalizePerfSide($('PerfSide').value);
@@ -605,24 +638,47 @@
 
     const xDim = xKend + 25;
     const xDimW = xDim + 30;
-    vDim(xDim, yTop, y1, Math.round(W/2 - C/2));
-    vDim(xDim, y1, y2, Math.round(C), 10, '#dc2626');
-    vDim(xDim, yBottom, y2, Math.round(W/2 - C/2));
+    const maxNotchShift = Math.max(0, (W - C) / 2);
+    const minNotchShift = -Math.max(0, C / 2);
+    const notchShift = notchShiftEnabled ? clamp(notchShiftRaw, minNotchShift, maxNotchShift) : 0;
+    if (notchShiftEnabled && $('NotchShift') && $('NotchShift').value !== fmtVal(notchShift)) $('NotchShift').value = fmtVal(notchShift);
+    const yNotchTop = y1 - notchShift;
+    const yNotchBottom = y2 + notchShift;
+    if (notchShiftEnabled && notchShift < 0){
+      const xDimShift = xDimW + 30;
+      vDim(xDim, yTop, y1, Math.round(W/2 - C/2));
+      vDim(xDim, y1, y2, fmtVal(C), 10, '#dc2626');
+      vDim(xDim, yBottom, y2, Math.round(W/2 - C/2));
+      vDim(xDimShift, yNotchTop, y1, fmtVal(y1 - yNotchTop), 10, '#dc2626');
+      vDim(xDimShift, y2, yNotchBottom, fmtVal(yNotchBottom - y2), 10, '#dc2626');
+    } else if (notchShiftEnabled){
+      vDim(xDim, yTop, yNotchTop, fmtVal(yNotchTop - yTop));
+      vDim(xDim, yNotchTop, y1, fmtVal(y1 - yNotchTop), 10, '#dc2626');
+      vDim(xDim, y1, y2, fmtVal(C), 10, '#dc2626');
+      vDim(xDim, y2, yNotchBottom, fmtVal(yNotchBottom - y2), 10, '#dc2626');
+      vDim(xDim, yNotchBottom, yBottom, fmtVal(yBottom - yNotchBottom));
+    } else {
+      vDim(xDim, yTop, y1, Math.round(W/2 - C/2));
+      vDim(xDim, y1, y2, Math.round(C), 10, '#dc2626');
+      vDim(xDim, yBottom, y2, Math.round(W/2 - C/2));
+    }
     vDim(xDimW, yTop, yBottom, Math.round(W));
 
     const x1n = xKend - notchLen;
     const mostikRaw = Math.max(0, x1n - (xAxis + rHole));
     const mostikVal = Number(mostikRaw.toFixed(1));
-    if ($('Mostik')) $('Mostik').value = mostikVal.toFixed(1);
+    if ($('Mostik') && !notchShiftEnabled) $('Mostik').value = mostikVal.toFixed(1);
 
     if (showNotches){
       const x2n = xKend;
-      create('line',{x1:x1n,y1:y1,x2:x2n,y2:y1,stroke:'#0f172a'});
-      create('line',{x1:x1n,y1:y2,x2:x2n,y2:y2,stroke:'#0f172a'});
-      const upY = y2 - Math.max(18, Math.round(state.fontPx*2.2));
-      const downY = y2 + Math.max(18, Math.round(state.fontPx*2.2));
-      hDim(x1n, upY, x2n, Math.round(notchLen), 10, '#dc2626');
-      hDim(xAxis + rHole, downY, x1n, mostikVal.toFixed(1), 10, '#dc2626');
+      create('line',{x1:x1n,y1:yNotchTop,x2:x2n,y2:yNotchTop,stroke:'#0f172a'});
+      create('line',{x1:x1n,y1:yNotchBottom,x2:x2n,y2:yNotchBottom,stroke:'#0f172a'});
+      if (!notchShiftEnabled){
+        const upY = y2 - Math.max(18, Math.round(state.fontPx*2.2));
+        const downY = y2 + Math.max(18, Math.round(state.fontPx*2.2));
+        hDim(x1n, upY, x2n, Math.round(notchLen), 10, '#dc2626');
+        hDim(xAxis + rHole, downY, x1n, mostikVal.toFixed(1), 10, '#dc2626');
+      }
     }
 
     const slotW = 20, slotH = 90, slotR = 10;
@@ -648,8 +704,8 @@
     const xFirstRightL = xRightGEnd + X;
     const leftL = Array.from({length:airCount},(_,i)=> xFirstLeftL - i*airPitch);
     const rightL = Array.from({length:airCount},(_,i)=> xFirstRightL + i*airPitch);
-    leftL.forEach(x=>{ cross(x,cyTop); cross(x,cyBot); });
-    rightL.forEach(x=>{ cross(x,cyTop); cross(x,cyBot); });
+    leftL.forEach(x=>{ drawAirMark(x,cyTop,airType); drawAirMark(x,cyBot,airType); });
+    rightL.forEach(x=>{ drawAirMark(x,cyTop,airType); drawAirMark(x,cyBot,airType); });
 
     if(!state.lineOnly){
       const magenta = '#d0007a';
@@ -732,6 +788,25 @@
       hDim(xPerfLeft, yPerfDim, xLeftGStart, Math.round(off), 10, '#dc2626');
       hDim(xRightGEnd, yPerfDim, xPerfRight, Math.round(off), 10, '#dc2626');
       maxRight = Math.max(maxRight, xPerfRight + 40);
+    } else if (perfShape === 'vodorovna' && perfOffset > 0){
+      const xMid = (xLeftGStart + xRightGEnd)/2;
+      let yPerf = (perfSide === 'prava') ? (yTop + perfOffset) : (yBottom - perfOffset);
+      yPerf = clamp(yPerf, yTop, yBottom);
+      const leftLimit = offsetX;
+      const rightLimit = offsetX + totalWidth;
+      const maxHalfGeom = Math.min(xMid - leftLimit, rightLimit - xMid);
+      const halfSpan = Math.min(perfHalfLen, Math.max(0, maxHalfGeom));
+      if (halfSpan > 0){
+        const xLeftEnd = xMid - halfSpan;
+        const xRightEnd = xMid + halfSpan;
+        create('path',{d:`M ${xLeftEnd} ${yPerf} L ${xRightEnd} ${yPerf}`,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4',fill:'none'});
+        const xDimPerf = xRightGEnd + 60;
+        if (perfSide === 'prava'){ vDim(xDimPerf, yTop, yPerf, Math.round(perfOffset), 10, '#dc2626'); }
+        else { vDim(xDimPerf, yPerf, yBottom, Math.round(perfOffset), 10, '#dc2626'); }
+        const lenDimY = yPerf + (perfSide==='prava' ? Math.max(24, Math.round(state.fontPx*2.0)) : -Math.max(24, Math.round(state.fontPx*2.0)));
+        hDim(xMid, lenDimY, xRightEnd, Math.round(halfSpan), 10, '#dc2626');
+        maxRight = Math.max(maxRight, xRightEnd + 40);
+      }
     } else if (perfShape === 'U' && perfOffset > 0){
       const xMid = (xLeftGStart + xRightGEnd)/2;
       let yPerf = (perfSide === 'prava') ? (yTop + perfOffset) : (yBottom - perfOffset);
@@ -820,6 +895,7 @@
     const ev = el && el.type==='range'?'input':'change';
     el && el.addEventListener(ev, draw);
   });
+  $('toggle-notch-shift')?.addEventListener('change', updateNotchShiftUiState);
   bgOpacityEl.addEventListener('input', ()=>{
     bgState.opacity = parseFloat(bgOpacityEl.value)||0;
     bgOpacityVal.textContent = `${Math.round(bgState.opacity*100)} %`;
@@ -838,8 +914,8 @@
     clearPrefilled();
     $('W').value=400; $('L').value=600; $('G').value=50; $('K').value=45; if($('BagWidth')) $('BagWidth').value=400;
     $('Cpitch').value=160; $('AxisInK').value='';
-    $('NotchLen').value=7; $('toggle-notches').checked=false;
-    $('AirEdge').value=30; $('AirXAbs').value=25; $('AirCount').value='2'; $('AirPitch').value=40;
+    $('NotchLen').value=7; $('toggle-notches').checked=false; $('toggle-notch-shift').checked=false; $('NotchShift').value=0;
+    $('AirEdge').value=30; $('AirXAbs').value=25; $('AirCount').value='2'; $('AirType').value='1'; $('AirPitch').value=40;
     $('PerfShape').value='U'; $('PerfSide').value='prava'; $('PerfOffset').value=70; $('PerfHalfLen').value=250;
     $('FingerHole').value='nie';
     if($('PhotoMarkEnabled')) $('PhotoMarkEnabled').checked=false;
@@ -864,6 +940,7 @@
     updatePorCisloDisplay();
     updateNavinTlac();
     updateMotivDisplay();
+    updateNotchShiftUiState();
     draw();
     pushUndoSnapshot(true);
   });
@@ -1133,9 +1210,9 @@
       inputs: {
         W:$('W').value, L:$('L').value, G:$('G').value, K:$('K').value, BagWidth:$('BagWidth')?.value || '',
         Cpitch:$('Cpitch').value, AxisInK:$('AxisInK').value,
-        NotchLen:$('NotchLen').value, toggleNotches:$('toggle-notches').checked,
+        NotchLen:$('NotchLen').value, toggleNotches:$('toggle-notches').checked, toggleNotchShift:$('toggle-notch-shift').checked, NotchShift:$('NotchShift').value,
         AirEdge:$('AirEdge').value, AirXAbs:$('AirXAbs').value,
-        AirCount:$('AirCount').value, AirPitch:$('AirPitch').value,
+        AirCount:$('AirCount').value, AirType:$('AirType').value, AirPitch:$('AirPitch').value,
         PerfShape:$('PerfShape').value, PerfSide:$('PerfSide').value,
         PerfOffset:$('PerfOffset').value, PerfHalfLen:$('PerfHalfLen').value,
         FingerHole:$('FingerHole').value,
@@ -1178,9 +1255,12 @@
       $('AxisInK').value=i.AxisInK||'';
       $('NotchLen').value=i.NotchLen||'';
       $('toggle-notches').checked=!!i.toggleNotches;
+      $('toggle-notch-shift').checked=!!i.toggleNotchShift;
+      $('NotchShift').value=(i.NotchShift!==undefined && i.NotchShift!==null)?i.NotchShift:0;
       $('AirEdge').value=i.AirEdge||'';
       $('AirXAbs').value=i.AirXAbs||'';
       $('AirCount').value=i.AirCount||'1';
+      $('AirType').value=i.AirType||'1';
       $('AirPitch').value=i.AirPitch||'';
       $('PerfShape').value=normalizePerfShape(i.PerfShape||'U');
       $('PerfSide').value=normalizePerfSide(i.PerfSide||'prava');
@@ -1202,6 +1282,7 @@
       state.measureMode = i.measureMode || 'off';
       updateNavinTlac();
       updateMotivDisplay();
+      updateNotchShiftUiState();
     }
     state.measures = Array.isArray(data.measures)? data.measures : [];
 
@@ -1468,6 +1549,7 @@ ${svgText}
   prefillFromFirm();
   updatePorCisloDisplay();
   updateMotivDisplay();
+  updateNotchShiftUiState();
   let epsSource = '';
   try { epsSource = localStorage.getItem('prefill_source') || ''; } catch (_) {}
   if (epsSource === 'eps' && window.applyEpsPayload) {

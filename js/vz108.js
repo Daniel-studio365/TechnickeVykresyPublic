@@ -128,6 +128,25 @@ function create(tag, attrs={}, parent=svgRoot){
   parent.appendChild(el);
   return el;
 }
+function keepDimTextReadable(parent){
+  if(!parent) return;
+  parent.querySelectorAll('.dim-label').forEach((el)=>{
+    const bb = el.getBBox();
+    const cx = bb.x + bb.width/2;
+    const cy = bb.y + bb.height/2;
+    const base = el.getAttribute('transform') || '';
+    if (!/\brotate\(/.test(base)) {
+      el.setAttribute('transform', `${base} rotate(180 ${cx} ${cy})`.trim());
+    }
+  });
+  parent.querySelectorAll('.dim-label-v').forEach((el)=>{
+    const bb = el.getBBox();
+    const cx = bb.x + bb.width/2;
+    const cy = bb.y + bb.height/2;
+    const base = (el.getAttribute('transform') || '').replace(/\s*rotate\([^)]+\)\s*/g,' ').trim();
+    el.setAttribute('transform', `${base} rotate(-90 ${cx} ${cy})`.trim());
+  });
+}
 function clearSvg(){ while(svgRoot.firstChild) svgRoot.removeChild(svgRoot.firstChild); }
 
 function ensureDefs(){
@@ -165,6 +184,24 @@ const TABLE_EDGE = [
 
 function uniqueSorted(list){
   return [...new Set(list)].filter(v=>Number.isFinite(v)).sort((a,b)=>a-b);
+}
+function clearAutoFixMarks(){
+  document.querySelectorAll('#controls .autofixed').forEach((el)=> el.classList.remove('autofixed'));
+}
+function markAutoFixed(el){
+  if(!el) return;
+  el.classList.add('autofixed');
+  const clear = ()=> el.classList.remove('autofixed');
+  el.addEventListener('input', clear, {once:true});
+  el.addEventListener('change', clear, {once:true});
+}
+function getSegmentSnapshot(){
+  const snap = {};
+  state.segMeta.forEach(seg=>{
+    if(!seg || !seg.input) return;
+    snap[seg.key] = seg.input.value;
+  });
+  return snap;
 }
 const PS_OLD = uniqueSorted(TABLE_CENTER.map(r=>r.W));
 const PS_NEW = uniqueSorted(TABLE_EDGE.map(r=>r.W));
@@ -300,7 +337,7 @@ function removeExtraSegment(list){
   draw();
 }
 
-function buildWidthSegments(){
+function buildWidthSegments(preserved={}){
   state.segments.length = 0;
   state.segMeta.length = 0;
   const container = $('segments');
@@ -335,19 +372,19 @@ function buildWidthSegments(){
     createSegField({key:'ZLEP2',label:'ZLEP',calc:true,default:10}, container);
     createSegField({key:'PRID',label:'PRID',calc:true,default:0}, container);
   }
-  updatePSOptions();
-  updateBZOptions();
+  updatePSOptions(preserved.PS);
+  updateBZOptions(preserved.BZP);
   updateComputedWidth();
   updateWidthTotal();
   updateCAndHeight();
 }
 
-function updatePSOptions(){
+function updatePSOptions(preferredValue){
   const psSeg = state.segMeta.find(s=>s.key==='PS');
   if(!psSeg) return;
   const select = psSeg.input;
   if(!select || select.tagName !== 'SELECT') return;
-  const current = num(select, NaN);
+  const current = Number.isFinite(Number(preferredValue)) ? Number(preferredValue) : num(select, NaN);
   const opts = getActivePSOptions();
   select.innerHTML = '';
   opts.forEach(v=>{
@@ -358,11 +395,14 @@ function updatePSOptions(){
   });
   if(opts.length){
     if(Number.isFinite(current) && opts.includes(current)) select.value = String(current);
-    else select.value = String(opts[0]);
+    else {
+      select.value = String(opts[0]);
+      if(Number.isFinite(current)) markAutoFixed(select);
+    }
   }
 }
 
-function updateBZOptions(){
+function updateBZOptions(preferredValue){
   const table = getActiveTable();
   const psVal = num(state.segMeta.find(s=>s.key==='PS')?.input, 0);
   const bzSeg = state.segMeta.find(s=>s.key==='BZP');
@@ -370,6 +410,7 @@ function updateBZOptions(){
   const allowed = uniqueSorted(table.filter(r=>r.W === psVal).map(r=>r.BZ));
   const select = bzSeg.input;
   if(!select || select.tagName !== 'SELECT') return;
+  const current = Number.isFinite(Number(preferredValue)) ? Number(preferredValue) : num(select, NaN);
   select.innerHTML = '';
   allowed.forEach(v=>{
     const opt = document.createElement('option');
@@ -378,8 +419,11 @@ function updateBZOptions(){
     select.appendChild(opt);
   });
   if(allowed.length){
-    if(!allowed.includes(num(select, NaN))){
+    if(Number.isFinite(current) && allowed.includes(current)){
+      select.value = String(current);
+    }else{
       select.value = String(allowed[0]);
+      if(Number.isFinite(current)) markAutoFixed(select);
     }
   }
 }
@@ -652,6 +696,8 @@ function draw(){
     navinLabelText = `Finalny navin: ${rollCodeDraw}${rollVariantDraw}`;
   }
   const mirrorABC = (navinMode==='montaz' && state.printSide==='bottom') || (navinMode==='tlac' && state.printSide==='bottom');
+  const mirrorDims = (navinMode==='tlac' && state.printSide==='bottom');
+  const dimPosHEff = mirrorDims ? (dimPosH === 'left' ? 'right' : 'left') : dimPosH;
   state.rollType = (['1','2','5','6'].includes(state.rollCode) ? 'std' : 'alt');
   state.bgOpacity = clamp(num($('bgOpacity'), 0.6),0,1);
   $('bgOpacityVal').textContent = `${Math.round(state.bgOpacity*100)} %`;
@@ -758,19 +804,21 @@ function draw(){
   // koty sirky
   const segOffset = Number.isFinite(baseDimOffset) ? baseDimOffset : 25;
   const segY = dimPosEff === 'top' ? yTop - segOffset : yBottom + segOffset;
+  const partsEff = mirrorDims ? [...parts].reverse() : parts;
+  const partLabelsEff = mirrorDims ? [...partLabels].reverse() : partLabels;
   let cursor = offsetX;
-  parts.forEach((len, idx)=>{
+  partsEff.forEach((len, idx)=>{
     const next = cursor + len;
-    const meta = partLabels[idx];
+    const meta = partLabelsEff[idx];
     const labelText = meta ? meta.value : formatVal(len);
     const dimGroup = create('g',{}, contentGroup);
     hDim(cursor, segY, next, len, 10, '#0f172a', 0.9, null, true, dimGroup, labelText);
     if(meta?.label){
       const txtY = segY - Math.max(18, state.fontPx * 1.6);
-      const t = create('text',{x:(cursor+next)/2,y:txtY,'text-anchor':'middle','dominant-baseline':'middle','font-size':state.fontPx,fill:'#0f172a'},dimGroup);
+      const t = create('text',{x:(cursor+next)/2,y:txtY,'text-anchor':'middle','dominant-baseline':'middle','font-size':state.fontPx,fill:'#0f172a','class':'dim-label'},dimGroup);
       t.textContent = meta.label;
     }
-    if (idx < parts.length - 1){
+    if (idx < partsEff.length - 1){
       create('line',{x1:next,y1:offsetY,x2:next,y2:offsetY+W,stroke:'#475569','stroke-width':state.strokeWidth,'stroke-dasharray':lineStyle || ''}, contentGroup);
     }
     cursor = next;
@@ -779,7 +827,7 @@ function draw(){
 
   // koty vysky
   const segOffsetH = dimOffsetH || Math.max(50, Math.round(state.fontPx*3.2));
-  const segX = dimPosH === 'left' ? offsetX - segOffsetH : offsetX + L + segOffsetH;
+  const segX = dimPosHEff === 'left' ? offsetX - segOffsetH : offsetX + L + segOffsetH;
   cursor = offsetY;
   partsH.forEach((len, idx)=>{
     const next = cursor + len;
@@ -788,9 +836,9 @@ function draw(){
     const dimGroup = create('g',{}, contentGroup);
     vDim(segX, cursor, next, len, 10, '#0f172a', 0.9, null, true, dimGroup, labelText);
     if(meta?.label && meta.label !== 'DLZKA'){
-      const sideX = segX + (dimPosH === 'left' ? 18 : -18);
+      const sideX = segX + (dimPosHEff === 'left' ? 18 : -18);
       const midY = (cursor + next) / 2;
-      const g = create('g',{transform:`translate(${sideX} ${midY}) rotate(-90)`}, dimGroup);
+      const g = create('g',{'class':'dim-label-v',transform:`translate(${sideX} ${midY}) rotate(-90)`}, dimGroup);
       const t = create('text',{'text-anchor':'middle','dominant-baseline':'middle','font-size':state.fontPx,fill:'#0f172a'},g);
       t.textContent = meta.label;
     }
@@ -799,7 +847,7 @@ function draw(){
     }
     cursor = next;
   });
-  vDim(segX + (dimPosH==='left' ? -20 : 20), offsetY, offsetY+W, W, 10, '#0f172a', 1.1, null, true, contentGroup);
+  vDim(segX + (dimPosHEff==='left' ? -20 : 20), offsetY, offsetY+W, W, 10, '#0f172a', 1.1, null, true, contentGroup);
 
   let rollBounds = null;
   // navin (preberene z predchadzajucej verzie)
@@ -1041,6 +1089,7 @@ function draw(){
     const cx = offsetX + L / 2;
     const cy = offsetY + W / 2;
     contentGroup.setAttribute('transform', `rotate(180 ${cx} ${cy})`);
+    keepDimTextReadable(contentGroup);
   }
 
   // viewBox to content (bez mriezky) pre zachovanie mierky
@@ -1070,8 +1119,9 @@ function draw(){
   state.bounds = {width,height};
 }
 
-function reset(){
-  $('W').value=0; $('H').value=0; $('L').value='200'; $('C').value='0'; $('C').dataset.manual='0';
+function reset(clearPrefill = true){
+    document.querySelectorAll('#controls .epsfilled').forEach((el)=> el.classList.remove('epsfilled'));
+    $('W').value=0; $('H').value=0; $('L').value='200'; $('C').value='0'; $('C').dataset.manual='0';
   $('seamMode').value='center';
   if($('machineMode')) $('machineMode').value='old';
   state.machineMode='old';
@@ -1088,22 +1138,29 @@ function reset(){
   if ($('refPartA')) $('refPartA').value = '';
   if ($('refPartB')) $('refPartB').value = '';
   if ($('porCislo')) $('porCislo').value = '';
-  if ($('orderNo')) $('orderNo').value = '';
-  if ($('orderNote')) $('orderNote').value = '';
-  $('exportOrient').value='portrait';
+    if ($('orderNo')) $('orderNo').value = '';
+    if ($('orderNote')) $('orderNote').value = '';
+    $('exportOrient').value='portrait';
   $('bgFile').value=''; state.bgImageData=null; $('bgWidth').value=''; $('bgHeight').value=''; state.bgWidth=null; state.bgHeight=null; state.bgOpacity=0.6; $('bgOpacity').value=0.6; $('bgOpacityVal').textContent='60 %'; state.bgRot=0; state.bgFlip=false; state.bgOffsetX=0; state.bgOffsetY=0;
   $('measureMode').value='off'; state.measureMode='off'; state.measurePick=null; state.measures=[]; state.measurePreview=null;
   state.calibActive=false; state.calibPoints=[]; $('bg-calib-cancel').style.display='none'; $('bg-calib').style.display='inline-block'; svgRoot.style.cursor='';
   if($('segments')) $('segments').innerHTML='';
   if($('segments-extra')) $('segments-extra').innerHTML='';
   if($('segmentsH-extra')) $('segmentsH-extra').innerHTML='';
-  state.segments.length=0; state.segMeta.length=0;
-  state.extraSegments.length=0; state.extraSegmentsH.length=0;
-  buildWidthSegments();
-  updateCAndHeight();
-  draw();
-  if (!historyState.isApplying) pushUndoSnapshot(true);
-}
+    state.segments.length=0; state.segMeta.length=0;
+    state.extraSegments.length=0; state.extraSegmentsH.length=0;
+    if (clearPrefill) {
+      try{
+        localStorage.removeItem('selectedFirm');
+        localStorage.removeItem('prefill_source');
+        localStorage.removeItem('eps_payload');
+      }catch(_){}
+    }
+    buildWidthSegments();
+    updateCAndHeight();
+    draw();
+    if (!historyState.isApplying) pushUndoSnapshot(true);
+  }
 
 function exportPDF(){
   draw();
@@ -1114,7 +1171,8 @@ function exportPDF(){
   clone.querySelectorAll('.header-ui, .footer-ui').forEach(n=> n.remove());
   const width = bb.width || state.bounds.width || 800;
   const height = bb.height || state.bounds.height || 800;
-  const baseName = (state.orderNo || 'vz108').trim();
+  const refName = [state.refPartA, state.refPartB].map(v => (v || '').trim()).filter(Boolean).join('_');
+  const baseName = (refName || state.orderNo || 'vz108').trim();
 
   // remove zoom sizing/styles so PDF is 1:1
   clone.removeAttribute('style');
@@ -1207,7 +1265,8 @@ function exportPNG(){
   const drawUrl = URL.createObjectURL(drawBlob);
   const drawImg = new Image();
 
-  const baseName = (state.orderNo || 'vz108').trim();
+  const refName = [state.refPartA, state.refPartB].map(v => (v || '').trim()).filter(Boolean).join('_');
+  const baseName = (refName || state.orderNo || 'vz108').trim();
   let fullReady = false;
   let drawReady = false;
   const tryRender = ()=>{
@@ -1325,7 +1384,8 @@ function saveJSON(){
   const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const baseName = (data.orderNo || 'vz108').trim();
+  const refName = [data.refPartA, data.refPartB].map(v => (v || '').trim()).filter(Boolean).join('_');
+  const baseName = (refName || data.orderNo || 'vz108').trim();
   a.href = url; a.download = `${baseName}.json`; a.click();
   URL.revokeObjectURL(url);
 }
@@ -1553,17 +1613,26 @@ document.addEventListener('input', (e)=>{
 document.addEventListener('change', (e)=>{
   if (isUndoTrackable(e.target)) scheduleUndoSnapshot();
 }, true);
-$('btn-reset')?.addEventListener('click', reset);
+$('btn-reset')?.addEventListener('click', ()=> reset(true));
 $('btn-export')?.addEventListener('click', ()=>{ draw(); exportPDF(); });
 $('btn-export-png')?.addEventListener('click', ()=>{ draw(); exportPNG(); });
 $('btn-save')?.addEventListener('click', saveJSON);
 $('btn-load')?.addEventListener('click', ()=> $('loadFile')?.click());
 $('loadFile')?.addEventListener('change', (e)=> handleLoadFile(e.target.files?.[0]));
-$('seamMode')?.addEventListener('change', ()=>{ buildWidthSegments(); updateCAndHeight(); draw(); pushUndoSnapshot(true); });
+$('seamMode')?.addEventListener('change', ()=>{
+  clearAutoFixMarks();
+  const preserved = getSegmentSnapshot();
+  buildWidthSegments(preserved);
+  updateCAndHeight();
+  draw();
+  pushUndoSnapshot(true);
+});
 $('machineMode')?.addEventListener('change', ()=>{
+  clearAutoFixMarks();
   state.machineMode = getMachineMode();
-  updatePSOptions();
-  updateBZOptions();
+  const preserved = getSegmentSnapshot();
+  updatePSOptions(preserved.PS);
+  updateBZOptions(preserved.BZP);
   updateComputedWidth();
   updateWidthTotal();
   updateCAndHeight();
@@ -1673,8 +1742,18 @@ if($('W')){
   $('W').classList.add('calc');
   $('W').tabIndex = -1;
 }
-reset();
-if (window.applyEpsPayload) { window.applyEpsPayload('vz108'); }
+reset(false);
+let epsSource = '';
+try { epsSource = localStorage.getItem('prefill_source') || ''; } catch (_) {}
+if (epsSource === 'eps' && window.applyEpsPayload) {
+  const applied = window.applyEpsPayload('vz108');
+  if (applied) {
+    try {
+      localStorage.removeItem('eps_payload');
+      localStorage.removeItem('prefill_source');
+    } catch (_) {}
+  }
+}
 draw();
 pushUndoSnapshot(true);
 updateUndoRedoButtons();

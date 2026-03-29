@@ -51,12 +51,12 @@ window.EPS_FIELDS = [
   },
   {
     "group": "Perforation",
-    "key": "perf_enabled",
-    "desc": "Perforacia (ano/nie)"
+    "key": "perf_bottom_enabled",
+    "desc": "Perforacia dna (ano/nie)"
   },
   {
-    "group": "Perforation",
-    "key": "perf_finger_hole",
+    "group": "Easy open",
+    "key": "easy_open_finger_hole",
     "desc": "Otvor na prst"
   },
   {
@@ -85,39 +85,44 @@ window.EPS_FIELDS = [
     "desc": "Dlzka zaseku"
   },
   {
-    "group": "Perforation",
-    "key": "perf_offset_P",
-    "desc": "Vzdialenost perforacie od spodnej zalozky"
+    "group": "Easy open",
+    "key": "easy_open_bottom_offset",
+    "desc": "Vzdialenost easy open od spodnej zalozky"
   },
   {
-    "group": "Perforation",
-    "key": "perf_half_len",
+    "group": "Easy open",
+    "key": "easy_open_half_len",
     "desc": "Dlzka vodorovnej casti"
   },
   {
     "group": "Perforation",
-    "key": "perf_offset",
-    "desc": "Vzdialenost od stredu"
+    "key": "perf_bottom_offset",
+    "desc": "Vzdialenost perforacie dna od stredu"
+  },
+  {
+    "group": "Easy open",
+    "key": "easy_open_offset",
+    "desc": "Vzdialenost easy open od stredu"
+  },
+  {
+    "group": "Easy open",
+    "key": "easy_open_shape",
+    "desc": "Tvar easy open"
+  },
+  {
+    "group": "Easy open",
+    "key": "easy_open_side",
+    "desc": "Strana easy open (P/L/prazdne)"
+  },
+  {
+    "group": "Easy open",
+    "key": "easy_open_height",
+    "desc": "Vyska easy open"
   },
   {
     "group": "Perforation",
-    "key": "perf_shape",
-    "desc": "Tvar perforacie"
-  },
-  {
-    "group": "Perforation",
-    "key": "easy_open",
-    "desc": "Easy open (P/L/prazdne)"
-  },
-  {
-    "group": "Perforation",
-    "key": "perf_side",
-    "desc": "Strana perforacie"
-  },
-  {
-    "group": "Perforation",
-    "key": "perf_height",
-    "desc": "Vyska perforacie"
+    "key": "perf_bottom_side",
+    "desc": "Strana perforacie dna"
   },
   {
     "group": "Dimensions",

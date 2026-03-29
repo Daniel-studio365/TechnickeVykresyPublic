@@ -1,0 +1,41 @@
+[
+  {
+    "firmName": "Epicom",
+    "vz": "vz34",
+    "typ": "001",
+    "notes": [
+      "Plastove spony 140 ks/ blok"
+    ],
+    "techNotes": [
+      "Easy open"
+    ],
+    "dimensions": {
+      "W": null,
+      "L": null,
+      "G": null,
+      "K": null,
+      "notchLen": 6,
+      "Cpitch": null,
+      "AxisInK": null
+    },
+    "clip": {
+      "count": null,
+      "offsetX": null,
+      "offsetY": null,
+      "packageCount": null,
+      "type": null
+    },
+    "air": {
+      "count": 6,
+      "diameter": 3,
+      "offsetFromEdge": 30,
+      "pitch": null
+    },
+    "perforation": {
+      "enabled": "",
+      "side": "",
+      "offset": null
+    },
+    "clipImages": []
+  }
+]

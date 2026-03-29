@@ -78,6 +78,11 @@
         </div>
 
         <div class="field-grid">
+          <label class="check-row"><input id="newNotchShiftEnabled" type="checkbox" /> <span>Zaseky posunute</span></label>
+          <label><span>Posun zasekov</span><input id="newNotchShift" type="number" step="0.1" /></label>
+        </div>
+
+        <div class="field-grid">
           <label><span>Vzdialenost zavesnych otvorov</span><input id="newFirmCpitch" type="number" step="0.1" /></label>
           <label><span>Umiestnenie stredu otvorov (z lavej strany chlopne)</span><input id="newFirmAxisInK" type="number" step="0.1" /></label>
         </div>
@@ -98,14 +103,34 @@
               <option value="prava">prava</option>
             </select>
           </label>
+          <label>
+            <span>Tvar perforacie</span>
+            <select id="newPerfShape">
+              <option value="">-</option>
+              <option value="rovna">rovna</option>
+              <option value="vodorovna">vodorovna</option>
+              <option value="U">U</option>
+              <option value="zahnut">zahnut</option>
+            </select>
+          </label>
           <label><span>Vzdialenost od stredu</span><input id="newPerfOffset" type="number" step="0.1" /></label>
         </div>
 
         <div class="field-grid">
           <label><span>Pocet vzduchovych otvorov</span><input id="newAirCount" type="number" step="1" /></label>
-          <label><span>Priemer otvorov</span><input id="newAirDiameter" type="number" step="0.1" /></label>
+          <label>
+            <span>Typ vzduchovych otvorov</span>
+            <select id="newAirDiameter">
+              <option value="">-</option>
+              <option value="1">1 - pomlcka</option>
+              <option value="2">2 - krizik v kruhu</option>
+              <option value="3">3 - X</option>
+            </select>
+          </label>
           <label><span>Vzduch. otvory od okraja</span><input id="newAirOffsetEdge" type="number" step="0.1" /></label>
+          <label><span>Vzduchovy otvor od zalozky</span><input id="newAirFromBottom" type="number" step="0.1" /></label>
           <label><span>Roztec vzduch. otvorov</span><input id="newAirPitch" type="number" step="0.1" /></label>
+          <label class="check-row"><input id="newAirOnlyInG" type="checkbox" /> <span>Vzduchove otvory len v zalozke</span></label>
         </div>
 
         <div class="field-grid">
