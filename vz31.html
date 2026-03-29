@@ -289,7 +289,14 @@
   <div id="log"></div>
   <script src="js/eps_map.js"></script>
   <script src="js/eps_import.js"></script>
+  <script src="help/help_vz31.js"></script>
+  <script src="js/help_tooltips.js"></script>
   <script src="js/vz31.js"></script>
+  <script>
+    if (window.initHelpTooltips && window.HELP_VZ31) {
+      window.initHelpTooltips(window.HELP_VZ31);
+    }
+  </script>
 </body>
 </html>
 

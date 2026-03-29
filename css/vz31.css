@@ -19,6 +19,23 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sa
 #controls button.secondary{background:#334155;}
 #controls .row{display:flex;gap:8px;align-items:center;}
 #controls .sep{height:1px;background:var(--border);margin:10px 0;}
+#controls .has-help{position:relative;}
+#controls .help-anchor{display:inline-flex;position:relative;}
+#controls .help-corner{
+  position:absolute;top:2px;right:2px;width:0;height:0;padding:0;margin:0;
+  border-left:10px solid transparent;border-top:10px solid #f59e0b;background:transparent;
+  border-right:0;border-bottom:0;border-radius:0;cursor:pointer;z-index:4;
+}
+#controls .help-corner:hover{border-top-color:#d97706;}
+#controls .help-bubble{
+  position:absolute;top:14px;right:0;min-width:220px;max-width:280px;
+  background:#fff7ed;border:1px solid #f59e0b;color:#7c2d12;
+  border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.35;
+  box-shadow:0 10px 25px rgba(15,23,42,.18);display:none;z-index:5;white-space:normal;
+}
+#controls .help-bubble.align-left{left:0;right:auto;}
+#controls .help-bubble.align-right{right:0;left:auto;}
+#controls .help-bubble.open{display:block;}
 #warnC,#warnAxis{color:#dc2626;font-size:13px;display:none;}
 #workarea{display:grid;grid-template-rows:auto 1fr auto;min-height:0;gap:12px;}
 #top-panels{display:grid;grid-template-columns:1fr 0.7fr;gap:8px;}
