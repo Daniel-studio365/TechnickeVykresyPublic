@@ -52,6 +52,7 @@
       const t = String(template || '').toLowerCase().trim();
       if (t === 'folia') { window.location.href = toUrl('folia.html'); return; }
       if (t === 'vz22') { window.location.href = toUrl('vz22.html'); return; }
+      if (t === 'vz22_test') { window.location.href = toUrl('vz22_test.html'); return; }
       if (t === 'vz31') { window.location.href = toUrl('vz31.html'); return; }
       if (t === 'vz34') { window.location.href = toUrl('vz34.html'); return; }
       if (t === 'vz108') { window.location.href = toUrl('vz108.html'); return; }
@@ -174,6 +175,8 @@
         window.location.href = toUrl('vz34.html');
       } else if (vz === 'vz22') {
         window.location.href = toUrl('vz22.html');
+      } else if (vz === 'vz22_test') {
+        window.location.href = toUrl('vz22_test.html');
       } else if (vz === 'vz108') {
         window.location.href = toUrl('vz108.html');
       } else {

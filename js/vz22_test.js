@@ -2,6 +2,7 @@
 (function(){
   const $ = (id)=>document.getElementById(id);
   const svgRoot = $('svgRoot');
+  let currentParent = svgRoot;
   const refPartA = $('refPartA');
   const refPartB = $('refPartB');
   const refCodeText = $('refCodeText');
@@ -52,11 +53,16 @@
   const exportOrientEl = $('exportOrient');
   const exportDPIEl = $('exportDPI');
   const printBtn = $('btn-print');
-  const bottomImgInput = $('bottomImgInput');
-  const bottomImgPreview = $('bottomImgPreview');
-  const clipPresetEl = $('clipPreset');
   const bottomText1 = $('bottomText1');
   const bottomText2 = $('bottomText2');
+  const bottomText1Size = $('bottomText1Size');
+  const bottomText1Bold = $('bottomText1Bold');
+  const bottomText1Italic = $('bottomText1Italic');
+  const bottomText1Color = $('bottomText1Color');
+  const bottomText2Size = $('bottomText2Size');
+  const bottomText2Bold = $('bottomText2Bold');
+  const bottomText2Italic = $('bottomText2Italic');
+  const bottomText2Color = $('bottomText2Color');
   const saveBtn = $('btn-save');
   const loadBtn = $('btn-load');
   const undoBtn = $('btn-undo');
@@ -68,13 +74,13 @@
   const leftSideTitleEl = $('leftSideTitle');
   const rightSideTitleEl = $('rightSideTitle');
 
-  const prefillableIds = [
-    'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirInGOnly',
-    'PerfEnabled','PerfOffset','PerfSide','printSide',
-    'finalNavinNumber','finalNavinLetter','printOps',
-    'porCislo','motivInput','bottomText1','bottomText2','refPartA','refPartB',
-    'bgWidth','bgHeight'
-  ];
+    const prefillableIds = [
+      'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirType','AirInGOnly',
+      'PerfEnabled','PerfOffset','PerfSide','EasyShape','EasySide','EasyOffset','EasyHalfLen','EasyFingerHole','printSide','SideClipView',
+      'finalNavinNumber','finalNavinLetter','printOps',
+      'porCislo','motivInput','bottomText1','bottomText2','refPartA','refPartB',
+      'bgWidth','bgHeight'
+    ];
   const prefillableEls = prefillableIds.map(id=>$(id)).filter(Boolean);
 
   const state = {
@@ -98,6 +104,7 @@
 
   const bgState = {
     data:null,
+    image:null,
     natural:{w:0,h:0},
     opacity:0.6,
     offset:{x:0,y:0},
@@ -106,17 +113,27 @@
     calib:{active:false, points:[]}
   };
 
-  const inputs = [
-    'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirInGOnly',
-    'PerfEnabled','PerfOffset','PerfSide','fontPx','toggle-grid','toggle-notches',
-    'bgWidth','bgHeight','finalNavinNumber','finalNavinLetter','printOps'
-  ].map(id => $(id));
+    const inputs = [
+      'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirType','AirInGOnly',
+      'PerfEnabled','PerfOffset','PerfSide','EasyShape','EasySide','EasyOffset','EasyHalfLen','EasyFingerHole','fontPx','toggle-grid','toggle-notches','toggle-notch-shift','NotchShift','SideClipView',
+      'bgWidth','bgHeight','finalNavinNumber','finalNavinLetter','printOps'
+    ].map(id => $(id));
 
   const airXInput = $('AirXAbs');
   if (airXInput){
     airXInput.addEventListener('input', ()=>{ airXInput.dataset.userSet = '1'; });
   }
-  if (printSide) printSide.addEventListener('change', updateNavinTlac);
+  function updateNotchShiftUiState(){
+    const shiftEnabled = !!$('toggle-notch-shift')?.checked;
+    const shiftInput = $('NotchShift');
+    const mostikInput = $('Mostik');
+    if (shiftInput) shiftInput.disabled = !shiftEnabled;
+    if (mostikInput) {
+      mostikInput.disabled = shiftEnabled;
+      if (shiftEnabled) mostikInput.value = '';
+    }
+  }
+  if (printSide) printSide.addEventListener('change', ()=>{ updateNavinTlac(); draw(); });
   if (finalNavinNumber) finalNavinNumber.addEventListener('change', updateNavinTlac);
   if (finalNavinLetter) finalNavinLetter.addEventListener('change', updateNavinTlac);
   if (printOps) printOps.addEventListener('change', updateNavinTlac);
@@ -141,26 +158,18 @@
     if (leftSideTitleEl) leftSideTitleEl.textContent = t.left;
     if (rightSideTitleEl) rightSideTitleEl.textContent = t.right;
   }
-  function applyNoteModeRules(){
-    const mode = (noteModeEl?.value || 'hygiena').toLowerCase();
-    if (!perfEnabledEl) return;
-    if (mode === 'chlieb'){
-      perfEnabledEl.value = 'nie';
-      perfEnabledEl.disabled = true;
-    } else {
-      perfEnabledEl.disabled = false;
-    }
-  }
   if (motivInput) motivInput.addEventListener('input', updateMotivDisplay);
-  if (noteModeEl) noteModeEl.addEventListener('change', ()=>{ updateSideTitles(); applyNoteModeRules(); updatePerfUiState(); draw(); });
+  if (noteModeEl) noteModeEl.addEventListener('change', updateSideTitles);
   const airEnabledEl = $('AirEnabled');
   const airEdgeEl = $('AirEdge');
   const airXAbsEl = $('AirXAbs');
+  const airTypeEl = $('AirType');
   const airInGOnlyEl = $('AirInGOnly');
   function updateAirUiState(){
     const enabled = ((airEnabledEl?.value || '').toLowerCase() === 'ano');
     if (airEdgeEl) airEdgeEl.disabled = !enabled;
     if (airXAbsEl) airXAbsEl.disabled = !enabled;
+    if (airTypeEl) airTypeEl.disabled = !enabled;
     if (airInGOnlyEl) airInGOnlyEl.disabled = !enabled;
   }
   if (airEnabledEl) airEnabledEl.addEventListener('change', ()=>{ updateAirUiState(); draw(); });
@@ -168,14 +177,24 @@
   const perfSideEl = $('PerfSide');
   const perfOffsetEl = $('PerfOffset');
   function updatePerfUiState(){
-    const mode = (noteModeEl?.value || 'hygiena').toLowerCase();
-    const forcedOff = (mode === 'chlieb');
-    const enabled = !forcedOff && ((perfEnabledEl?.value || '').toLowerCase() === 'ano');
-    if (forcedOff && perfEnabledEl) perfEnabledEl.value = 'nie';
+    const enabled = ((perfEnabledEl?.value || '').toLowerCase() === 'ano');
     if (perfSideEl) perfSideEl.disabled = !enabled;
     if (perfOffsetEl) perfOffsetEl.disabled = !enabled;
   }
   if (perfEnabledEl) perfEnabledEl.addEventListener('change', ()=>{ updatePerfUiState(); draw(); });
+  const easyShapeEl = $('EasyShape');
+  const easySideEl = $('EasySide');
+  const easyOffsetEl = $('EasyOffset');
+  const easyHalfLenEl = $('EasyHalfLen');
+  const easyFingerHoleEl = $('EasyFingerHole');
+  function updateEasyUiState(){
+    const enabled = normalizeEasyShape(easyShapeEl?.value) !== 'none';
+    if (easySideEl) easySideEl.disabled = !enabled;
+    if (easyOffsetEl) easyOffsetEl.disabled = !enabled;
+    if (easyHalfLenEl) easyHalfLenEl.disabled = !enabled;
+    if (easyFingerHoleEl) easyFingerHoleEl.disabled = !enabled;
+  }
+  if (easyShapeEl) easyShapeEl.addEventListener('change', ()=>{ updateEasyUiState(); draw(); });
   if (btnOpenFirmManager) {
     btnOpenFirmManager.addEventListener('click', () => {
       try { localStorage.setItem('index2_vz', 'vz22'); } catch (_) {}
@@ -264,6 +283,8 @@
     updateNavinTlac();
     updateAirUiState();
     updatePerfUiState();
+    updateEasyUiState();
+    updateNotchShiftUiState();
     draw();
   }
   function doUndo(){
@@ -345,15 +366,9 @@
     if(!src) return null;
     if(src.startsWith('data:')) return src;
     const lower = src.toLowerCase();
-    if(lower.includes('zhora.png')) return 'img/zhora.png';
-    if(lower.includes('zdola.png')) return 'img/zdola.png';
+    if(lower.includes('zhora.png')) return INLINE_ASSETS.zhora;
+    if(lower.includes('zdola.png')) return INLINE_ASSETS.zdola;
     return src;
-  }
-  function inlineSvgAssetRefs(svgText){
-    if(!svgText) return svgText;
-    return svgText
-      .replace(/(["'])[^"']*zhora\.png\1/ig, m => `${m[0]}${INLINE_ASSETS.zhora}${m[0]}`)
-      .replace(/(["'])[^"']*zdola\.png\1/ig, m => `${m[0]}${INLINE_ASSETS.zdola}${m[0]}`);
   }
 
   function prefillFromFirm(){
@@ -365,11 +380,12 @@
       const raw = localStorage.getItem('selectedFirm');
       if (raw) data = JSON.parse(raw);
     } catch(_) { /* ignore */ }
-    if (!data || data.vz !== 'vz22') return;
+    if (!data || (data.vz !== 'vz22' && data.vz !== 'vz22_test')) return;
     const dims = data.dimensions || {};
     const perf = data.perforation || {};
     const clip = data.clip || {};
-    const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', Cpitch:'Cpitch', AxisInK:'AxisInK', notchLen:'NotchLen', AirEdge:'AirEdge', AirXAbs:'AirXAbs', AirInGOnly:'AirInGOnly', PerfOffset:'PerfOffset', PerfSide:'PerfSide' };
+    const air = data.air || {};
+    const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', Cpitch:'Cpitch', AxisInK:'AxisInK', notchLen:'NotchLen', AirEdge:'AirEdge', AirXAbs:'AirXAbs', AirType:'AirType', AirInGOnly:'AirInGOnly', PerfOffset:'PerfOffset', PerfSide:'PerfSide' };
     const perfEnabledEl = $('PerfEnabled');
     if (perfEnabledEl) perfEnabledEl.classList.remove('prefilled');
     const perfEnabledVal = (perf.enabled || '').toLowerCase();
@@ -387,12 +403,18 @@
       if (key === 'notchLen') val = dims.notchLen;
       else if (key === 'Cpitch') val = dims.Cpitch;
       else if (key === 'AxisInK') val = (dims.AxisInK != null) ? dims.AxisInK : (dims.K != null ? dims.K/2 : null);
+      else if (key === 'AirEdge') val = air.offsetFromEdge;
+      else if (key === 'AirXAbs') val = air.fromBottom ?? air.offsetFromBottom ?? dims.AirXAbs;
+      else if (key === 'AirType') val = air.diameter;
+      else if (key === 'AirInGOnly') val = !!(air.onlyInG ?? air.inGOnly);
       else if (key === 'PerfSide') val = perf.side || dims.PerfSide;
       else if (key === 'PerfOffset') val = (perf.offset != null ? perf.offset : dims.PerfOffset);
       else if (key === 'bagWidth') val = dims.W;
       else val = dims[key];
       if (el && val != null && val !== '') {
-        el.value = (el.tagName === 'SELECT') ? String(val) : val;
+        if (el.type === 'checkbox') el.checked = !!val;
+        else el.value = (el.tagName === 'SELECT') ? String(val) : val;
+        if (id === 'AirXAbs' && airXInput) airXInput.dataset.userSet = '1';
         el.classList.add('prefilled');
       }
     });
@@ -424,42 +446,12 @@
       return p;
     };
     const clipPreset = ((data.clipImages && data.clipImages[0]) || '').toLowerCase();
-    const assetPath = resolveAsset((data.clipImages && data.clipImages[0]) || (Array.isArray(data.assets) && data.assets[0]?.path));
-    if (clipPresetEl) clipPresetEl.value = (clipPreset === 'zhora' || clipPreset === 'zdola') ? clipPreset : (assetPath ? 'file' : 'none');
-    if (assetPath){
-      inlineAsset(assetPath).then(dataUrl=>{
-        setBottomImage(dataUrl || null);
-      });
-    } else {
-      clearBottomImage();
-    }
+    if ($('SideClipView') && (clipPreset === 'zhora' || clipPreset === 'zdola')) $('SideClipView').value = clipPreset;
 
     try {
       localStorage.removeItem('selectedFirm');
       localStorage.removeItem('prefill_source');
     } catch (_) {}
-  }
-
-  function clearBottomImage(){
-    if (!bottomImgPreview) return;
-    bottomImgPreview.src = '';
-    bottomImgPreview.style.display = 'none';
-    bottomImgPreview.style.transform = '';
-  }
-  function setBottomImage(dataUrl){
-    if (!bottomImgPreview) return;
-    if (!dataUrl) { clearBottomImage(); return; }
-    bottomImgPreview.src = dataUrl;
-    bottomImgPreview.style.display = 'block';
-    bottomImgPreview.style.transform = 'rotate(90deg)';
-  }
-  function applyClipPreset(preset, fromUser=false){
-    const p = (preset || 'none').toLowerCase();
-    if (p === 'none') { clearBottomImage(); return; }
-    if (p === 'zhora') { setBottomImage('img/zhora.png'); return; }
-    if (p === 'zdola') { setBottomImage('img/zdola.png'); return; }
-    if (p === 'file' && fromUser) { bottomImgInput?.click(); return; }
-    if (p === 'file') { clearBottomImage(); }
   }
 
   function clearPrefilled(){
@@ -486,10 +478,11 @@
     return res;
   }
 
-  function create(tag, attrs={}, parent=svgRoot){
+  function create(tag, attrs={}, parent){
     const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
     Object.entries(attrs).forEach(([k,v])=> el.setAttribute(k,v));
-    parent.appendChild(el);
+    const target = parent || currentParent;
+    target.appendChild(el);
     return el;
   }
 
@@ -499,18 +492,27 @@
 
   function textWithBg(txt,x,y,opts={}){
     const {color='#0f172a', anchor='middle', baseline='middle'} = opts;
-    const g = create('g');
+    const g = create('g',{class:'text-label'});
     const t = create('text',{x,y,'text-anchor':anchor,'dominant-baseline':baseline,fill:color,'font-size':state.fontPx},g);
     t.textContent = txt;
-    svgRoot.appendChild(g);
     const bb = t.getBBox();
     const pad = 3;
-    const r = create('rect',{
-      x: bb.x - pad, y: bb.y - pad, width: bb.width + 2*pad, height: bb.height + 2*pad,
+    const r = create('rect',{x: bb.x - pad, y: bb.y - pad, width: bb.width + 2*pad, height: bb.height + 2*pad,
       fill: 'white', stroke: 'none', opacity:'0.9'
-    });
+    }, g);
     g.insertBefore(r, t);
     return g;
+  }
+
+  function keepDimTextReadable(parent){
+    if(!parent) return;
+    parent.querySelectorAll('.text-label, .dim-label-v').forEach((el)=>{
+      const bb = el.getBBox();
+      const cx = bb.x + bb.width / 2;
+      const cy = bb.y + bb.height / 2;
+      const base = el.getAttribute('transform') || '';
+      el.setAttribute('transform', `${base} translate(${cx} ${cy}) scale(1 -1) translate(${-cx} ${-cy})`.trim());
+    });
   }
 
   function arrowLeft(x,y,color){ create('path',{d:`M ${x} ${y} l 5 -3 v 6 z`,fill:color}); }
@@ -535,23 +537,160 @@
     create('line',{x1:x-ext,x2:x+ext,y1:y2,y2:y2,stroke:color,'stroke-width':1});
     arrowUp(x,y1,color); arrowDown(x,y2,color);
     const offset = ext + Math.max(4, Math.round(state.fontPx*0.35));
-    const g = create('g',{transform:`translate(${x - offset} ${(y1+y2)/2}) rotate(-90)`});
+    const g = create('g',{transform:`translate(${x - offset} ${(y1+y2)/2}) rotate(-90)`, class:'dim-label-v'});
     const t = create('text',{'text-anchor':'middle','dominant-baseline':'middle','font-size':state.fontPx,fill:color},g);
     const lbl = pickLabel(label, Math.abs(y2 - y1));
     t.textContent = lbl;
     const bb = t.getBBox();
     const pad=3;
-    const r=create('rect',{x:bb.x-pad,y:bb.y-pad,width:bb.width+2*pad,height:bb.height+2*pad,fill:'white',opacity:0.9});
+    const r=create('rect',{x:bb.x-pad,y:bb.y-pad,width:bb.width+2*pad,height:bb.height+2*pad,fill:'white',opacity:0.9}, g);
     g.insertBefore(r,t);
-    svgRoot.appendChild(g);
   }
 
   function roundedRect(x,y,w,h,r){
     create('rect',{x,y,width:w,height:h,rx:r,ry:r,fill:'none',stroke:'#0f172a','stroke-width':1});
   }
-  function cross(cx,cy,size=6){
+  function drawAirMark(cx,cy,type='1',size=3){
+    const t = String(type || '1');
+    if(t === '1'){
+      create('line',{x1:cx-size,x2:cx+size,y1:cy-size,y2:cy+size,stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx-size,x2:cx+size,y1:cy+size,y2:cy-size,stroke:'#0f172a','stroke-width':1});
+      return;
+    }
+    if(t === '2'){
+      create('circle',{cx,cy,r:size*0.95,fill:'none',stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx-size,y1:cy-size,x2:cx,y2:cy,stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx-size,y1:cy+size,x2:cx,y2:cy,stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx,y1:cy,x2:cx+size,y2:cy,stroke:'#0f172a','stroke-width':1});
+      return;
+    }
+    if(t === '3'){
+      create('line',{x1:cx,x2:cx,y1:cy-size,y2:cy+size,stroke:'#0f172a','stroke-width':1});
+      return;
+    }
     create('line',{x1:cx-size,x2:cx+size,y1:cy,y2:cy,stroke:'#0f172a','stroke-width':1});
     create('line',{x1:cx,y1:cy-size,x2:cx,y2:cy+size,stroke:'#0f172a','stroke-width':1});
+  }
+  function drawAirMarkStyled(cx,cy,type='1',size=3,stroke='#0f172a',dash=''){
+    const common = {'stroke-width':1, stroke};
+    if (dash) common['stroke-dasharray'] = dash;
+    const t = String(type || '1');
+    if(t === '1'){
+      create('line',{x1:cx-size,x2:cx+size,y1:cy-size,y2:cy+size,...common});
+      create('line',{x1:cx-size,x2:cx+size,y1:cy+size,y2:cy-size,...common});
+      return;
+    }
+    if(t === '2'){
+      create('circle',{cx,cy,r:size*0.95,fill:'none',...common});
+      create('line',{x1:cx-size,y1:cy-size,x2:cx,y2:cy,...common});
+      create('line',{x1:cx-size,y1:cy+size,x2:cx,y2:cy,...common});
+      create('line',{x1:cx,y1:cy,x2:cx+size,y2:cy,...common});
+      return;
+    }
+    if(t === '3'){
+      create('line',{x1:cx,x2:cx,y1:cy-size,y2:cy+size,...common});
+      return;
+    }
+    create('line',{x1:cx-size,x2:cx+size,y1:cy,y2:cy,...common});
+    create('line',{x1:cx,y1:cy-size,x2:cx,y2:cy+size,...common});
+  }
+  function getRotatedBgCropDataUrl(srcRect){
+    if(!bgState.data || !bgState.image || !bgState.image.complete || !srcRect) return null;
+    const bw = num(bgWidthEl) || state.cachedDims.width;
+    const bh = num(bgHeightEl) || state.cachedDims.height;
+    const x = (state.cachedDims?.offsetX ?? 120) + bgState.offset.x;
+    const y = (state.cachedDims?.offsetY ?? 120) + bgState.offset.y;
+    const cx = x + bw/2;
+    const cy = y + bh/2;
+    const scale = 3;
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = Math.max(1, Math.round(srcRect.width * scale));
+    cropCanvas.height = Math.max(1, Math.round(srcRect.height * scale));
+    const cctx = cropCanvas.getContext('2d');
+    if (!cctx) return null;
+    cctx.scale(scale, scale);
+    cctx.translate(-srcRect.x, -srcRect.y);
+    cctx.save();
+    cctx.globalAlpha = bgState.opacity;
+    cctx.translate(cx, cy);
+    if(bgState.rotation){ cctx.rotate(bgState.rotation * Math.PI / 180); }
+    if(bgState.flip){ cctx.scale(-1, 1); }
+    cctx.translate(-cx, -cy);
+    cctx.drawImage(bgState.image, x, y, bw, bh);
+    cctx.restore();
+
+    const rotated = document.createElement('canvas');
+    rotated.width = cropCanvas.height;
+    rotated.height = cropCanvas.width;
+    const rctx = rotated.getContext('2d');
+    if (!rctx) return null;
+    rctx.translate(rotated.width / 2, rotated.height / 2);
+    rctx.rotate(Math.PI / 2);
+    rctx.drawImage(cropCanvas, -cropCanvas.width / 2, -cropCanvas.height / 2);
+    return rotated.toDataURL('image/png');
+  }
+  function drawSideClipSymbol(centerX, centerY, variant='zhora'){
+    const viewW = 121.9;
+    const viewH = 57.9;
+    const targetH = 20;
+    const scale = targetH / viewH;
+    const drawW = viewW * scale;
+    const drawH = viewH * scale;
+    const left = centerX - drawW / 2;
+    const top = centerY - drawH / 2;
+    const rects = [
+      {x:4.3,y:4.8,w:5.7,h:45.4},
+      {x:101.8,y:4.8,w:5.7,h:45.4},
+      {x:10,y:14,w:56.7,h:26.9},
+      {x:73.4,y:14,w:28.3,h:26.9},
+      {x:10,y:11.2,w:56.7,h:32.6}
+    ];
+    const attrs = {fill:'#000000','fill-opacity':0.15,stroke:'#0f172a','stroke-width':0.5};
+    const group = create('g');
+    group.setAttribute('transform', variant === 'zhora' ? `rotate(180 ${centerX} ${centerY})` : '');
+    rects.forEach(r=>{
+      create('rect',{
+        x:left + r.x * scale,
+        y:top + r.y * scale,
+        width:r.w * scale,
+        height:r.h * scale,
+        ...attrs
+      }, group);
+    });
+    return {left, right:left + drawW, top, bottom:top + drawH};
+  }
+  function normalizeEasyShape(val){
+    const v = (val || '').toString().toLowerCase().trim();
+    if(v.startsWith('r')) return 'rovna';
+    if(v.startsWith('v')) return 'vodorovna';
+    if(v.startsWith('u')) return 'U';
+    if(v.startsWith('z')) return 'zahnut';
+    return 'none';
+  }
+  function normalizeEasySide(val){
+    if(!val) return 'prava';
+    const v = String(val).toLowerCase();
+    if(v === 'l') return 'lava';
+    if(v === 'p') return 'prava';
+    return v === 'lava' ? 'lava' : 'prava';
+  }
+  function getBottomTextStyle(idx){
+    const is1 = idx === 1;
+    return {
+      size: parseInt((is1 ? bottomText1Size : bottomText2Size)?.value || '14', 10) || 14,
+      bold: !!(is1 ? bottomText1Bold : bottomText2Bold)?.checked,
+      italic: !!(is1 ? bottomText1Italic : bottomText2Italic)?.checked,
+      color: (is1 ? bottomText1Color : bottomText2Color)?.value || '#0f172a'
+    };
+  }
+  function applyBottomTextStyle(idx){
+    const ta = idx === 1 ? bottomText1 : bottomText2;
+    if(!ta) return;
+    const style = getBottomTextStyle(idx);
+    ta.style.fontSize = `${style.size}px`;
+    ta.style.fontWeight = style.bold ? '700' : '400';
+    ta.style.fontStyle = style.italic ? 'italic' : 'normal';
+    ta.style.color = style.color;
   }
 
   function draw(){
@@ -563,17 +702,25 @@
     const axisInK = $('AxisInK').value==='' ? null : num($('AxisInK'), K/2);
     const showNotches = $('toggle-notches').checked;
     const notchLen = Math.max(1,num($('NotchLen'),7));
+    const notchShiftEnabled = !!$('toggle-notch-shift')?.checked;
+    const notchShiftRaw = num($('NotchShift'), 0);
     const bagWidth = Math.max(0,num($('BagWidth'), 0));
     const airEnabled = (($('AirEnabled')?.value)||'').toLowerCase()==='ano';
     const airEdge = Math.max(0,num($('AirEdge'),30));
+    const airType = $('AirType')?.value || '1';
     const airInGOnly = !!$('AirInGOnly')?.checked;
     const airXAbsRaw = num($('AirXAbs'), NaN);
     const airCount = 2; // 4 otvory total (2 na kazdej strane)
-    const airPitch = 40; // fixna roztec
-    const perfEnabled = (($('PerfEnabled')?.value)||'').toLowerCase()==='ano';
-    const perfSide = (($('PerfSide')?.value)||'prava').toLowerCase()==='lava'?'lava':'prava';
-    const perfOffset = Math.max(0,num($('PerfOffset'),7));
-    state.fontPx = parseInt($('fontPx').value,10)||14;
+      const airPitch = 40; // fixna roztec
+      const perfEnabled = (($('PerfEnabled')?.value)||'').toLowerCase()==='ano';
+      const perfSide = (($('PerfSide')?.value)||'prava').toLowerCase()==='lava'?'lava':'prava';
+      const perfOffset = Math.max(0,num($('PerfOffset'),7));
+      const easyShape = normalizeEasyShape($('EasyShape')?.value);
+      const easySide = normalizeEasySide($('EasySide')?.value);
+      const easyOffset = Math.max(0,num($('EasyOffset'),70));
+      const easyHalfLen = Math.max(0,num($('EasyHalfLen'),250));
+      const easyFingerHole = $('EasyFingerHole')?.value || 'nie';
+      state.fontPx = parseInt($('fontPx').value,10)||14;
     $('fontPxVal').textContent = state.fontPx + ' px';
 
     const widths = [K,L,G,G,L];
@@ -585,6 +732,13 @@
     state.cachedDims = {yTop, yBottom, width: totalWidth, height: W, offsetX, offsetY};
 
     clearSvg();
+    const mirrorTechnical = (printSide?.value === 'spodna');
+    const techGroup = create('g');
+    if (mirrorTechnical) {
+      techGroup.setAttribute('transform', `translate(0 ${yTop + yBottom}) scale(1 -1)`);
+    }
+    const previousParent = currentParent;
+    currentParent = techGroup;
 
     if(bgState.data){
       const bw = num(bgWidthEl) || state.cachedDims.width;
@@ -599,6 +753,7 @@
       if(bgState.flip){ transforms.push(`translate(${2*cx} 0) scale(-1 1)`); }
       if(transforms.length){ img.setAttribute('transform', transforms.join(' ')); }
     }
+    currentParent = previousParent;
 
     if ($('toggle-grid').checked){
       const defs = create('defs');
@@ -606,6 +761,8 @@
       create('path',{d:'M 50 0 L 0 0 0 50',fill:'none',stroke:'#e2e8f0','stroke-width':1},pattern);
       create('rect',{x:0,y:0,width:2000,height:2000,fill:'url(#grid)'});
     }
+
+    currentParent = techGroup;
 
     const xStart = offsetX + state.pan.x;
     const xKstart = xStart;
@@ -633,10 +790,14 @@
     const xAxis = xKstart + axisVal;
 
     let ox = xStart;
-    widths.forEach(w=>{
-      create('rect',{x:ox,y:yTop,width:w,height:W,fill:'none',stroke:'#0f172a','stroke-width':1});
-      ox += w;
-    });
+      widths.forEach(w=>{
+        create('rect',{x:ox,y:yTop,width:w,height:W,fill:'none',stroke:'#0f172a','stroke-width':1});
+        ox += w;
+      });
+      const techEasyClipId = 'vz22test-tech-easy-clip';
+      const techDefs = create('defs');
+      const techClip = create('clipPath',{id:techEasyClipId},techDefs);
+      create('rect',{x:xStart,y:yTop,width:totalWidth,height:W}, techClip);
 
     const rHole = 7;
     create('circle',{cx:xAxis, cy:y1, r:rHole, fill:'none', stroke:'#0f172a','stroke-width':1});
@@ -648,9 +809,30 @@
 
     const xDim = xKstart - 25;
     const xDimW = xDim - 30;
-    vDim(xDim, yTop, y1, Math.round(W/2 - C/2));
-    vDim(xDim, y1, y2, Math.round(C), 10, '#dc2626');
-    vDim(xDim, yBottom, y2, Math.round(W/2 - C/2));
+    const maxNotchShift = Math.max(0, (W - C) / 2);
+    const minNotchShift = -Math.max(0, C / 2);
+    const notchShift = notchShiftEnabled ? clamp(notchShiftRaw, minNotchShift, maxNotchShift) : 0;
+    if (notchShiftEnabled && $('NotchShift') && $('NotchShift').value !== fmtVal(notchShift)) $('NotchShift').value = fmtVal(notchShift);
+    const yNotchTop = y1 - notchShift;
+    const yNotchBottom = y2 + notchShift;
+    if (notchShiftEnabled && notchShift < 0){
+      const xDimShift = xDimW - 30;
+      vDim(xDim, yTop, y1, Math.round(W/2 - C/2));
+      vDim(xDim, y1, y2, fmtVal(C), 10, '#dc2626');
+      vDim(xDim, yBottom, y2, Math.round(W/2 - C/2));
+      vDim(xDimShift, y1, yNotchTop, fmtVal(y1 - yNotchTop), 10, '#dc2626');
+      vDim(xDimShift, yNotchBottom, y2, fmtVal(yNotchBottom - y2), 10, '#dc2626');
+    } else if (notchShiftEnabled){
+      vDim(xDim, yTop, yNotchTop, fmtVal(yNotchTop - yTop));
+      vDim(xDim, yNotchTop, y1, fmtVal(y1 - yNotchTop), 10, '#dc2626');
+      vDim(xDim, y1, y2, fmtVal(C), 10, '#dc2626');
+      vDim(xDim, y2, yNotchBottom, fmtVal(yNotchBottom - y2), 10, '#dc2626');
+      vDim(xDim, yNotchBottom, yBottom, fmtVal(yBottom - yNotchBottom));
+    } else {
+      vDim(xDim, yTop, y1, Math.round(W/2 - C/2));
+      vDim(xDim, y1, y2, Math.round(C), 10, '#dc2626');
+      vDim(xDim, yBottom, y2, Math.round(W/2 - C/2));
+    }
     vDim(xDimW, yTop, yBottom, Math.round(W));
 
     let rightLegendX = 0;
@@ -673,7 +855,7 @@
       const legendX = leftOuter;
       const legendY = Math.round(textY - boxH / 2);
       create('rect',{x:legendX,y:legendY,width:boxLeftW,height:boxH,fill:magenta,'fill-opacity':0.25,stroke:magenta,'stroke-width':1});
-      create('text',{x:legendX + padX,y:legendY + boxH/2,'text-anchor':'start','dominant-baseline':'middle','font-size':state.fontPx,fill:magenta}).textContent=textLeft;
+      create('text',{x:legendX + padX,y:legendY + boxH/2,'text-anchor':'start','dominant-baseline':'middle','font-size':state.fontPx,fill:magenta,class:'text-label'}).textContent=textLeft;
 
       const textRight = 'BEZ KORONOVEJ UPRAVY';
       const textRightW = Math.round(state.fontPx * 0.6 * textRight.length);
@@ -681,22 +863,24 @@
       rightLegendX = rightOuter - boxRightW;
       rightLegendW = boxRightW;
       create('rect',{x:rightLegendX,y:legendY,width:boxRightW,height:boxH,fill:greenFill,'fill-opacity':0.25,stroke:greenStroke,'stroke-width':1});
-      create('text',{x:rightLegendX + padX,y:legendY + boxH/2,'text-anchor':'start','dominant-baseline':'middle','font-size':state.fontPx,fill:greenStroke}).textContent=textRight;
+      create('text',{x:rightLegendX + padX,y:legendY + boxH/2,'text-anchor':'start','dominant-baseline':'middle','font-size':state.fontPx,fill:greenStroke,class:'text-label'}).textContent=textRight;
     }
 
     const bridgeRaw = Math.max(0, (xAxis - rHole) - (xKstart + notchLen));
     const bridgeVal = Number(bridgeRaw.toFixed(1));
-    if ($('Mostik')) $('Mostik').value = bridgeVal.toFixed(1);
+    if ($('Mostik') && !notchShiftEnabled) $('Mostik').value = bridgeVal.toFixed(1);
 
     if (showNotches){
       const x1n = xKstart;
       const x2n = xKstart + notchLen;
-      create('line',{x1:x1n,y1:y1,x2:x2n,y2:y1,stroke:'#0f172a'});
-      create('line',{x1:x1n,y1:y2,x2:x2n,y2:y2,stroke:'#0f172a'});
+      create('line',{x1:x1n,y1:yNotchTop,x2:x2n,y2:yNotchTop,stroke:'#0f172a'});
+      create('line',{x1:x1n,y1:yNotchBottom,x2:x2n,y2:yNotchBottom,stroke:'#0f172a'});
       const upY = y2 - Math.max(18, Math.round(state.fontPx*2.2));
       const downY = y2 + Math.max(18, Math.round(state.fontPx*2.2));
       hDim(x1n, upY, x2n, Math.round(notchLen), 10, '#dc2626');
-      hDim(x2n, downY, xAxis - rHole, bridgeVal.toFixed(1), 10, '#dc2626');
+      if (!notchShiftEnabled){
+        hDim(x2n, downY, xAxis - rHole, bridgeVal.toFixed(1), 10, '#dc2626');
+      }
     }
 
     const xBagDim = rightOuter + 40;
@@ -723,7 +907,7 @@
       xFirstRight = xRightGEnd + X;
       const airXs = airInGOnly ? [xRefLeftG, xRefRightG] : [xRefLeftG,xFirstLeft,xRefRightG,xFirstRight];
       airXs.forEach(x=>{
-        if(x!=null) { cross(x, cyTop); cross(x, cyBot); }
+        if(x!=null) { drawAirMark(x, cyTop, airType); drawAirMark(x, cyBot, airType); }
       });
 
       const yAirTop = yTop - Math.max(22, Math.round(state.fontPx*1.8));
@@ -754,6 +938,115 @@
       }
     }
 
+    const previousEasyParent = currentParent;
+    const easyMainGroup = create('g',{ 'clip-path': `url(#${techEasyClipId})` });
+    currentParent = easyMainGroup;
+
+    if (easyFingerHole === 'ano'){
+      const rFinger = 10;
+      const xFingerLeft = xLeftGStart - G/2;
+      const xFingerRight = xRightGEnd + G/2;
+      const yFinger = (easySide === 'prava') ? (yTop + 30) : (yBottom - 30);
+      create('circle',{cx:xFingerLeft, cy:yFinger, r:rFinger, fill:'#f5c2dd', 'fill-opacity':0.55, stroke:'#d0007a','stroke-width':1});
+      create('circle',{cx:xFingerRight, cy:yFinger, r:rFinger, fill:'#f5c2dd', 'fill-opacity':0.55, stroke:'#d0007a','stroke-width':1});
+    }
+
+    if (easyShape === 'rovna' && easyOffset > 0){
+      const off = easyOffset;
+      const xEasyLeft = xLeftGStart - off;
+      const xEasyRight = xRightGEnd + off;
+      create('line',{x1:xEasyLeft,y1:yTop,x2:xEasyLeft,y2:yBottom,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4'});
+      create('line',{x1:xEasyRight,y1:yTop,x2:xEasyRight,y2:yBottom,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4'});
+      currentParent = previousEasyParent;
+      const yEasyDim = yBottom + Math.max(18, Math.round(state.fontPx*1.8));
+      hDim(xEasyLeft, yEasyDim, xLeftGStart, Math.round(off), 10, '#dc2626');
+      hDim(xRightGEnd, yEasyDim, xEasyRight, Math.round(off), 10, '#dc2626');
+      maxRight = Math.max(maxRight, xEasyRight + 40);
+      currentParent = easyMainGroup;
+    } else if (easyShape === 'vodorovna' && easyOffset > 0){
+      const xMid = (xLeftGStart + xRightGEnd)/2;
+      let yEasy = (easySide === 'prava') ? (yTop + easyOffset) : (yBottom - easyOffset);
+      yEasy = clamp(yEasy, yTop, yBottom);
+      const leftLimit = offsetX;
+      const rightLimit = offsetX + totalWidth;
+      const maxHalfGeom = Math.min(xMid - leftLimit, rightLimit - xMid);
+      const halfSpan = Math.min(easyHalfLen, Math.max(0, maxHalfGeom));
+      if (halfSpan > 0){
+        const xLeftEnd = xMid - halfSpan;
+        const xRightEnd = xMid + halfSpan;
+        create('path',{d:`M ${xLeftEnd} ${yEasy} L ${xRightEnd} ${yEasy}`,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4',fill:'none'});
+        currentParent = previousEasyParent;
+        const xDimEasy = xRightGEnd + 80;
+        if (easySide === 'prava'){ vDim(xDimEasy, yTop, yEasy, Math.round(easyOffset), 10, '#dc2626'); }
+        else { vDim(xDimEasy, yEasy, yBottom, Math.round(easyOffset), 10, '#dc2626'); }
+        const lenDimY = yEasy + (easySide==='prava' ? Math.max(24, Math.round(state.fontPx*2.0)) : -Math.max(24, Math.round(state.fontPx*2.0)));
+        hDim(xLeftEnd, lenDimY, xRightEnd, Math.round(halfSpan * 2), 10, '#dc2626');
+        maxRight = Math.max(maxRight, xRightEnd + 40);
+        currentParent = easyMainGroup;
+      }
+    } else if (easyShape === 'U' && easyOffset > 0){
+      const xMid = (xLeftGStart + xRightGEnd)/2;
+      let yEasy = (easySide === 'prava') ? (yTop + easyOffset) : (yBottom - easyOffset);
+      yEasy = clamp(yEasy, yTop, yBottom);
+      const leftLimit = offsetX;
+      const rightLimit = offsetX + totalWidth;
+      const maxHalfGeom = Math.min(xMid - leftLimit, rightLimit - xMid);
+      const halfSpan = Math.min(easyHalfLen, Math.max(0, maxHalfGeom));
+      if (halfSpan > 0){
+        const bendHoriz = Math.min(30, halfSpan);
+        const xLeftEnd = xMid - halfSpan;
+        const xRightEnd = xMid + halfSpan;
+        const xLeftJoint = xLeftEnd + bendHoriz;
+        const xRightJoint = xRightEnd - bendHoriz;
+        const dir = (easySide === 'prava') ? -1 : 1;
+        const arcR = 50;
+        [
+          `M ${xLeftJoint} ${yEasy} L ${xRightJoint} ${yEasy}`,
+          `M ${xLeftJoint} ${yEasy} Q ${xLeftEnd} ${yEasy} ${xLeftEnd} ${yEasy + dir*arcR}`,
+          `M ${xRightJoint} ${yEasy} Q ${xRightEnd} ${yEasy} ${xRightEnd} ${yEasy + dir*arcR}`
+        ].forEach(d => create('path',{d,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4',fill:'none'}));
+        currentParent = previousEasyParent;
+        const xDimEasy = xRightGEnd + 80;
+        if (easySide === 'prava'){ vDim(xDimEasy, yTop, yEasy, Math.round(easyOffset), 10, '#dc2626'); }
+        else { vDim(xDimEasy, yEasy, yBottom, Math.round(easyOffset), 10, '#dc2626'); }
+        const lenDimY = yEasy + (easySide==='prava' ? Math.max(24, Math.round(state.fontPx*2.0)) : -Math.max(24, Math.round(state.fontPx*2.0)));
+        hDim(xMid, lenDimY, xRightEnd, Math.round(halfSpan), 10, '#dc2626');
+        maxRight = Math.max(maxRight, xRightEnd + 40);
+        currentParent = easyMainGroup;
+      }
+    } else if (easyShape === 'zahnut' && easyOffset > 0){
+      const xMid = (xLeftGStart + xRightGEnd)/2;
+      let yEasy = (easySide === 'prava') ? (yTop + easyOffset) : (yBottom - easyOffset);
+      yEasy = clamp(yEasy, yTop, yBottom);
+      const leftLimit = offsetX;
+      const rightLimit = offsetX + totalWidth;
+      const maxHalfGeom = Math.min(xMid - leftLimit, rightLimit - xMid);
+      const halfSpan = Math.min(easyHalfLen, Math.max(0, maxHalfGeom));
+      if (halfSpan > 0){
+        const bendHoriz = Math.min(30, halfSpan);
+        const xLeftEnd = xMid - halfSpan;
+        const xRightEnd = xMid + halfSpan;
+        const xLeftJoint = xLeftEnd + bendHoriz;
+        const xRightJoint = xRightEnd - bendHoriz;
+        const dir = (easySide === 'prava') ? -1 : 1;
+        const dy = bendHoriz * Math.tan(Math.PI/3);
+        [
+          `M ${xLeftJoint} ${yEasy} L ${xRightJoint} ${yEasy}`,
+          `M ${xLeftJoint} ${yEasy} L ${xLeftEnd} ${yEasy + dir*dy}`,
+          `M ${xRightJoint} ${yEasy} L ${xRightEnd} ${yEasy + dir*dy}`
+        ].forEach(d => create('path',{d,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4',fill:'none'}));
+        currentParent = previousEasyParent;
+        const xDimEasy = xRightGEnd + 80;
+        if (easySide === 'prava'){ vDim(xDimEasy, yTop, yEasy, Math.round(easyOffset), 10, '#dc2626'); }
+        else { vDim(xDimEasy, yEasy, yBottom, Math.round(easyOffset), 10, '#dc2626'); }
+        const lenDimY = yEasy + (easySide==='prava' ? Math.max(24, Math.round(state.fontPx*2.0)) : -Math.max(24, Math.round(state.fontPx*2.0)));
+        hDim(xMid, lenDimY, xRightEnd, Math.round(halfSpan), 10, '#dc2626');
+        maxRight = Math.max(maxRight, xRightEnd + 40);
+        currentParent = easyMainGroup;
+      }
+    }
+    currentParent = previousEasyParent;
+
     const segY = yBottom + Math.max(45, Math.round(state.fontPx*3.5));
     const totalY = segY + Math.max(22, Math.round(state.fontPx*2.0));
     let sx = xStart;
@@ -762,24 +1055,46 @@
 
     hDim(xKstart, yDimAxis, xAxis, Math.round(axisVal), 10, '#dc2626');
 
-    // Zlozeny nahlad (rotacia doprava): viditelne panely K + L + G.
-    const foldedX = maxRight + 40;
-    const foldedY = yTop + 10;
-    const foldedW = W;
-    const foldedH = K + L;
+    if (mirrorTechnical){
+      keepDimTextReadable(svgRoot);
+    }
+    currentParent = previousParent;
+
+    // Zlozeny nahlad a bokorys pre test vetvu vz22.
+      const foldedX = maxRight + 40;
+      const foldedY = yTop + 10;
+      const foldedW = W;
+      const foldedH = K + L;
+      const foldEasyClipId = 'vz22test-fold-easy-clip';
+      const foldDefs = create('defs');
+      const foldClip = create('clipPath',{id:foldEasyClipId},foldDefs);
+      create('rect',{x:foldedX,y:foldedY,width:foldedW,height:foldedH}, foldClip);
     const yK = foldedY + K;
     const yL = foldedY + foldedH;
+    const gHiddenTop = yL - G;
+    const foldedClipId = 'vz22test-fold-clip';
+    const foldedPreviewData = getRotatedBgCropDataUrl({x:xKstart, y:yTop, width:K + L, height:W});
+    if (foldedPreviewData) {
+      const defs = create('defs');
+      const clipPath = create('clipPath',{id:foldedClipId},defs);
+      create('rect',{x:foldedX,y:foldedY,width:foldedW,height:foldedH}, clipPath);
+      create('image',{
+        href: foldedPreviewData,
+        x: foldedX,
+        y: foldedY,
+        width: foldedW,
+        height: foldedH,
+        preserveAspectRatio: 'none',
+        opacity: Math.min(1, Math.max(0.2, bgState.opacity)),
+        'clip-path': `url(#${foldedClipId})`
+      });
+    }
     create('rect',{x:foldedX,y:foldedY,width:foldedW,height:foldedH,fill:'none',stroke:'#0f172a','stroke-width':1});
     create('line',{x1:foldedX,y1:yK,x2:foldedX+foldedW,y2:yK,stroke:'#0f172a','stroke-width':1});
-    // Viditelny obrys po zlozeni: iba K + L.
-    // Obe G sa prekryvaju a su "neviditelne", preto ich kreslime len ako skrytu (prerusovanu) pomocnu ciaru.
-    const gHiddenTop = yL - G;
-    // Skryta hrana G ma byt vodorovna a v rovine s kotou G.
     create('line',{x1:foldedX,y1:gHiddenTop,x2:foldedX+foldedW,y2:gHiddenTop,stroke:'#64748b','stroke-width':1,'stroke-dasharray':'5 4'});
     textWithBg('ZLOZENY NAHLAD', foldedX + foldedW/2, foldedY - Math.max(12, Math.round(state.fontPx*1.3)), {anchor:'middle', baseline:'middle', color:'#334155', fontWeight:'700'});
 
     const visXMin = xStart;
-    // V zlozenom nahlade je viditelna len cast K + L.
     const visXMax = xLeftGStart;
     const mapFold = (xf, yf) => ({ x: foldedX + (yf - yTop), y: foldedY + (xf - xStart) });
     const inFold = (xf) => xf >= visXMin && xf <= visXMax;
@@ -789,92 +1104,251 @@
       const c2 = mapFold(xAxis, y2);
       create('circle',{cx:c1.x, cy:c1.y, r:rHole, fill:'none', stroke:'#0f172a','stroke-width':1});
       create('circle',{cx:c2.x, cy:c2.y, r:rHole, fill:'none', stroke:'#0f172a','stroke-width':1});
-      // V bocnom/zlozenom vykrese nezobrazovat kotu umiestnenia zavesneho otvoru od okraja.
       hDim(c1.x, c2.y + 16, c2.x, Math.round(C), 8, '#dc2626');
     }
+
     if (showNotches) {
-      const n1 = mapFold(xKstart, y1);
-      const n2 = mapFold(xKstart + notchLen, y1);
-      const n3 = mapFold(xKstart, y2);
-      const n4 = mapFold(xKstart + notchLen, y2);
+      const n1 = mapFold(xKstart, yNotchTop);
+      const n2 = mapFold(xKstart + notchLen, yNotchTop);
+      const n3 = mapFold(xKstart, yNotchBottom);
+      const n4 = mapFold(xKstart + notchLen, yNotchBottom);
       create('line',{x1:n1.x,y1:n1.y,x2:n2.x,y2:n2.y,stroke:'#0f172a'});
       create('line',{x1:n3.x,y1:n3.y,x2:n4.x,y2:n4.y,stroke:'#0f172a'});
     }
+
     if (airEnabled) {
       const rawAirX = (airXInput?.value || '').trim();
       const hasAirX = !!airXInput?.dataset.userSet && rawAirX !== '' && Number.isFinite(airXAbsRaw);
       const autoX = G/2;
       const edgeFromLeft = clamp(Math.max(0, airEdge), 0, Math.max(0, foldedW / 2));
       const fromBottom = clamp(hasAirX ? Math.max(0,airXAbsRaw) : autoX, 0, Math.max(0, foldedH));
-      // Vzdialenost od zalozky: od spodnej hrany smerom hore (minus).
       const yHoleFold = foldedY + foldedH - fromBottom;
-      // Vzdialenost od okrajov: od laveho/praveho okraja.
       const xLeftHoleFold = foldedX + edgeFromLeft;
       const xRightHoleFold = foldedX + foldedW - edgeFromLeft;
-      const drawAirMarkFold = (x, y, dashed) => {
-        const attrsH = {x1:x-7,x2:x+7,y1:y,y2:y,stroke:'#dc2626','stroke-width':1.2};
-        const attrsV = {x1:x,y1:y-7,x2:x,y2:y+7,stroke:'#dc2626','stroke-width':1.2};
-        if (dashed) { attrsH['stroke-dasharray'] = '4 3'; attrsV['stroke-dasharray'] = '4 3'; }
-        create('line',attrsH);
-        create('line',attrsV);
-      };
-      drawAirMarkFold(xLeftHoleFold, yHoleFold, airInGOnly);
-      drawAirMarkFold(xRightHoleFold, yHoleFold, airInGOnly);
-      // Koty v zlozenom nahlade:
-      // 1) zo spodu (od zalozky) - na lavej strane.
+      const dash = airInGOnly ? '4 3' : '';
+      drawAirMarkStyled(xLeftHoleFold, yHoleFold, airType, 3, '#dc2626', dash);
+      drawAirMarkStyled(xRightHoleFold, yHoleFold, airType, 3, '#dc2626', dash);
       vDim(foldedX - 18, yHoleFold, foldedY + foldedH, Math.round(fromBottom), 8, '#dc2626');
-      // 2) od laveho okraja - vodorovne nad otvorom (+20 mm v osi Y).
       hDim(foldedX, yHoleFold - 20, xLeftHoleFold, Math.round(edgeFromLeft), 8, '#dc2626');
     }
+
     if (perfEnabled && perfOffset > 0){
       const off = Math.min(perfOffset, G);
-      const xPerf = (perfSide === 'prava') ? (xRightGStart + off) : (xRightGStart - off);
-      if (inFold(xPerf)) {
-        const pTop = mapFold(xPerf, yTop);
-        const pBot = mapFold(xPerf, yBottom);
-        create('line',{x1:pTop.x,y1:pTop.y,x2:pBot.x,y2:pBot.y,stroke:'#dc2626','stroke-width':1,'stroke-dasharray':'6 4'});
+      const foldPerfY = foldedY + foldedH - off;
+      create('line',{
+        x1:foldedX,
+        y1:foldPerfY,
+        x2:foldedX + foldedW,
+        y2:foldPerfY,
+        stroke:'#2563eb',
+        'stroke-width':0.45,
+        'stroke-dasharray':'8 2 1.5 2',
+        opacity:0.65
+      });
+      vDim(foldedX - 56, foldPerfY, foldedY + foldedH, Math.round(off), 8, '#dc2626');
+    }
+
+    const foldRightLMin = xRightGEnd;
+    const foldRightLMax = xRightGEnd + L;
+    const mapFoldRightLBase = (xf, yf) => ({ x: foldedX + (yf - yTop), y: foldedY + (xf - foldRightLMin) });
+    const mapFoldRightL = (xf, yf) => {
+      const p = mapFoldRightLBase(xf, yf);
+      return {
+        x: foldedX + foldedW - (p.x - foldedX),
+        y: foldedY + foldedH - (p.y - foldedY)
+      };
+    };
+    const clipSegmentToFoldRightL = (x1m, y1m, x2m, y2m) => {
+      const dx = x2m - x1m;
+      if (Math.abs(dx) < 1e-9) {
+        if (x1m < foldRightLMin || x1m > foldRightLMax) return null;
+        return {
+          x1: x1m,
+          y1: y1m,
+          x2: x2m,
+          y2: y2m
+        };
+      }
+      let t0 = 0;
+      let t1 = 1;
+      const txMin = (foldRightLMin - x1m) / dx;
+      const txMax = (foldRightLMax - x1m) / dx;
+      const enter = Math.min(txMin, txMax);
+      const exit = Math.max(txMin, txMax);
+      t0 = Math.max(t0, enter);
+      t1 = Math.min(t1, exit);
+      if (t1 < t0) return null;
+      return {
+        x1: x1m + dx * t0,
+        y1: y1m + (y2m - y1m) * t0,
+        x2: x1m + dx * t1,
+        y2: y1m + (y2m - y1m) * t1
+      };
+    };
+    const drawEasyFoldLine = (x1m, y1m, x2m, y2m) => {
+      const seg = clipSegmentToFoldRightL(x1m, y1m, x2m, y2m);
+      if (!seg) return;
+      const p1 = mapFoldRightL(seg.x1, seg.y1);
+      const p2 = mapFoldRightL(seg.x2, seg.y2);
+      create('line',{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4'});
+    };
+    const drawEasyFoldOffsetDim = (yMain) => {
+      const ref = mapFoldRightL(foldRightLMin, yMain);
+      const yDim = foldedY + foldedH + 68;
+      if (easySide === 'prava') hDim(ref.x, yDim, foldedX + foldedW, Math.round(easyOffset), 8, '#dc2626');
+      else hDim(foldedX, yDim, ref.x, Math.round(easyOffset), 8, '#dc2626');
+    };
+
+    const previousFoldEasyParent = currentParent;
+    const easyFoldGroup = create('g',{ 'clip-path': `url(#${foldEasyClipId})` });
+    currentParent = easyFoldGroup;
+
+    if (easyFingerHole === 'ano'){
+      const rFingerFold = 10;
+      const yFingerMain = (easySide === 'prava') ? (yTop + 30) : (yBottom - 30);
+      const xFingerRightMain = xRightGEnd + G/2;
+      if (xFingerRightMain >= foldRightLMin && xFingerRightMain <= foldRightLMax) {
+        const fp = mapFoldRightL(xFingerRightMain, yFingerMain);
+        create('circle',{cx:fp.x, cy:fp.y, r:rFingerFold, fill:'#f5c2dd', 'fill-opacity':0.55, stroke:'#d0007a','stroke-width':1});
       }
     }
+
+    if (easyShape === 'rovna' && easyOffset > 0){
+      const off = easyOffset;
+      const xEasyLeft = xLeftGStart - off;
+      const xEasyRight = xRightGEnd + off;
+      drawEasyFoldLine(xEasyLeft, yTop, xEasyLeft, yBottom);
+      drawEasyFoldLine(xEasyRight, yTop, xEasyRight, yBottom);
+      const easySeg = clipSegmentToFoldRightL(xEasyRight, yTop, xEasyRight, yBottom);
+      if (easySeg) {
+        const ep1 = mapFoldRightL(easySeg.x1, easySeg.y1);
+        const ep2 = mapFoldRightL(easySeg.x2, easySeg.y2);
+        const yEasyFold = (ep1.y + ep2.y) / 2;
+        currentParent = previousFoldEasyParent;
+        vDim(foldedX - 38, yEasyFold, foldedY + foldedH, Math.round(easyOffset), 8, '#dc2626');
+        currentParent = easyFoldGroup;
+      }
+    } else if (easyShape === 'vodorovna' && easyOffset > 0){
+      const xMid = (xLeftGStart + xRightGEnd)/2;
+      let yEasy = (easySide === 'prava') ? (yTop + easyOffset) : (yBottom - easyOffset);
+      yEasy = clamp(yEasy, yTop, yBottom);
+      const leftLimit = offsetX;
+      const rightLimit = offsetX + totalWidth;
+      const maxHalfGeom = Math.min(xMid - leftLimit, rightLimit - xMid);
+      const halfSpan = Math.min(easyHalfLen, Math.max(0, maxHalfGeom));
+      if (halfSpan > 0){
+        drawEasyFoldLine(xMid - halfSpan, yEasy, xMid + halfSpan, yEasy);
+        currentParent = previousFoldEasyParent;
+        drawEasyFoldOffsetDim(yEasy);
+        currentParent = easyFoldGroup;
+      }
+    } else if (easyShape === 'U' && easyOffset > 0){
+      const xMid = (xLeftGStart + xRightGEnd)/2;
+      let yEasy = (easySide === 'prava') ? (yTop + easyOffset) : (yBottom - easyOffset);
+      yEasy = clamp(yEasy, yTop, yBottom);
+      const leftLimit = offsetX;
+      const rightLimit = offsetX + totalWidth;
+      const maxHalfGeom = Math.min(xMid - leftLimit, rightLimit - xMid);
+      const halfSpan = Math.min(easyHalfLen, Math.max(0, maxHalfGeom));
+      if (halfSpan > 0){
+        const bendHoriz = Math.min(30, halfSpan);
+        const xRightEnd = xMid + halfSpan;
+        const xRightJoint = xRightEnd - bendHoriz;
+        const dir = (easySide === 'prava') ? -1 : 1;
+        const arcR = 50;
+        drawEasyFoldLine(xMid, yEasy, xRightJoint, yEasy);
+        if (xRightJoint <= foldRightLMax) {
+          const pJoint = mapFoldRightL(xRightJoint, yEasy);
+          const pCtrl = mapFoldRightL(xRightEnd, yEasy);
+          const pEnd = mapFoldRightL(xRightEnd, yEasy + dir*arcR);
+          create('path',{d:`M ${pJoint.x} ${pJoint.y} Q ${pCtrl.x} ${pCtrl.y} ${pEnd.x} ${pEnd.y}`,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4',fill:'none'});
+        }
+        currentParent = previousFoldEasyParent;
+        drawEasyFoldOffsetDim(yEasy);
+        currentParent = easyFoldGroup;
+      }
+    } else if (easyShape === 'zahnut' && easyOffset > 0){
+      const xMid = (xLeftGStart + xRightGEnd)/2;
+      let yEasy = (easySide === 'prava') ? (yTop + easyOffset) : (yBottom - easyOffset);
+      yEasy = clamp(yEasy, yTop, yBottom);
+      const leftLimit = offsetX;
+      const rightLimit = offsetX + totalWidth;
+      const maxHalfGeom = Math.min(xMid - leftLimit, rightLimit - xMid);
+      const halfSpan = Math.min(easyHalfLen, Math.max(0, maxHalfGeom));
+      if (halfSpan > 0){
+        const bendHoriz = Math.min(30, halfSpan);
+        const xRightEnd = xMid + halfSpan;
+        const xRightJoint = xRightEnd - bendHoriz;
+        const dir = (easySide === 'prava') ? -1 : 1;
+        const dy = bendHoriz * Math.tan(Math.PI/3);
+        drawEasyFoldLine(xMid, yEasy, xRightJoint, yEasy);
+        drawEasyFoldLine(xRightJoint, yEasy, xRightEnd, yEasy + dir*dy);
+        currentParent = previousFoldEasyParent;
+        drawEasyFoldOffsetDim(yEasy);
+        currentParent = easyFoldGroup;
+      }
+    }
+    currentParent = previousFoldEasyParent;
+
     const foldDimX = foldedX + foldedW + 24;
     vDim(foldDimX, foldedY, yK, Math.round(K), 8, '#0f172a');
     vDim(foldDimX, yK, yL, Math.round(L), 8, '#0f172a');
     vDim(foldDimX + 20, gHiddenTop, yL, Math.round(G), 8, '#64748b');
     hDim(foldedX, foldedY + foldedH + 20, foldedX + foldedW, `Pozadovana sirka vrecka ${fmtVal(bagWidth)}`, 8, '#0f172a');
 
-    // Bocny profil podla vzoru: zvisle hrany + spodny "V" pre prekryte G.
     const sideGap = 90;
     const sideXLeft = foldedX + foldedW + sideGap;
-    // Zvisle hrany bokorysu maju byt tesne pri sebe.
     const sideInnerW = 10;
     const sideXRight = sideXLeft + sideInnerW;
     const sideYTopLeft = foldedY + 6;
     const sideYTopRight = foldedY + K;
     const sideYBottom = foldedY + K + L;
     const sideXApex = (sideXLeft + sideXRight) / 2;
-    // Vrchol "V" zarovnany s kotou G.
     const sideYApex = sideYBottom - G;
+    const sideClipVariant = $('SideClipView')?.value || 'zhora';
+    const sideClipCenterY = foldedY + axisVal;
+    const foldAxisCenter = inFold(xAxis) ? mapFold(xAxis, (y1 + y2) / 2) : null;
+    create('line',{
+      x1: foldAxisCenter ? foldAxisCenter.x : (sideXLeft - 14),
+      y1: sideClipCenterY,
+      x2: sideXRight + 14,
+      y2: sideClipCenterY,
+      stroke:'#2563eb',
+      'stroke-width':0.45,
+      'stroke-dasharray':'8 2 1.5 2'
+    });
+    const sideClipBounds = drawSideClipSymbol((sideXLeft + sideXRight) / 2, sideClipCenterY, sideClipVariant);
 
     create('line',{x1:sideXLeft,y1:sideYTopLeft,x2:sideXLeft,y2:sideYBottom,stroke:'#0f172a','stroke-width':1.2});
     create('line',{x1:sideXRight,y1:sideYTopRight,x2:sideXRight,y2:sideYBottom,stroke:'#0f172a','stroke-width':1.2});
     create('line',{x1:sideXLeft,y1:sideYBottom,x2:sideXApex,y2:sideYApex,stroke:'#0f172a','stroke-width':1.2});
     create('line',{x1:sideXRight,y1:sideYBottom,x2:sideXApex,y2:sideYApex,stroke:'#0f172a','stroke-width':1.2});
 
-    const sideMinY = Math.min(sideYTopLeft, sideYTopRight, sideYApex);
-    const sideMaxY = Math.max(sideYBottom, sideYTopLeft, sideYTopRight);
+    const sideMinY = Math.min(sideYTopLeft, sideYTopRight, sideYApex, sideClipBounds.top);
+    const sideMaxY = Math.max(sideYBottom, sideYTopLeft, sideYTopRight, sideClipBounds.bottom);
     textWithBg('BOKORYS', ((sideXLeft + sideXRight)/2) - 20, sideMinY - Math.max(12, Math.round(state.fontPx*1.3)), {anchor:'middle', baseline:'middle', color:'#334155', fontWeight:'700'});
+    create('text',{
+      x:((sideXLeft + sideXRight)/2) - 20,
+      y:sideMinY - Math.max(2, Math.round(state.fontPx*0.2)),
+      'text-anchor':'middle',
+      'dominant-baseline':'middle',
+      fill:'#475569',
+      'font-size':Math.max(10, Math.round(state.fontPx*0.78)),
+      'font-family':'Arial, Helvetica, sans-serif'
+    }).textContent = `spona ${sideClipVariant}`;
 
-    maxRight = Math.max(maxRight, foldDimX + 20, sideXRight) + 20;
+    maxRight = Math.max(maxRight, foldDimX + 20, sideXRight, sideClipBounds.right) + 20;
 
     drawUserMeasures();
     drawMeasurePreview();
 
     const bottomPad = Math.max(40, Math.round(state.fontPx * 3.5));
     const svgW = Math.max(maxRight, xDimW + 80);
-    const svgH = Math.max(
-      yDimAxis + bottomPad,
-      foldedY + foldedH + Math.max(26, Math.round(state.fontPx*2.2)),
-      sideMaxY + Math.max(26, Math.round(state.fontPx*2.2))
-    );
+      const svgH = Math.max(
+        yDimAxis + bottomPad,
+        foldedY + foldedH + 110,
+        sideMaxY + Math.max(26, Math.round(state.fontPx*2.2))
+      );
     state.bounds.width = svgW;
     state.bounds.height = svgH;
     svgRoot.setAttribute('width', svgW * state.zoom);
@@ -889,6 +1363,11 @@
     const ev = el && el.type==='range'?'input':'change';
     el && el.addEventListener(ev, draw);
   });
+  [bottomText1Size,bottomText1Bold,bottomText1Italic,bottomText1Color].forEach(el=> el && el.addEventListener('change', ()=>{ applyBottomTextStyle(1); draw(); }));
+  [bottomText2Size,bottomText2Bold,bottomText2Italic,bottomText2Color].forEach(el=> el && el.addEventListener('change', ()=>{ applyBottomTextStyle(2); draw(); }));
+  bottomText1?.addEventListener('input', ()=>{ applyBottomTextStyle(1); draw(); });
+  bottomText2?.addEventListener('input', ()=>{ applyBottomTextStyle(2); draw(); });
+  $('toggle-notch-shift')?.addEventListener('change', updateNotchShiftUiState);
   bgOpacityEl.addEventListener('input', ()=>{
     bgState.opacity = parseFloat(bgOpacityEl.value)||0;
     bgOpacityVal.textContent = `${Math.round(bgState.opacity*100)} %`;
@@ -907,26 +1386,37 @@
     clearPrefilled();
     $('W').value=400; $('L').value=600; $('G').value=50; $('K').value=45;
     $('BagWidth').value=400;
-    $('Cpitch').value=160; $('AxisInK').value='';
+    $('Cpitch').value=160; $('AxisInK').value=''; $('SideClipView').value='zhora';
     if ($('AirEnabled')) $('AirEnabled').value='ano';
-    $('NotchLen').value=7; $('toggle-notches').checked=false;
-    $('AirEdge').value=30; $('AirXAbs').value=''; $('AirInGOnly').checked=false;
-    if (airXInput) airXInput.dataset.userSet='';
-    if ($('PerfEnabled')) $('PerfEnabled').value='ano';
-    $('PerfOffset').value=7;
-    $('PerfSide').value='prava';
-    if (refPartA) refPartA.value='';
+    $('NotchLen').value=7; $('toggle-notches').checked=false; $('toggle-notch-shift').checked=false; $('NotchShift').value=0;
+      $('AirEdge').value=30; $('AirXAbs').value=''; $('AirType').value='1'; $('AirInGOnly').checked=false;
+      if (airXInput) airXInput.dataset.userSet='';
+      if ($('PerfEnabled')) $('PerfEnabled').value='ano';
+      $('PerfOffset').value=7;
+      $('PerfSide').value='prava';
+      $('EasyShape').value='none';
+      $('EasySide').value='prava';
+      $('EasyOffset').value=70;
+      $('EasyHalfLen').value=250;
+      $('EasyFingerHole').value='nie';
+      if (refPartA) refPartA.value='';
     if (refPartB) refPartB.value='';
     if (porCislo) porCislo.value='';
     if (noteModeEl) noteModeEl.value='hygiena';
     if (motivInput) motivInput.value='';
-    if (clipPresetEl) clipPresetEl.value='none';
-    clearBottomImage();
+    if (bottomText1Size) bottomText1Size.value='35';
+    if (bottomText1Bold) bottomText1Bold.checked=true;
+    if (bottomText1Italic) bottomText1Italic.checked=false;
+    if (bottomText1Color) bottomText1Color.value='#0f172a';
+    if (bottomText2Size) bottomText2Size.value='35';
+    if (bottomText2Bold) bottomText2Bold.checked=true;
+    if (bottomText2Italic) bottomText2Italic.checked=false;
+    if (bottomText2Color) bottomText2Color.value='#0f172a';
     if(finalNavinNumber) finalNavinNumber.value='1';
     if(finalNavinLetter) finalNavinLetter.value='A';
     if(printOps) printOps.value='0';
     $('fontPx').value=14; $('toggle-grid').checked=false;
-    bgFile.value=''; bgWidthEl.value=''; bgHeightEl.value=''; bgState.data=null; bgState.natural={w:0,h:0}; bgState.offset={x:0,y:0}; bgState.rotation=0; bgState.flip=false;
+    bgFile.value=''; bgWidthEl.value=''; bgHeightEl.value=''; bgState.data=null; bgState.image=null; bgState.natural={w:0,h:0}; bgState.offset={x:0,y:0}; bgState.rotation=0; bgState.flip=false;
     document.querySelectorAll('.epsfilled').forEach(el=> el.classList.remove('epsfilled'));
     try{
       localStorage.removeItem('selectedFirm');
@@ -937,10 +1427,13 @@
     updatePorCisloDisplay();
     updateNavinTlac();
     updateMotivDisplay();
+    applyBottomTextStyle(1);
+    applyBottomTextStyle(2);
     updateSideTitles();
-    applyNoteModeRules();
     updateAirUiState();
     updatePerfUiState();
+    updateEasyUiState();
+    updateNotchShiftUiState();
     draw();
     pushUndoSnapshot(true);
   });
@@ -952,61 +1445,42 @@
       catch(err){ console.error(err); alert('Export PNG zlyhal. Detaily v konzole.'); }
     });
   }
-  bottomImgInput.addEventListener('change',(e)=>{
-    const file = e.target.files && e.target.files[0];
-    if(!file){
-      clearBottomImage();
-      return;
-    }
-    if(!file.type.startsWith('image/')){
-      alert('Podporovane su iba obrazky.');
-      bottomImgInput.value='';
-      clearBottomImage();
-      return;
-    }
-    const r=new FileReader();
-    r.onload=(ev)=>{
-      if (clipPresetEl) clipPresetEl.value = 'file';
-      setBottomImage(ev.target.result);
-    };
-    r.readAsDataURL(file);
-  });
-  if (clipPresetEl){
-    clipPresetEl.addEventListener('change', ()=>{
-      applyClipPreset(clipPresetEl.value, true);
-    });
-  }
-
   function collectStateForSave(){
-    return {
-      vz: 'vz22',
+        return {
+          vz: 'vz22_test',
       inputs: {
         W:$('W').value, L:$('L').value, G:$('G').value, K:$('K').value,
         BagWidth:$('BagWidth').value,
-        Cpitch:$('Cpitch').value, AxisInK:$('AxisInK').value,
-        NotchLen:$('NotchLen').value, toggleNotches:$('toggle-notches').checked,
-        AirEnabled:$('AirEnabled')?.value || '',
-        AirEdge:$('AirEdge').value, AirXAbs:$('AirXAbs').value, AirInGOnly:$('AirInGOnly').checked,
-        PerfEnabled:$('PerfEnabled')?.value || '',
-        PerfOffset:$('PerfOffset').value,
-        PerfSide:$('PerfSide').value,
-        fontPx:$('fontPx').value, grid:$('toggle-grid').checked,
+          Cpitch:$('Cpitch').value, AxisInK:$('AxisInK').value,
+          SideClipView:$('SideClipView').value,
+          NotchLen:$('NotchLen').value, toggleNotches:$('toggle-notches').checked, toggleNotchShift:$('toggle-notch-shift').checked, NotchShift:$('NotchShift').value,
+          AirEnabled:$('AirEnabled')?.value || '',
+          AirEdge:$('AirEdge').value, AirXAbs:$('AirXAbs').value, AirType:$('AirType').value, AirInGOnly:$('AirInGOnly').checked,
+          PerfEnabled:$('PerfEnabled')?.value || '',
+          PerfOffset:$('PerfOffset').value,
+          PerfSide:$('PerfSide').value,
+          EasyShape:$('EasyShape')?.value || 'none',
+          EasySide:$('EasySide')?.value || 'prava',
+          EasyOffset:$('EasyOffset')?.value || '',
+          EasyHalfLen:$('EasyHalfLen')?.value || '',
+          EasyFingerHole:$('EasyFingerHole')?.value || 'nie',
+          fontPx:$('fontPx').value, grid:$('toggle-grid').checked,
         printSide:printSide.value,
         porCislo:$('porCislo').value,
-        motiv:motivInput?.value || '',
-        noteMode: noteModeEl?.value || 'hygiena',
-        bottomText1:bottomText1.value,
-        bottomText2:bottomText2.value,
-        clipPreset: clipPresetEl?.value || 'none',
-        measureMode:state.measureMode,
-        finalNavinNumber:finalNavinNumber?.value || '',
-        finalNavinLetter:finalNavinLetter?.value || '',
-        printOps: printOps?.value || '0'
-      },
-      measures: state.measures,
-      bottomImage: (bottomImgPreview && bottomImgPreview.style.display!=='none') ? bottomImgPreview.src : null,
-      bg: {
-        data: bgState.data,
+          motiv:motivInput?.value || '',
+          noteMode: noteModeEl?.value || 'hygiena',
+          bottomText1:bottomText1.value,
+          bottomText2:bottomText2.value,
+          bottomText1Style:getBottomTextStyle(1),
+          bottomText2Style:getBottomTextStyle(2),
+          measureMode:state.measureMode,
+          finalNavinNumber:finalNavinNumber?.value || '',
+          finalNavinLetter:finalNavinLetter?.value || '',
+          printOps: printOps?.value || '0'
+        },
+        measures: state.measures,
+        bg: {
+          data: bgState.data,
         width: bgWidthEl.value,
         height: bgHeightEl.value,
         opacity: bgOpacityEl.value,
@@ -1028,44 +1502,59 @@
       $('Cpitch').value=i.Cpitch||'';
       $('AxisInK').value=i.AxisInK||'';
       if ($('AirEnabled')) $('AirEnabled').value = (i.AirEnabled === undefined || i.AirEnabled === null) ? 'ano' : String(i.AirEnabled);
-      $('AirEdge').value=(i.AirEdge!==undefined && i.AirEdge!==null)?i.AirEdge:30;
-      $('AirXAbs').value=(i.AirXAbs!==undefined && i.AirXAbs!==null)?i.AirXAbs:'';
-      $('AirInGOnly').checked=!!i.AirInGOnly;
+        $('AirEdge').value=(i.AirEdge!==undefined && i.AirEdge!==null)?i.AirEdge:30;
+        $('AirXAbs').value=(i.AirXAbs!==undefined && i.AirXAbs!==null)?i.AirXAbs:'';
+        $('AirType').value=i.AirType||'1';
+        $('AirInGOnly').checked=!!i.AirInGOnly;
+        $('SideClipView').value=i.SideClipView||'zhora';
       if(airXInput) airXInput.dataset.userSet = (i.AirXAbs!==undefined && i.AirXAbs!=='') ? '1' : '';
       if ($('PerfEnabled')) $('PerfEnabled').value = (i.PerfEnabled === undefined || i.PerfEnabled === null) ? 'ano' : String(i.PerfEnabled);
       $('NotchLen').value=i.NotchLen||'';
       $('toggle-notches').checked=!!i.toggleNotches;
-      $('PerfOffset').value=i.PerfOffset||'';
-      $('PerfSide').value=i.PerfSide||'prava';
-      $('fontPx').value=i.fontPx||14;
+        $('toggle-notch-shift').checked=!!i.toggleNotchShift;
+        $('NotchShift').value=(i.NotchShift!==undefined && i.NotchShift!==null)?i.NotchShift:0;
+        $('PerfOffset').value=i.PerfOffset||'';
+        $('PerfSide').value=i.PerfSide||'prava';
+        $('EasyShape').value=normalizeEasyShape(i.EasyShape||'none');
+        $('EasySide').value=normalizeEasySide(i.EasySide||'prava');
+        $('EasyOffset').value=i.EasyOffset||70;
+        $('EasyHalfLen').value=i.EasyHalfLen||250;
+        $('EasyFingerHole').value=i.EasyFingerHole||'nie';
+        $('fontPx').value=i.fontPx||14;
       $('toggle-grid').checked=!!i.grid;
       printSide.value=i.printSide||'vrchna';
       if(finalNavinNumber) finalNavinNumber.value=i.finalNavinNumber||'1';
       if(finalNavinLetter) finalNavinLetter.value=i.finalNavinLetter||'A';
       if(printOps) printOps.value = (i.printOps !== undefined && i.printOps !== null) ? String(i.printOps) : ((i.rezanie===true || i.rezanie==='ano') ? '1' : '0');
-      $('porCislo').value=i.porCislo||'';
-      if (motivInput) motivInput.value = i.motiv || i.otherNotes || '';
-      if (noteModeEl) noteModeEl.value = i.noteMode || 'hygiena';
-      bottomText1.value=i.bottomText1||'';
-      bottomText2.value=i.bottomText2||'';
-      if (clipPresetEl) clipPresetEl.value = i.clipPreset || ((data.bottomImage && data.bottomImage.length) ? 'file' : 'none');
-      state.measureMode = i.measureMode || 'off';
-      updateNavinTlac();
-      updateMotivDisplay();
-      updateSideTitles();
-      applyNoteModeRules();
-      updateAirUiState();
+        $('porCislo').value=i.porCislo||'';
+        if (motivInput) motivInput.value = i.motiv || i.otherNotes || '';
+        if (noteModeEl) noteModeEl.value = i.noteMode || 'hygiena';
+        bottomText1.value=i.bottomText1||'';
+        bottomText2.value=i.bottomText2||'';
+        const s1 = i.bottomText1Style || {};
+        const s2 = i.bottomText2Style || {};
+        if (bottomText1Size) bottomText1Size.value=String(s1.size || 14);
+        if (bottomText1Bold) bottomText1Bold.checked=!!s1.bold;
+        if (bottomText1Italic) bottomText1Italic.checked=!!s1.italic;
+        if (bottomText1Color) bottomText1Color.value=s1.color || '#0f172a';
+        if (bottomText2Size) bottomText2Size.value=String(s2.size || 14);
+        if (bottomText2Bold) bottomText2Bold.checked=!!s2.bold;
+        if (bottomText2Italic) bottomText2Italic.checked=!!s2.italic;
+        if (bottomText2Color) bottomText2Color.value=s2.color || '#0f172a';
+        state.measureMode = i.measureMode || 'off';
+        updateNavinTlac();
+        updateMotivDisplay();
+        applyBottomTextStyle(1);
+        applyBottomTextStyle(2);
+        updateSideTitles();
+        updateAirUiState();
       updatePerfUiState();
-    }
-    state.measures = Array.isArray(data.measures)? data.measures : [];
-
-        if(data.bottomImage){
-      setBottomImage(data.bottomImage);
-    } else {
-      applyClipPreset(clipPresetEl?.value || 'none', false);
-    }
-    if(data.bg){
-      bgState.data = data.bg.data || null;
+      updateEasyUiState();
+      updateNotchShiftUiState();
+      }
+      state.measures = Array.isArray(data.measures)? data.measures : [];
+      if(data.bg){
+        bgState.data = data.bg.data || null;
       bgWidthEl.value = data.bg.width || '';
       bgHeightEl.value = data.bg.height || '';
       bgOpacityEl.value = data.bg.opacity || 0.6;
@@ -1073,6 +1562,18 @@
       bgState.offset = data.bg.offset || {x:0,y:0};
       bgState.rotation = data.bg.rotation || 0;
       bgState.flip = !!data.bg.flip;
+      bgState.image = null;
+      if (bgState.data){
+        const imgEl = new Image();
+        imgEl.onload = ()=>{
+          bgState.image = imgEl;
+          bgState.natural = {w: imgEl.naturalWidth || imgEl.width || 0, h: imgEl.naturalHeight || imgEl.height || 0};
+          draw();
+        };
+        imgEl.src = bgState.data;
+      } else {
+        bgState.natural = {w:0,h:0};
+      }
     }
     draw();
     pushUndoSnapshot(true);
@@ -1096,7 +1597,7 @@
     r.onload = (ev)=>{
       try{
         const data = JSON.parse(ev.target.result);
-        if (data.vz && data.vz !== 'vz22'){
+          if (data.vz && data.vz !== 'vz22' && data.vz !== 'vz22_test'){
           alert('Tento JSON je pre iny vzor: ' + data.vz);
           return;
         }
@@ -1145,7 +1646,6 @@ ${svgText}
       const txt = serializer.serializeToString(svgRoot);
       return {svgText:txt, w: state.bounds.width || 800, h: state.bounds.height || 800};
     });
-    const svgTextInlined = inlineSvgAssetRefs(svgText);
     const safeVal = (el, def)=> (el && el.value) ? el.value : def;
     const size = safeVal(exportSizeEl,'A3');
     const orient = safeVal(exportOrientEl,'landscape');
@@ -1168,7 +1668,7 @@ ${svgText}
       h:pageH-2*margin-notesH-bottomH-2*gap
     };
 
-    const svgBlob = new Blob([svgTextInlined], {type:'image/svg+xml'});
+    const svgBlob = new Blob([svgText], {type:'image/svg+xml'});
     const svgUrl = URL.createObjectURL(svgBlob);
 
     function loadImage(src){
@@ -1181,17 +1681,8 @@ ${svgText}
       });
     }
 
-    const bottomImgSrc = (bottomImgPreview && bottomImgPreview.src && bottomImgPreview.style.display!=='none') ? bottomImgPreview.src : null;
-    let bottomImgData = bottomImgSrc;
-    if(bottomImgSrc && !bottomImgSrc.startsWith('data:')){
-      bottomImgData = await inlineAsset(bottomImgSrc);
-    }
-
     try{
-      const [svgImage, bottomImage] = await Promise.all([
-        loadImage(svgUrl),
-        bottomImgData ? loadImage(bottomImgData) : Promise.resolve(null)
-      ]);
+      const svgImage = await loadImage(svgUrl);
       const canvas = document.createElement('canvas');
       canvas.width = pageW; canvas.height = pageH;
       const ctx = canvas.getContext('2d');
@@ -1245,7 +1736,7 @@ ${svgText}
       const bottomY = drawingArea.y + drawingArea.h + gap;
       const bottomW = pageW - 2*margin;
       const colGap = gap;
-      const colW = (bottomW - colGap*2)/3;
+      const colW = (bottomW - colGap)/2;
       ctx.lineWidth = 1;
       ctx.strokeStyle = '#cbd5e1';
       ctx.setLineDash([4,4]);
@@ -1253,58 +1744,40 @@ ${svgText}
       function drawBox(x,y,w,h){
         ctx.strokeRect(x,y,w,h);
       }
-      function wrapText(text, x, y, maxWidth, lineHeight){
-        ctx.fillStyle='#0f172a';
-        ctx.font = `${fontBase}px system-ui,-apple-system,Segoe UI,Roboto,Arial`;
-        const words = text.split(/\s+/);
-        let line='', yy=y+lineHeight;
-        for(let n=0;n<words.length;n++){
-          const test=line?line+' '+words[n]:words[n];
-          const width=ctx.measureText(test).width;
-          if(width>maxWidth && line){ ctx.fillText(line,x,yy); line=words[n]; yy+=lineHeight; }
-          else { line=test; }
+        function wrapText(text, x, y, maxWidth, lineHeight, style={}){
+          const fontSize = style.size || fontBase;
+          const fontWeight = style.bold ? '700' : '400';
+          const fontStyle = style.italic ? 'italic' : 'normal';
+          const usedLineH = Math.max(lineHeight, Math.round(fontSize * 1.2));
+          ctx.fillStyle = style.color || '#0f172a';
+          ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px Arial,Helvetica,sans-serif`;
+          const words = text.split(/\s+/);
+          let line='', yy=y+usedLineH;
+          for(let n=0;n<words.length;n++){
+            const test=line?line+' '+words[n]:words[n];
+            const width=ctx.measureText(test).width;
+            if(width>maxWidth && line){ ctx.fillText(line,x,yy); line=words[n]; yy+=usedLineH; }
+            else { line=test; }
+          }
+          if(line) ctx.fillText(line,x,yy);
         }
-        if(line) ctx.fillText(line,x,yy);
-      }
 
-      // box1 image
-      const b1x = margin, b1y = bottomY, b1w = colW, b1h = bottomH;
-      drawBox(b1x, b1y, b1w, b1h);
-            if(bottomImage){
-        const pad = Math.round(gap);
-        const availW = b1w - 2*pad;
-        const availH = b1h - 2*pad;
-        const scaleImg = Math.min(availW / bottomImage.height, availH / bottomImage.width);
-        const rw = bottomImage.height * scaleImg;
-        const rh = bottomImage.width * scaleImg;
-        const ix = b1x + (b1w - rw)/2;
-        const iy = b1y + (b1h - rh)/2;
-        ctx.save();
-        ctx.translate(ix + rw/2, iy + rh/2);
-        ctx.rotate(Math.PI/2);
-        ctx.setLineDash([]);
-        ctx.drawImage(bottomImage, -bottomImage.width*scaleImg/2, -bottomImage.height*scaleImg/2, bottomImage.width*scaleImg, bottomImage.height*scaleImg);
-        ctx.setLineDash([4,4]);
-        ctx.restore();
-      }
+        // box1 text1
+        const b1x = margin, b1y = bottomY;
+        drawBox(b1x, b1y, colW, bottomH);
+        wrapText(bottomText1.value || '', b1x + gap, b1y + gap, colW - 2*gap, lineH, getBottomTextStyle(1));
 
-      // box2 text1
-      const b2x = b1x + colW + colGap, b2y = bottomY;
-      drawBox(b2x, b2y, colW, bottomH);
-      wrapText(bottomText1.value || '', b2x + gap, b2y + gap, colW - 2*gap, lineH);
-
-      // box3 text2
-      const b3x = b2x + colW + colGap, b3y = bottomY;
-      drawBox(b3x, b3y, colW, bottomH);
-      wrapText(bottomText2.value || '', b3x + gap, b3y + gap, colW - 2*gap, lineH);
+        // box2 text2
+        const b2x = b1x + colW + colGap, b2y = bottomY;
+        drawBox(b2x, b2y, colW, bottomH);
+        wrapText(bottomText2.value || '', b2x + gap, b2y + gap, colW - 2*gap, lineH, getBottomTextStyle(2));
 
       const pngUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = pngUrl;
       a.download = `${buildRefSlug()}_${size}_${orient}.png`;
       a.click();
-    }catch(err){
-      console.error('PNG export failed:', err);
+    }catch(_){
       alert('Nepodarilo sa vygenerovat PNG.');
     } finally {
       URL.revokeObjectURL(svgUrl);
@@ -1316,10 +1789,12 @@ ${svgText}
     const base = (path[path.length-1] || 'vz-22').replace(/\.[^.]+$/,'');
     if(refPartA) refPartA.value = base.slice(0,10);
     if(refPartB) refPartB.value = '';
-    vzCodeEl.textContent = 'vz-22';
+      vzCodeEl.textContent = 'vz-22-test';
     updateNavinTlac();
     updateStamp();
     bgOpacityVal.textContent = `${Math.round(bgState.opacity*100)} %`;
+    applyBottomTextStyle(1);
+    applyBottomTextStyle(2);
   })();
 
   printSide.addEventListener('change', updateNavinTlac);
@@ -1337,20 +1812,23 @@ ${svgText}
       bgFile.value='';
       return;
     }
-    const r = new FileReader();
-    r.onload = (ev)=>{
-      const imgEl = new Image();
-      imgEl.onload = ()=>{
-        bgState.data = ev.target.result;
-        draw();
+      const r = new FileReader();
+      r.onload = (ev)=>{
+        const imgEl = new Image();
+        imgEl.onload = ()=>{
+          bgState.data = ev.target.result;
+          bgState.image = imgEl;
+          bgState.natural = {w: imgEl.naturalWidth || imgEl.width || 0, h: imgEl.naturalHeight || imgEl.height || 0};
+          draw();
+        };
+        imgEl.src = ev.target.result;
       };
-      imgEl.src = ev.target.result;
-    };
     r.readAsDataURL(file);
   });
 
   bgClearBtn.addEventListener('click', ()=>{
     bgState.data=null;
+    bgState.image=null;
     bgFile.value='';
     bgState.offset={x:0,y:0};
     bgState.rotation=0; bgState.flip=false;
@@ -1471,22 +1949,24 @@ ${svgText}
   });
 
   // Paste image from clipboard
-  window.addEventListener('paste',(e)=>{
-    const items = Array.from(e.clipboardData?.items||[]);
-    const it = items.find(i=> i.type && i.type.startsWith('image/'));
-    if(!it) return;
-    const file = it.getAsFile();
+    window.addEventListener('paste',(e)=>{
+      const items = Array.from(e.clipboardData?.items||[]);
+      const it = items.find(i=> i.type && i.type.startsWith('image/'));
+      if(!it) return;
+      const file = it.getAsFile();
     if(!file) return;
-    const r=new FileReader();
-    r.onload=(ev)=>{
-      const imgEl=new Image();
-      imgEl.onload=()=>{
-        bgState.data=ev.target.result;
-        bgState.offset={x:0,y:0};
-        draw();
+      const r=new FileReader();
+      r.onload=(ev)=>{
+        const imgEl=new Image();
+        imgEl.onload=()=>{
+          bgState.data=ev.target.result;
+          bgState.image=imgEl;
+          bgState.natural = {w: imgEl.naturalWidth || imgEl.width || 0, h: imgEl.naturalHeight || imgEl.height || 0};
+          bgState.offset={x:0,y:0};
+          draw();
+        };
+        imgEl.src=ev.target.result;
       };
-      imgEl.src=ev.target.result;
-    };
     r.readAsDataURL(file);
   });
 
@@ -1552,9 +2032,10 @@ ${svgText}
   updatePorCisloDisplay();
   updateMotivDisplay();
   updateSideTitles();
-  applyNoteModeRules();
   updateAirUiState();
   updatePerfUiState();
+  updateEasyUiState();
+  updateNotchShiftUiState();
   let epsSource = '';
   try { epsSource = localStorage.getItem('prefill_source') || ''; } catch (_) {}
   if (epsSource === 'eps' && window.applyEpsPayload) {
@@ -1578,5 +2059,3 @@ ${svgText}
   draw();
   pushUndoSnapshot(true);
 })();
-
-

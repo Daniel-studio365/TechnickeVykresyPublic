@@ -15,7 +15,7 @@
         <label for="motivInput">Motiv:
           <input id="motivInput" type="text" placeholder="Nazov motivu" maxlength="120">
         </label>
-        <label for="noteMode">Druh vrecka:
+        <label for="noteMode">Typ textov hore:
           <select id="noteMode">
             <option value="hygiena" selected>hygiena</option>
             <option value="chlieb">chlieb</option>
@@ -92,15 +92,49 @@
       <label>Vzdialenost od stredu: <input type="number" id="PerfOffset" value="7" min="0"></label>
       <span class="sep"></span>
 
+      <h3>Easy open</h3>
+      <label>Tvar easy open:
+        <select id="EasyShape">
+          <option value="none" selected>bez easy open</option>
+          <option value="rovna">rovna</option>
+          <option value="vodorovna">vodorovna</option>
+          <option value="U">U</option>
+          <option value="zahnut">zahnut</option>
+        </select>
+      </label>
+      <label>Strana easy open:
+        <select id="EasySide">
+          <option value="prava" selected>prava (hore)</option>
+          <option value="lava">lava (dole)</option>
+        </select>
+      </label>
+      <label>Odsadenie easy open: <input type="number" id="EasyOffset" value="70"></label>
+      <label>Dlzka vodorovnej casti: <input type="number" id="EasyHalfLen" value="250"></label>
+      <label>Otvor na prst:
+        <select id="EasyFingerHole">
+          <option value="nie" selected>nie</option>
+          <option value="ano">ano</option>
+        </select>
+      </label>
+      <span class="sep"></span>
+
       <h3>Zavesne otvory v chlopni</h3>
       <label>Vzialenost zavesnych otvorov: <input type="number" id="Cpitch" value="160"></label>
       <label>Umiestnenie stredu otvorov (z lavej strany chlopne): <input type="number" id="AxisInK" placeholder="K/2"></label>
+      <label>Zavesna spona v bokoryse:
+        <select id="SideClipView">
+          <option value="zhora" selected>zhora</option>
+          <option value="zdola">zdola</option>
+        </select>
+      </label>
       <div id="warnC">C je mimo W (zasahuje okraj)</div>
       <div id="warnAxis">Os je mimo 0..K</div>
       <span class="sep"></span>
 
       <h3>Zaseky pri zavesnych otvoroch</h3>
       <label>Dlzka zaseku: <input type="number" id="NotchLen" value="7"></label>
+      <label><input type="checkbox" id="toggle-notch-shift"> Zaseky posunute</label>
+      <label>Posun zasekov: <input type="number" id="NotchShift" value="0" step="0.1"></label>
       <label>Mostik: <input type="number" id="Mostik" value="0" readonly tabindex="-1"></label>
       <label><input type="checkbox" id="toggle-notches"> Zobrazit zaseky</label>
       <span class="sep"></span>
@@ -114,6 +148,13 @@
       </label>
       <label>Vzduch. otvor od okraja: <input type="number" id="AirEdge" value="30"></label>
       <label>Vzduchovy otvor od zalozky: <input type="number" id="AirXAbs" value=""></label>
+      <label>Typ vzduchovych otvorov:
+        <select id="AirType">
+          <option value="1" selected>1 - krizik</option>
+          <option value="2">2 - Y</option>
+          <option value="3">3 - rovny zarez</option>
+        </select>
+      </label>
       <label><input type="checkbox" id="AirInGOnly"> Vzduchove otvory len v zalozke</label>
       <span class="sep"></span>
 
@@ -225,7 +266,7 @@
             <span>Casova peciatka:</span>
             <span id="stamp" class="badge">-</span>
             <span>Vzor:</span>
-            <span id="vzCode" class="badge">vz-22</span>
+              <span id="vzCode" class="badge">vz-22-test</span>
           </div>
           <div class="field">
             <span class="motif-label">Motiv</span>
@@ -244,26 +285,53 @@
 
       <div class="card" id="bottom-notes">
         <div class="bottom-item">
-          <label class="bottom-label">Obrazok:</label>
-          <select id="clipPreset">
-            <option value="none" selected>Bez obrazka</option>
-            <option value="zhora">Spona zhora</option>
-            <option value="zdola">Spona zdola</option>
-            <option value="file">Vybrat vlastny subor</option>
-          </select>
-          <input type="file" id="bottomImgInput" accept="image/png,image/jpeg,image/webp,image/gif" />
-          <div class="bottom-box"><img id="bottomImgPreview" alt="Nahlad obrazka" /></div>
-        </div>
-        <div class="bottom-item">
           <label class="bottom-label" for="bottomText1">Poznamky:</label>
+          <div class="bottom-toolbar">
+            <label>Velkost:
+              <select id="bottomText1Size">
+                <option value="14" selected>normal</option>
+                <option value="16">vacsia</option>
+                <option value="48">najvacsie</option>
+              </select>
+            </label>
+            <label><input type="checkbox" id="bottomText1Bold"> B</label>
+            <label><input type="checkbox" id="bottomText1Italic"> I</label>
+            <label>Farba:
+              <select id="bottomText1Color">
+                <option value="#0f172a" selected>cierna</option>
+                <option value="#dc2626">cervena</option>
+                <option value="#2563eb">modra</option>
+                <option value="#39ff14">zelena</option>
+              </select>
+            </label>
+          </div>
           <div class="bottom-box">
-            <textarea id="bottomText1" class="bottom-textarea" placeholder="Dopln text"></textarea>
+            <textarea id="bottomText1" class="bottom-textarea" placeholder="Dopln text" rows="3"></textarea>
           </div>
         </div>
         <div class="bottom-item">
           <label class="bottom-label" for="bottomText2">Poznamky technologa:</label>
+          <div class="bottom-toolbar">
+            <label>Velkost:
+              <select id="bottomText2Size">
+                <option value="14" selected>normal</option>
+                <option value="16">vacsia</option>
+                <option value="48">najvacsie</option>
+              </select>
+            </label>
+            <label><input type="checkbox" id="bottomText2Bold"> B</label>
+            <label><input type="checkbox" id="bottomText2Italic"> I</label>
+            <label>Farba:
+              <select id="bottomText2Color">
+                <option value="#0f172a" selected>cierna</option>
+                <option value="#dc2626">cervena</option>
+                <option value="#2563eb">modra</option>
+                <option value="#39ff14">zelena</option>
+              </select>
+            </label>
+          </div>
           <div class="bottom-box">
-            <textarea id="bottomText2" class="bottom-textarea" placeholder="Dopln text"></textarea>
+            <textarea id="bottomText2" class="bottom-textarea" placeholder="Dopln text" rows="3"></textarea>
           </div>
         </div>
       </div>
@@ -273,8 +341,13 @@
   <div id="log"></div>
   <script src="js/eps_map.js"></script>
   <script src="js/eps_import.js"></script>
+  <script src="help/help_vz22_test.js"></script>
+  <script src="js/help_tooltips.js"></script>
+  <script>
+    if (window.initHelpTooltips && window.HELP_VZ22_TEST) {
+      window.initHelpTooltips(window.HELP_VZ22_TEST);
+    }
+  </script>
   <script src="js/vz22_test.js"></script>
 </body>
 </html>
-
-

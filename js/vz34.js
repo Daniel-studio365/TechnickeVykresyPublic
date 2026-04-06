@@ -489,18 +489,24 @@
   }
   function drawAirMark(cx,cy,type='1',size=6){
     const t = String(type || '1');
-    if(t === '2'){
-      create('circle',{cx,cy,r:size*0.9,fill:'none',stroke:'#0f172a','stroke-width':1});
-      create('line',{x1:cx-size,x2:cx+size,y1:cy,y2:cy,stroke:'#0f172a','stroke-width':1});
-      create('line',{x1:cx,y1:cy-size,x2:cx,y2:cy+size,stroke:'#0f172a','stroke-width':1});
-      return;
-    }
-    if(t === '3'){
+    if(t === '1'){
       create('line',{x1:cx-size,x2:cx+size,y1:cy-size,y2:cy+size,stroke:'#0f172a','stroke-width':1});
       create('line',{x1:cx-size,x2:cx+size,y1:cy+size,y2:cy-size,stroke:'#0f172a','stroke-width':1});
       return;
     }
+    if(t === '2'){
+      create('circle',{cx,cy,r:size*0.95,fill:'none',stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx-size,y1:cy-size,x2:cx,y2:cy,stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx-size,y1:cy+size,x2:cx,y2:cy,stroke:'#0f172a','stroke-width':1});
+      create('line',{x1:cx,y1:cy,x2:cx+size,y2:cy,stroke:'#0f172a','stroke-width':1});
+      return;
+    }
+    if(t === '3'){
+      create('line',{x1:cx,x2:cx,y1:cy-size,y2:cy+size,stroke:'#0f172a','stroke-width':1});
+      return;
+    }
     create('line',{x1:cx-size,x2:cx+size,y1:cy,y2:cy,stroke:'#0f172a','stroke-width':1});
+    create('line',{x1:cx,y1:cy-size,x2:cx,y2:cy+size,stroke:'#0f172a','stroke-width':1});
   }
 
   function draw(){
@@ -714,11 +720,13 @@
       const x1=xNotchStart, x2=xKend;
       create('line',{x1,y1:yNotchTop,x2,y2:yNotchTop,stroke:'#0f172a'});
       create('line',{x1,y1:yNotchBottom,x2,y2:yNotchBottom,stroke:'#0f172a'});
-      if(!state.lineOnly && !notchShiftEnabled){
+      if(!state.lineOnly){
         const upY   = y2 - Math.max(14, Math.round(state.fontPx*2.0));
         const downY = y2 + Math.max(18, Math.round(state.fontPx*2.2));
         hDim(x1, upY, x2, notchLenPx, 10, '#dc2626');
-        hDim(xHoleRight, downY, x1, bridgeVal.toFixed(1), 10, '#dc2626');
+        if(!notchShiftEnabled){
+          hDim(xHoleRight, downY, x1, bridgeVal.toFixed(1), 10, '#dc2626');
+        }
       }
     }
 
