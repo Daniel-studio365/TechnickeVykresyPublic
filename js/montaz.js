@@ -21,6 +21,9 @@ const svgRoot = $('svgRoot');
   photoW:15,
   photoH:7,
   photoNote:'',
+  photoEnabled:true,
+  photoOffsetTop:5,
+  photoOffsetRight:10,
   motiv:'',
   refPartA:'',
   refPartB:'',
@@ -45,6 +48,12 @@ const svgRoot = $('svgRoot');
   templateHeight:null,
   templateSide:'none',
   templateGap:0,
+  templateOffsetX:0,
+  templateOffsetY:0,
+  orez:3,
+  orezShow:true,
+  markEnabled:true,
+  markText:'',
   calibActive:false,
   calibPoints:[],
   measureMode:'off',
@@ -53,11 +62,14 @@ const svgRoot = $('svgRoot');
   measurePreview:null
 };
 
-const inputs = [
-  'W','L','fontPx','toggle-grid','lineStyle','lineStyleH','strokeWidth',
-  'dimPos','dimOffset','dimPosH','dimOffsetH','units','decimals',
-  'motivInput','refPartA','refPartB','porCislo',
-  'repeatX','repeatY','gapX','gapY','repeatMode',
+  const inputs = [
+    'W','L','fontPx','toggle-grid','lineStyle','lineStyleH','strokeWidth',
+    'dimPos','dimOffset','dimPosH','dimOffsetH','units','decimals',
+    'motivInput','refPartA','refPartB','porCislo',
+    'repeatX','repeatY','gapX','gapY','repeatMode',
+    'orez','orezShow',
+    'templateOffsetX','templateOffsetY',
+    'markEnabled','markText','markText2',
   'rollEnabled','rollType','rollVariant','photoW','photoH','photoNote','exportOrient','bgWidth','bgHeight','bgOpacity','measureMode'
 ].map(id=>$(id));
 const undoBtn = $('btn-undo');
@@ -191,7 +203,11 @@ function textWithBg(txt,x,y,opts={}){
     fontSize=null,
     fontWeight=null,
     boxWidth=null,
-    boxHeight=null
+    boxHeight=null,
+    bgFill='white',
+    bgOpacity=0.9,
+    padX=1,
+    padY=0
   } = opts;
   const g = create('g',{},parent);
   const tAttrs = {x,y,'text-anchor':anchor,'dominant-baseline':baseline,fill:color,'font-size': fontSize || state.fontPx};
@@ -202,12 +218,11 @@ function textWithBg(txt,x,y,opts={}){
   if(boxWidth && boxHeight){
     const cx = bb.x + bb.width/2;
     const cy = bb.y + bb.height/2;
-    const r = create('rect',{x:cx - boxWidth/2,y:cy - boxHeight/2,width:boxWidth,height:boxHeight,fill:'white',opacity:'0.9'});
+    const r = create('rect',{x:cx - boxWidth/2,y:cy - boxHeight/2,width:boxWidth,height:boxHeight,fill:bgFill,opacity:bgOpacity});
     g.insertBefore(r,t);
     return g;
   }
-  const padX=1, padY=0;
-  const r = create('rect',{x:bb.x-padX,y:bb.y-padY,width:bb.width+2*padX,height:bb.height+2*padY,fill:'white',opacity:'0.9'});
+  const r = create('rect',{x:bb.x-padX,y:bb.y-padY,width:bb.width+2*padX,height:bb.height+2*padY,fill:bgFill,opacity:bgOpacity});
   g.insertBefore(r,t);
   return g;
 }
@@ -215,21 +230,39 @@ const arrowLeft=(x,y,c,p=svgRoot)=>create('path',{d:`M ${x} ${y} l 6 -4 v 8 z`,f
 const arrowRight=(x,y,c,p=svgRoot)=>create('path',{d:`M ${x} ${y} l -6 -4 v 8 z`,fill:c},p);
 const arrowUp=(x,y,c,p=svgRoot)=>create('path',{d:`M ${x} ${y} l -4 6 h 8 z`,fill:c},p);
 const arrowDown=(x,y,c,p=svgRoot)=>create('path',{d:`M ${x} ${y} l -4 -6 h 8 z`,fill:c},p);
+const CORONA_TEXT = 'BEZ KORONOVEJ UPRAVY';
+const CORONA_COLOR = '#166534';
+const CORONA_BG = '#86efac';
 
-function formatVal(v){
-  const d = state.decimals ?? 0;
+function formatVal(v, dOverride=null){
+  const d = (dOverride !== null && dOverride !== undefined) ? dOverride : (state.decimals ?? 0);
   const pow = Math.pow(10,d);
   const rounded = Math.round(v * pow) / pow;
   const numStr = rounded.toFixed(d);
   return state.units === 'mm' ? `${numStr} mm` : numStr;
 }
-function formatPlain(v){
-  const d = state.decimals ?? 0;
+
+function drawCoronaLegendSvg(parent, x, y){
+  return textWithBg(CORONA_TEXT, x, y, {
+    anchor:'end',
+    baseline:'middle',
+    parent,
+    color: CORONA_COLOR,
+    fontWeight:'700',
+    fontSize:16,
+    bgFill: CORONA_BG,
+    bgOpacity: 0.3,
+    padX: 6,
+    padY: 4
+  });
+}
+function formatPlain(v, dOverride=null){
+  const d = (dOverride !== null && dOverride !== undefined) ? dOverride : (state.decimals ?? 0);
   const pow = Math.pow(10,d);
   return (Math.round(v * pow) / pow).toFixed(d);
 }
 
-function hDim(x1,y,x2,val,ext=10,color='#0f172a', fontScale=1, textOffset=null, useUnits=true, parent=svgRoot){
+function hDim(x1,y,x2,val,ext=10,color='#0f172a', fontScale=1, textOffset=null, useUnits=true, parent=svgRoot, decimalsOverride=null){
   if(x2<x1){ const t=x1; x1=x2; x2=t; }
   const sw = state.strokeWidth || 1;
   create('line',{x1,y1:y,x2,y2:y,stroke:color,'stroke-width':sw}, parent);
@@ -239,7 +272,7 @@ function hDim(x1,y,x2,val,ext=10,color='#0f172a', fontScale=1, textOffset=null, 
   const original = state.fontPx;
   state.fontPx = Math.max(6, original * fontScale);
   const txtOffset = (textOffset!==null ? textOffset : 6);
-  const label = useUnits ? formatVal(val) : formatPlain(val);
+  const label = useUnits ? formatVal(val, decimalsOverride) : formatPlain(val, decimalsOverride);
   const g = parent || svgRoot;
   const lbl = textWithBg(label,(x1+x2)/2,y-txtOffset,{color,parent:g});
   if(lbl) lbl.setAttribute('class', `${lbl.getAttribute('class') || ''} dim-label`.trim());
@@ -281,7 +314,14 @@ function drawMeasurements(parent){
   const tgt = parent || svgRoot;
   for(const m of state.measures){
     if(m.type==='h'){
-      hDim(m.x1, m.y1, m.x2, Math.abs(m.x2-m.x1), 8, '#16a34a', 0.95, null, true, tgt);
+      const x1 = Math.min(m.x1, m.x2);
+      const x2 = Math.max(m.x1, m.x2);
+      const yTop = state.measureExtent?.yTop ?? Math.min(m.y1, m.y2);
+      const yBottom = state.measureExtent?.yBottom ?? Math.max(m.y1, m.y2);
+      if (yBottom > yTop){
+        create('rect',{x:x1,y:yTop,width:x2-x1,height:(yBottom-yTop),fill:'#86efac',opacity:0.25,stroke:'none'}, tgt);
+      }
+      hDim(x1, m.y1, x2, Math.abs(m.x2-m.x1), 8, '#16a34a', 0.95, null, true, tgt);
     }else if(m.type==='v'){
       vDim(m.x1, m.y1, m.y2, Math.abs(m.y2-m.y1), 8, '#16a34a', 0.95, null, true, tgt);
     }
@@ -289,7 +329,14 @@ function drawMeasurements(parent){
   if(state.measurePreview){
     const m = state.measurePreview;
     if(m.type==='h'){
-      hDim(m.x1, m.y1, m.x2, Math.abs(m.x2-m.x1), 8, '#22c55e', 0.95, null, true, tgt);
+      const x1 = Math.min(m.x1, m.x2);
+      const x2 = Math.max(m.x1, m.x2);
+      const yTop = state.measureExtent?.yTop ?? Math.min(m.y1, m.y2);
+      const yBottom = state.measureExtent?.yBottom ?? Math.max(m.y1, m.y2);
+      if (yBottom > yTop){
+        create('rect',{x:x1,y:yTop,width:x2-x1,height:(yBottom-yTop),fill:'#bbf7d0',opacity:0.35,stroke:'none'}, tgt);
+      }
+      hDim(x1, m.y1, x2, Math.abs(m.x2-m.x1), 8, '#22c55e', 0.95, null, true, tgt);
     }else if(m.type==='v'){
       vDim(m.x1, m.y1, m.y2, Math.abs(m.y2-m.y1), 8, '#22c55e', 0.95, null, true, tgt);
     }
@@ -304,6 +351,16 @@ function draw(){
   state.gapX = num($('gapX'), 0);
   state.gapY = num($('gapY'), 0);
   state.repeatMode = $('repeatMode')?.value || 'standard';
+  state.orez = Math.max(0, num($('orez'), 0));
+  state.orezShow = !!$('orezShow')?.checked;
+  state.templateOffsetX = num($('templateOffsetX'), 0);
+  state.templateOffsetY = num($('templateOffsetY'), 0);
+  state.photoEnabled = !!$('photoEnabled')?.checked;
+  state.photoOffsetTop = num($('photoOffsetTop'), 5);
+  state.photoOffsetRight = num($('photoOffsetRight'), 10);
+  state.markEnabled = !!$('markEnabled')?.checked;
+  state.markText = $('markText')?.value || '';
+  state.markText2 = $('markText2')?.value || '';
   state.fontPx = parseInt($('fontPx')?.value,10)||14;
   $('fontPxVal').textContent = state.fontPx + ' px';
   const lineStyle = $('lineStyle')?.value === 'dashed' ? '6 4' : null;
@@ -422,6 +479,7 @@ function draw(){
   const totalH = state.repeatY * unitH + Math.max(0, state.repeatY - 1) * state.gapY;
 
   const offsetX=60, offsetY=80;
+  state.measureExtent = {yTop: offsetY, yBottom: offsetY + totalH};
   const baseDimOffset = dimOffsetVal;
   const yTop=offsetY, yBottom=offsetY+totalH;
 
@@ -485,11 +543,13 @@ function draw(){
 
   if (state.templateImageData && state.templateSide !== 'none'){
     const templateW = state.templateWidth ?? Math.max(40, Math.round(unitW * 0.2));
-    const templateH = state.templateHeight ?? totalH;
+    const maxTemplateH = Math.max(0, totalH - 20);
+    let templateH = state.templateHeight ?? maxTemplateH;
+    if (templateH > maxTemplateH) templateH = maxTemplateH;
     const templateX = state.templateSide === 'left'
-      ? offsetX - state.templateGap - templateW
-      : offsetX + totalW + state.templateGap;
-    const templateY = offsetY + (totalH - templateH) / 2;
+      ? offsetX - state.templateGap - templateW + state.templateOffsetX
+      : offsetX + totalW + state.templateGap + state.templateOffsetX;
+    const templateY = offsetY + totalH - templateH - 20 + state.templateOffsetY;
     create('image',{
       href: state.templateImageData,
       x: templateX,
@@ -500,8 +560,124 @@ function draw(){
     }, contentGroup);
   }
 
+  // fotobunka v kazdej jednotke
+  const hasPhotoMark = state.photoEnabled && Number.isFinite(state.photoW) && state.photoW > 0 && Number.isFinite(state.photoH) && state.photoH > 0;
+  if (hasPhotoMark){
+    const markW = state.photoW;
+    const markH = state.photoH;
+    const drawMarkInCell = (cellX, cellY, row, col)=>{
+      const x = cellX + unitW - state.photoOffsetRight - markW;
+      const y = cellY + state.photoOffsetTop;
+      const rect = create('rect',{x, y, width:markW, height:markH, fill:'#00b5ff', stroke:'#00b5ff', 'stroke-width':state.strokeWidth}, contentGroup);
+      return {x, y, w:markW, h:markH, rect};
+    };
+    for(let row=0; row<state.repeatY; row++){
+      for(let col=0; col<state.repeatX; col++){
+        const cellX = offsetX + col * (unitW + state.gapX);
+        const cellY = offsetY + row * (unitH + state.gapY);
+        const mark = drawMarkInCell(cellX, cellY, row, col);
+        // ak je bunka otocena 180, aplikuj rovnake transformy ako obrazok
+        const cx = cellX + state.bgOffsetX + (state.bgWidth ?? unitW)/2;
+        const cy = cellY + state.bgOffsetY + (state.bgHeight ?? unitH)/2;
+        const transforms = [];
+        if(state.repeatMode === 'alt-columns' && (col % 2) === 1) transforms.push(`rotate(180 ${cx} ${cy})`);
+        if(state.repeatMode === 'alt-rows' && (row % 2) === 1) transforms.push(`rotate(180 ${cx} ${cy})`);
+        if(state.repeatMode === 'checkerboard' && ((row + col) % 2) === 1) transforms.push(`rotate(180 ${cx} ${cy})`);
+        if(transforms.length){ mark.rect.setAttribute('transform', transforms.join(' ')); }
+      }
+    }
+    // koty len pre prvu jednotku (0,0)
+    const baseX = offsetX;
+    const baseY = offsetY;
+    const markX = baseX + unitW - state.photoOffsetRight - markW;
+    const markY = baseY + state.photoOffsetTop;
+    const labelSize = Math.max(10, state.fontPx - 2);
+    // rozmer s vynasacou ciarou 45 stupnov z laveho dolneho rohu, cca 10mm
+    const leadLen = 10;
+    const leadX = markX - leadLen;
+    const leadY = markY + markH + leadLen;
+    create('line',{x1:markX, y1:markY+markH, x2:leadX, y2:leadY, stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
+    textWithBg(`${formatVal(markW)} x ${formatVal(markH)}`, leadX, leadY + labelSize, {anchor:'end', baseline:'hanging', parent:contentGroup, color:'#0f172a', fontWeight:'700', fontSize: labelSize});
+    // offset top pri lavom hornom rohu, tesne pri značke
+    const topLabelX = markX;
+    const topLabelY = markY - 2;
+    textWithBg(formatVal(state.photoOffsetTop), topLabelX, topLabelY, {anchor:'end', baseline:'baseline', parent:contentGroup, color:'#0f172a', fontWeight:'600', fontSize: labelSize});
+    // offset right pri pravom dolnom rohu, tesne pri značke
+    const rightLabelX = markX + markW + 4;
+    const rightLabelY = markY + markH;
+    textWithBg(formatVal(state.photoOffsetRight), rightLabelX, rightLabelY, {anchor:'start', baseline:'middle', parent:contentGroup, color:'#0f172a', fontWeight:'600', fontSize: labelSize});
+  }
+
+  // template znacky (sipka + referencny bod + text)
+  if (state.markEnabled && state.templateSide !== 'none'){
+    const templateW = state.templateWidth ?? Math.max(40, Math.round(unitW * 0.2));
+    const maxTemplateH = Math.max(0, totalH - 20);
+    let templateH = state.templateHeight ?? maxTemplateH;
+    if (templateH > maxTemplateH) templateH = maxTemplateH;
+    const templateX = state.templateSide === 'left'
+      ? offsetX - state.templateGap - templateW + state.templateOffsetX
+      : offsetX + totalW + state.templateGap + state.templateOffsetX;
+    const templateY = offsetY + totalH - templateH - 20 + state.templateOffsetY;
+    const anchorX = state.templateSide === 'left'
+      ? templateX + 3
+      : templateX + templateW - 3;
+    const arrowTipY = offsetY + 50;
+    const arrowH = 10, arrowW = 5;
+    const shaftW = 2;
+    const tipX = anchorX;
+    const tipY = arrowTipY;
+    const baseY = tipY + 4;
+    const shaftTop = baseY;
+    const shaftBottom = tipY + arrowH;
+    const pathD = [
+      `M ${tipX} ${tipY}`,
+      `L ${tipX - arrowW/2} ${baseY}`,
+      `L ${tipX - shaftW/2} ${baseY}`,
+      `L ${tipX - shaftW/2} ${shaftBottom}`,
+      `L ${tipX + shaftW/2} ${shaftBottom}`,
+      `L ${tipX + shaftW/2} ${baseY}`,
+      `L ${tipX + arrowW/2} ${baseY}`,
+      'Z'
+    ].join(' ');
+    create('path',{d:pathD, fill:'#0f172a'}, contentGroup);
+    const dotY = tipY + 30;
+    create('circle',{cx:tipX, cy:dotY, r:1.5, fill:'#0f172a'}, contentGroup);
+    const textY = offsetY + 110;
+    const fullTxt1 = (state.markText || 'Essity template').trim();
+    const fullTxt2 = (state.markText2 || '').trim();
+    const part1 = fullTxt1.slice(0,20) || ' ';
+    const part2 = fullTxt2 ? fullTxt2.slice(0,15) : '';
+    const addRotatedText = (txt, yPos)=>{
+      const node = textWithBg(txt, tipX, yPos, {anchor:'start', baseline:'middle', parent:contentGroup, color:'#0f172a', fontWeight:'700', fontSize: 4});
+      if (node) {
+        const bb = node.getBBox();
+        const cx = bb.x;
+        const cy = bb.y + bb.height/2;
+        node.setAttribute('transform', `rotate(90 ${cx} ${cy})`);
+      }
+    };
+    addRotatedText(part1, textY);
+    if (part2) addRotatedText(part2, offsetY + 160);
+  }
+
   // hlavny obdlznik montaze
   create('rect',{x:offsetX,y:offsetY,width:totalW,height:totalH,fill:'none',stroke:'#0f172a','stroke-width':state.strokeWidth}, contentGroup);
+
+  // orezove ciary a koty
+  const orez = state.orez;
+  const orezLeftX = offsetX - orez;
+  const orezRightX = offsetX + totalW + orez;
+  if (orez > 0 && state.orezShow){
+    const orezStyle = {'stroke':'#dc2626','stroke-width':state.strokeWidth,'stroke-dasharray':'4 3'};
+    create('line',{x1:orezLeftX,y1:offsetY,x2:orezLeftX,y2:yBottom,...orezStyle}, contentGroup);
+    create('line',{x1:orezRightX,y1:offsetY,x2:orezRightX,y2:yBottom,...orezStyle}, contentGroup);
+    const baseGap = Math.max(80, state.fontPx*5);
+    const dimBaseY = dimPosEff === 'top' ? (yTop - baseGap) : (yBottom + baseGap);
+    const delta = dimPosEff === 'top' ? -18 : 18;
+    hDim(orezLeftX, dimBaseY, offsetX, orez, 10, '#dc2626', 1.0, null, true, contentGroup);
+    hDim(offsetX+totalW, dimBaseY, orezRightX, orez, 10, '#dc2626', 1.0, null, true, contentGroup);
+    hDim(orezLeftX, dimBaseY + delta, orezRightX, totalW + 2*orez, 10, '#dc2626', 1.1, null, true, contentGroup);
+  }
 
   // delenie sirky
   const segValues = state.segments.map(inp => num(inp,0)).filter(v=>v>0);
@@ -796,7 +972,9 @@ function draw(){
     const sideText = state.printSide === 'top' ? 'vrchna' : 'spodna';
     const lacquerText = state.lacquerNext ? 'Lak na inom oddeleni (inseter/kasirka)' : '';
     const lacquerColor = state.lacquerNext ? '#dc2626' : '#0f172a';
-    textWithBg(navinLabelText, 10, headerY + headerH/2, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#dc2626', fontWeight:'700', fontSize:20});
+    const headerMidY = headerY + headerH/2;
+    textWithBg(navinLabelText, 10, headerMidY, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#dc2626', fontWeight:'700', fontSize:20});
+    drawCoronaLegendSvg(headerGroup, offsetX + totalW, headerMidY);
     const headerNote = (navinMode === 'tlac' && state.printSide === 'bottom') ? 'Pohlad cez montaz' : '';
     if (headerNote) {
       textWithBg(headerNote, headerW + 18, headerY + headerH/2, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#0f172a', fontWeight:'700', fontSize:16});
@@ -855,6 +1033,8 @@ function draw(){
 function reset(){
   $('W').value=400; $('L').value=600; $('fontPx').value=14; $('fontPxVal').textContent='14 px'; $('toggle-grid').checked=false; $('lineStyle').value='solid';
   $('repeatX').value='1'; $('repeatY').value='1'; $('gapX').value='0'; $('gapY').value='0'; $('repeatMode').value='standard';
+  $('orez').value='3';
+  $('orezShow').checked = true;
   $('strokeWidth').value=1; $('dimPos').value='bottom'; $('dimOffset').value=25; $('dimPosH').value='right'; $('dimOffsetH').value=25; $('lineStyleH').value='solid';
   $('units').value='none'; $('decimals').value='0';
   $('rollEnabled').checked=true; $('rollPrint').checked=false; $('rollAssembly').checked=false; $('rollType').value='1'; $('rollVariant').value='A';
@@ -862,17 +1042,25 @@ function reset(){
   $('strokeWidth').value='0.8';
   if ($('lacquerNo')) $('lacquerNo').checked = true;
   $('photoW').value = 15; $('photoH').value = 7; if ($('photoNote')) $('photoNote').value = '';
+  if ($('photoEnabled')) $('photoEnabled').checked = true;
+  if ($('photoOffsetTop')) $('photoOffsetTop').value = 5;
+  if ($('photoOffsetRight')) $('photoOffsetRight').value = 10;
+  if ($('markEnabled')) $('markEnabled').checked = true;
+  if ($('markText')) $('markText').value = '';
+  if ($('markText2')) $('markText2').value = '';
   if ($('motivInput')) $('motivInput').value = '';
   if ($('refPartA')) $('refPartA').value = '';
   if ($('refPartB')) $('refPartB').value = '';
   if ($('porCislo')) $('porCislo').value = '';
   if ($('orderNo')) $('orderNo').value = '';
   if ($('orderNote')) $('orderNote').value = '';
-  state.repeatX = 1; state.repeatY = 1; state.gapX = 0; state.gapY = 0; state.repeatMode = 'standard';
+  state.repeatX = 1; state.repeatY = 1; state.gapX = 0; state.gapY = 0; state.repeatMode = 'standard'; state.orez = 3; state.orezShow = true;
   $('exportOrient').value='portrait';
   $('bgFile').value=''; state.bgImageData=null; $('bgWidth').value=''; $('bgHeight').value=''; state.bgWidth=null; state.bgHeight=null; state.bgOpacity=0.6; $('bgOpacity').value=0.6; $('bgOpacityVal').textContent='60 %'; state.bgRot=0; state.bgFlip=false; state.bgOffsetX=0; state.bgOffsetY=0;
-  $('templateFile').value=''; $('templateWidth').value=''; $('templateHeight').value=''; $('templateSide').value='none'; $('templateGap').value='0'; state.templateImageData=null; state.templateWidth=null; state.templateHeight=null; state.templateSide='none'; state.templateGap=0;
+  $('templateFile').value=''; $('templateWidth').value=''; $('templateHeight').value=''; $('templateSide').value='none'; $('templateGap').value='0'; $('templateOffsetX').value='0'; $('templateOffsetY').value='0'; state.templateImageData=null; state.templateWidth=null; state.templateHeight=null; state.templateSide='none'; state.templateGap=0; state.templateOffsetX=0; state.templateOffsetY=0;
   $('measureMode').value='off'; state.measureMode='off'; state.measurePick=null; state.measures=[]; state.measurePreview=null;
+  state.photoEnabled = true; state.photoOffsetTop = 5; state.photoOffsetRight = 10;
+  state.markEnabled = true; state.markText = ''; state.markText2 = '';
   state.calibActive=false; state.calibPoints=[]; $('bg-calib-cancel').style.display='none'; $('bg-calib').style.display='inline-block'; svgRoot.style.cursor='';
   $('segments').innerHTML=''; state.segments.length=0; addSegmentInput('');
   $('segmentsH').innerHTML=''; state.segmentsH.length=0; addSegmentInputH('');
@@ -1082,6 +1270,23 @@ function exportPNG(){
       ctx.fillStyle = red;
       ctx.font = `700 ${titleFont}px Arial, Helvetica, sans-serif`;
       ctx.fillText(navinLabelText, leftX, y);
+      ctx.font = `700 ${bodyFont}px Arial, Helvetica, sans-serif`;
+      ctx.textAlign = 'right';
+      ctx.fillStyle = CORONA_COLOR;
+      const coronaMetrics = ctx.measureText(CORONA_TEXT);
+      const coronaPadX = Math.round(bodyFont * 0.35);
+      const coronaPadY = Math.round(bodyFont * 0.2);
+      const coronaW = Math.ceil(coronaMetrics.width + coronaPadX * 2);
+      const coronaH = Math.ceil(bodyFont + coronaPadY * 2);
+      const coronaX = marginPx + usableW - coronaW;
+      const coronaY = Math.round(y - bodyFont + 2 - coronaPadY);
+      ctx.fillStyle = CORONA_BG;
+      ctx.globalAlpha = 0.3;
+      ctx.fillRect(coronaX, coronaY, coronaW, coronaH);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = CORONA_COLOR;
+      ctx.fillText(CORONA_TEXT, marginPx + usableW - coronaPadX, y);
+      ctx.textAlign = 'left';
       y += Math.round(titleFont * 1.15);
 
       ctx.fillStyle = ink;
@@ -1173,6 +1378,9 @@ function collectState(){
     photoW: state.photoW,
     photoH: state.photoH,
     photoNote: state.photoNote,
+    photoEnabled: state.photoEnabled,
+    photoOffsetTop: state.photoOffsetTop,
+    photoOffsetRight: state.photoOffsetRight,
     motiv: state.motiv,
     refPartA: state.refPartA,
     refPartB: state.refPartB,
@@ -1198,6 +1406,13 @@ function collectState(){
     templateHeight:$('templateHeight')?.value || '',
     templateSide:state.templateSide,
     templateGap:state.templateGap,
+    templateOffsetX: state.templateOffsetX,
+    templateOffsetY: state.templateOffsetY,
+    orez: state.orez,
+    orezShow: state.orezShow,
+    markEnabled: state.markEnabled,
+    markText: state.markText,
+    markText2: state.markText2,
     measures: state.measures,
     measureMode: state.measureMode,
     segments: state.segments.map(inp=>num(inp,0)),
@@ -1246,6 +1461,9 @@ function loadData(data){
   $('photoW').value = data.photoW ?? 15;
   $('photoH').value = data.photoH ?? 7;
   if ($('photoNote')) $('photoNote').value = data.photoNote ?? '';
+  $('photoEnabled').checked = data.photoEnabled ?? true;
+  $('photoOffsetTop').value = data.photoOffsetTop ?? 5;
+  $('photoOffsetRight').value = data.photoOffsetRight ?? 10;
   if ($('motivInput')) $('motivInput').value = data.motiv ?? data.orderNote ?? '';
   if ($('refPartA')) $('refPartA').value = data.refPartA ?? '';
   if ($('refPartB')) $('refPartB').value = data.refPartB ?? '';
@@ -1262,15 +1480,30 @@ function loadData(data){
   state.gapX = num($('gapX'), 0);
   state.gapY = num($('gapY'), 0);
   state.repeatMode = $('repeatMode').value || 'standard';
+  $('orez').value = data.orez ?? 3;
+  state.orez = Math.max(0, num($('orez'), 3));
+  $('orezShow').checked = data.orezShow ?? true;
+  state.orezShow = !!$('orezShow')?.checked;
+  $('markEnabled').checked = data.markEnabled ?? true;
+  $('markText').value = data.markText ?? '';
+  $('markText2').value = data.markText2 ?? '';
+  state.markEnabled = !!$('markEnabled')?.checked;
+  state.markText = $('markText')?.value || '';
+  state.markText2 = $('markText2')?.value || '';
   state.photoW = numOrNull($('photoW'));
   state.photoH = numOrNull($('photoH'));
   state.photoNote = $('photoNote')?.value || '';
+  state.photoEnabled = !!$('photoEnabled')?.checked;
+  state.photoOffsetTop = num($('photoOffsetTop'), 5);
+  state.photoOffsetRight = num($('photoOffsetRight'), 10);
   state.motiv = $('motivInput')?.value || '';
   state.refPartA = $('refPartA')?.value || '';
   state.refPartB = $('refPartB')?.value || '';
   state.porCislo = $('porCislo')?.value || '';
   state.orderNo = $('orderNo')?.value || '';
   state.orderNote = $('orderNote')?.value || '';
+  state.colorNumber = $('colorNumber')?.value || '';
+  state.colorName = $('colorName')?.value || '';
   $('exportOrient').value = data.exportOrient ?? 'portrait';
   $('bgWidth').value = data.bgWidth ?? '';
   $('bgHeight').value = data.bgHeight ?? '';
@@ -1287,13 +1520,21 @@ function loadData(data){
   $('templateHeight').value = data.templateHeight ?? '';
   $('templateSide').value = data.templateSide ?? 'none';
   $('templateGap').value = data.templateGap ?? 0;
+  $('templateOffsetX').value = data.templateOffsetX ?? 0;
+  $('templateOffsetY').value = data.templateOffsetY ?? 0;
   state.templateWidth = $('templateWidth').value ? num($('templateWidth'), null) : null;
   state.templateHeight = $('templateHeight').value ? num($('templateHeight'), null) : null;
   state.templateSide = $('templateSide').value || 'none';
   state.templateGap = num($('templateGap'), 0);
+  state.templateOffsetX = num($('templateOffsetX'), 0);
+  state.templateOffsetY = num($('templateOffsetY'), 0);
   state.measureMode = data.measureMode ?? 'off';
   $('measureMode').value = state.measureMode;
   state.measures = Array.isArray(data.measures)? data.measures : [];
+  $('colorNumber').value = data.colorNumber ?? '';
+  $('colorName').value = data.colorName ?? '';
+  state.colorNumber = $('colorNumber')?.value || '';
+  state.colorName = $('colorName')?.value || '';
   $('segments').innerHTML=''; state.segments.length=0;
   (data.segments ?? ['']).forEach(v=> addSegmentInput(v));
   $('segmentsH').innerHTML=''; state.segmentsH.length=0;
@@ -1454,6 +1695,18 @@ $('seg-remove')?.addEventListener('click', ()=>{ removeSegmentInput(); pushUndoS
 $('segH-add')?.addEventListener('click', ()=>{ addSegmentInputH(''); pushUndoSnapshot(true); });
 $('segH-remove')?.addEventListener('click', ()=>{ removeSegmentInputH(); pushUndoSnapshot(true); });
 $('printOps')?.addEventListener('change', draw);
+$('repeatX')?.addEventListener('input', ()=>{ draw(); });
+$('repeatY')?.addEventListener('input', ()=>{ draw(); });
+$('gapX')?.addEventListener('input', ()=>{ draw(); });
+$('gapY')?.addEventListener('input', ()=>{ draw(); });
+$('repeatMode')?.addEventListener('change', ()=>{ draw(); });
+$('orez')?.addEventListener('input', ()=>{ state.orez = Math.max(0, num($('orez'), 0)); draw(); });
+$('orezShow')?.addEventListener('change', ()=>{ state.orezShow = !!$('orezShow')?.checked; draw(); });
+$('photoEnabled')?.addEventListener('change', ()=>{ state.photoEnabled = !!$('photoEnabled')?.checked; draw(); });
+$('photoOffsetTop')?.addEventListener('input', ()=>{ state.photoOffsetTop = num($('photoOffsetTop'), 5); draw(); });
+$('photoOffsetRight')?.addEventListener('input', ()=>{ state.photoOffsetRight = num($('photoOffsetRight'), 10); draw(); });
+$('markEnabled')?.addEventListener('change', ()=>{ state.markEnabled = !!$('markEnabled')?.checked; draw(); });
+$('markText')?.addEventListener('input', ()=>{ state.markText = $('markText')?.value || ''; draw(); });
 document.querySelectorAll('input[name=\"lacquerStep\"]').forEach(el=> el.addEventListener('change', draw));
 document.querySelectorAll('input[name="printSide"]').forEach(el=> el.addEventListener('change', draw));
 $('rollEnabled')?.addEventListener('change', ()=> syncRollChecks('rollEnabled'));
@@ -1485,7 +1738,10 @@ $('templateWidth')?.addEventListener('input', ()=>{ state.templateWidth = $('tem
 $('templateHeight')?.addEventListener('input', ()=>{ state.templateHeight = $('templateHeight').value ? num($('templateHeight'), state.templateHeight) : null; draw(); });
 $('templateSide')?.addEventListener('change', ()=>{ state.templateSide = $('templateSide').value || 'none'; draw(); });
 $('templateGap')?.addEventListener('input', ()=>{ state.templateGap = num($('templateGap'), 0); draw(); });
-$('template-clear')?.addEventListener('click', ()=>{ state.templateImageData=null; state.templateWidth=null; state.templateHeight=null; state.templateSide='none'; state.templateGap=0; $('templateFile').value=''; $('templateWidth').value=''; $('templateHeight').value=''; $('templateSide').value='none'; $('templateGap').value='0'; draw(); pushUndoSnapshot(true); });
+$('templateOffsetX')?.addEventListener('input', ()=>{ state.templateOffsetX = num($('templateOffsetX'), 0); draw(); });
+$('templateOffsetY')?.addEventListener('input', ()=>{ state.templateOffsetY = num($('templateOffsetY'), 0); draw(); });
+$('template-clear')?.addEventListener('click', ()=>{ state.templateImageData=null; state.templateWidth=null; state.templateHeight=null; state.templateSide='none'; state.templateGap=0; state.templateOffsetX=0; state.templateOffsetY=0; $('templateFile').value=''; $('templateWidth').value=''; $('templateHeight').value=''; $('templateSide').value='none'; $('templateGap').value='0'; $('templateOffsetX').value='0'; $('templateOffsetY').value='0'; draw(); pushUndoSnapshot(true); });
+$('markText2')?.addEventListener('input', ()=>{ state.markText2 = $('markText2').value || ''; draw(); });
 $('bg-calib')?.addEventListener('click', startCalib);
 $('bg-calib-cancel')?.addEventListener('click', cancelCalib);
 

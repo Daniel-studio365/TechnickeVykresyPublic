@@ -674,6 +674,72 @@
     if(v === 'p') return 'prava';
     return v === 'lava' ? 'lava' : 'prava';
   }
+  function computeEasyGeometry(shape, side, offset, halfLen, bounds){
+    if(shape === 'none' || !(offset > 0)) return null;
+    const geom = {
+      shape,
+      side,
+      offset,
+      halfLen,
+      yTop: bounds.yTop,
+      yBottom: bounds.yBottom,
+      leftLimit: bounds.leftLimit,
+      rightLimit: bounds.rightLimit,
+      leftGStart: bounds.leftGStart,
+      rightGEnd: bounds.rightGEnd
+    };
+    if(shape === 'rovna'){
+      geom.xEasyLeft = bounds.leftGStart - offset;
+      geom.xEasyRight = bounds.rightGEnd + offset;
+      return geom;
+    }
+    geom.xMid = (bounds.leftGStart + bounds.rightGEnd) / 2;
+    geom.y = side === 'prava' ? (bounds.yTop + offset) : (bounds.yBottom - offset);
+    geom.y = clamp(geom.y, bounds.yTop, bounds.yBottom);
+    const maxHalfGeom = Math.min(geom.xMid - bounds.leftLimit, bounds.rightLimit - geom.xMid);
+    geom.halfSpan = Math.min(halfLen, Math.max(0, maxHalfGeom));
+    if (!(geom.halfSpan > 0)) return null;
+    geom.xLeftEnd = geom.xMid - geom.halfSpan;
+    geom.xRightEnd = geom.xMid + geom.halfSpan;
+    if(shape === 'U' || shape === 'zahnut'){
+      geom.bendHoriz = Math.min(30, geom.halfSpan);
+      geom.xLeftJoint = geom.xLeftEnd + geom.bendHoriz;
+      geom.xRightJoint = geom.xRightEnd - geom.bendHoriz;
+      geom.dir = side === 'prava' ? -1 : 1;
+      if(shape === 'U') geom.arcR = 50;
+      if(shape === 'zahnut') geom.dy = geom.bendHoriz * Math.tan(Math.PI / 3);
+    }
+    return geom;
+  }
+  function buildEasyPrimitives(geom){
+    if(!geom) return [];
+    if(geom.shape === 'rovna'){
+      return [
+        {kind:'line', x1:geom.xEasyLeft, y1:geom.yTop, x2:geom.xEasyLeft, y2:geom.yBottom},
+        {kind:'line', x1:geom.xEasyRight, y1:geom.yTop, x2:geom.xEasyRight, y2:geom.yBottom}
+      ];
+    }
+    if(geom.shape === 'vodorovna'){
+      return [
+        {kind:'line', x1:geom.xLeftEnd, y1:geom.y, x2:geom.xRightEnd, y2:geom.y}
+      ];
+    }
+    if(geom.shape === 'U'){
+      return [
+        {kind:'line', x1:geom.xLeftJoint, y1:geom.y, x2:geom.xRightJoint, y2:geom.y},
+        {kind:'quad', x1:geom.xLeftJoint, y1:geom.y, cx:geom.xLeftEnd, cy:geom.y, x2:geom.xLeftEnd, y2:geom.y + geom.dir * geom.arcR},
+        {kind:'quad', x1:geom.xRightJoint, y1:geom.y, cx:geom.xRightEnd, cy:geom.y, x2:geom.xRightEnd, y2:geom.y + geom.dir * geom.arcR}
+      ];
+    }
+    if(geom.shape === 'zahnut'){
+      return [
+        {kind:'line', x1:geom.xLeftJoint, y1:geom.y, x2:geom.xRightJoint, y2:geom.y},
+        {kind:'line', x1:geom.xLeftJoint, y1:geom.y, x2:geom.xLeftEnd, y2:geom.y + geom.dir * geom.dy},
+        {kind:'line', x1:geom.xRightJoint, y1:geom.y, x2:geom.xRightEnd, y2:geom.y + geom.dir * geom.dy}
+      ];
+    }
+    return [];
+  }
   function getBottomTextStyle(idx){
     const is1 = idx === 1;
     return {
@@ -771,6 +837,15 @@
     const xLeftGStart = xLeftBodyStart + L;
     const xRightGStart = xLeftGStart + G;
     const xRightGEnd = xRightGStart + G;
+    const easyGeom = computeEasyGeometry(easyShape, easySide, easyOffset, easyHalfLen, {
+      yTop,
+      yBottom,
+      leftLimit: offsetX,
+      rightLimit: offsetX + totalWidth,
+      leftGStart: xLeftGStart,
+      rightGEnd: xRightGEnd
+    });
+    const easyPrimitives = buildEasyPrimitives(easyGeom);
     const xRightBodyStart = xRightGEnd;
     const xRightBodyEnd = xRightBodyStart + L;
     const leftOuter = xStart;
@@ -951,99 +1026,34 @@
       create('circle',{cx:xFingerRight, cy:yFinger, r:rFinger, fill:'#f5c2dd', 'fill-opacity':0.55, stroke:'#d0007a','stroke-width':1});
     }
 
-    if (easyShape === 'rovna' && easyOffset > 0){
-      const off = easyOffset;
-      const xEasyLeft = xLeftGStart - off;
-      const xEasyRight = xRightGEnd + off;
-      create('line',{x1:xEasyLeft,y1:yTop,x2:xEasyLeft,y2:yBottom,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4'});
-      create('line',{x1:xEasyRight,y1:yTop,x2:xEasyRight,y2:yBottom,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4'});
+    easyPrimitives.forEach((primitive) => {
+      if (primitive.kind === 'line'){
+        create('line',{x1:primitive.x1,y1:primitive.y1,x2:primitive.x2,y2:primitive.y2,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4'});
+      } else if (primitive.kind === 'quad'){
+        create('path',{d:`M ${primitive.x1} ${primitive.y1} Q ${primitive.cx} ${primitive.cy} ${primitive.x2} ${primitive.y2}`,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4',fill:'none'});
+      }
+    });
+
+    if (easyGeom?.shape === 'rovna'){
       currentParent = previousEasyParent;
       const yEasyDim = yBottom + Math.max(18, Math.round(state.fontPx*1.8));
-      hDim(xEasyLeft, yEasyDim, xLeftGStart, Math.round(off), 10, '#dc2626');
-      hDim(xRightGEnd, yEasyDim, xEasyRight, Math.round(off), 10, '#dc2626');
-      maxRight = Math.max(maxRight, xEasyRight + 40);
+      hDim(easyGeom.xEasyLeft, yEasyDim, xLeftGStart, Math.round(easyGeom.offset), 10, '#dc2626');
+      hDim(xRightGEnd, yEasyDim, easyGeom.xEasyRight, Math.round(easyGeom.offset), 10, '#dc2626');
+      maxRight = Math.max(maxRight, easyGeom.xEasyRight + 40);
       currentParent = easyMainGroup;
-    } else if (easyShape === 'vodorovna' && easyOffset > 0){
-      const xMid = (xLeftGStart + xRightGEnd)/2;
-      let yEasy = (easySide === 'prava') ? (yTop + easyOffset) : (yBottom - easyOffset);
-      yEasy = clamp(yEasy, yTop, yBottom);
-      const leftLimit = offsetX;
-      const rightLimit = offsetX + totalWidth;
-      const maxHalfGeom = Math.min(xMid - leftLimit, rightLimit - xMid);
-      const halfSpan = Math.min(easyHalfLen, Math.max(0, maxHalfGeom));
-      if (halfSpan > 0){
-        const xLeftEnd = xMid - halfSpan;
-        const xRightEnd = xMid + halfSpan;
-        create('path',{d:`M ${xLeftEnd} ${yEasy} L ${xRightEnd} ${yEasy}`,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4',fill:'none'});
-        currentParent = previousEasyParent;
-        const xDimEasy = xRightGEnd + 80;
-        if (easySide === 'prava'){ vDim(xDimEasy, yTop, yEasy, Math.round(easyOffset), 10, '#dc2626'); }
-        else { vDim(xDimEasy, yEasy, yBottom, Math.round(easyOffset), 10, '#dc2626'); }
-        const lenDimY = yEasy + (easySide==='prava' ? Math.max(24, Math.round(state.fontPx*2.0)) : -Math.max(24, Math.round(state.fontPx*2.0)));
-        hDim(xLeftEnd, lenDimY, xRightEnd, Math.round(halfSpan * 2), 10, '#dc2626');
-        maxRight = Math.max(maxRight, xRightEnd + 40);
-        currentParent = easyMainGroup;
+    } else if (easyGeom){
+      currentParent = previousEasyParent;
+      const xDimEasy = xRightGEnd + 80;
+      if (easyGeom.side === 'prava'){ vDim(xDimEasy, yTop, easyGeom.y, Math.round(easyGeom.offset), 10, '#dc2626'); }
+      else { vDim(xDimEasy, easyGeom.y, yBottom, Math.round(easyGeom.offset), 10, '#dc2626'); }
+      const lenDimY = easyGeom.y + (easyGeom.side==='prava' ? Math.max(24, Math.round(state.fontPx*2.0)) : -Math.max(24, Math.round(state.fontPx*2.0)));
+      if (easyGeom.shape === 'vodorovna'){
+        hDim(easyGeom.xLeftEnd, lenDimY, easyGeom.xRightEnd, Math.round(easyGeom.halfSpan * 2), 10, '#dc2626');
+      } else {
+        hDim(easyGeom.xMid, lenDimY, easyGeom.xRightEnd, Math.round(easyGeom.halfSpan), 10, '#dc2626');
       }
-    } else if (easyShape === 'U' && easyOffset > 0){
-      const xMid = (xLeftGStart + xRightGEnd)/2;
-      let yEasy = (easySide === 'prava') ? (yTop + easyOffset) : (yBottom - easyOffset);
-      yEasy = clamp(yEasy, yTop, yBottom);
-      const leftLimit = offsetX;
-      const rightLimit = offsetX + totalWidth;
-      const maxHalfGeom = Math.min(xMid - leftLimit, rightLimit - xMid);
-      const halfSpan = Math.min(easyHalfLen, Math.max(0, maxHalfGeom));
-      if (halfSpan > 0){
-        const bendHoriz = Math.min(30, halfSpan);
-        const xLeftEnd = xMid - halfSpan;
-        const xRightEnd = xMid + halfSpan;
-        const xLeftJoint = xLeftEnd + bendHoriz;
-        const xRightJoint = xRightEnd - bendHoriz;
-        const dir = (easySide === 'prava') ? -1 : 1;
-        const arcR = 50;
-        [
-          `M ${xLeftJoint} ${yEasy} L ${xRightJoint} ${yEasy}`,
-          `M ${xLeftJoint} ${yEasy} Q ${xLeftEnd} ${yEasy} ${xLeftEnd} ${yEasy + dir*arcR}`,
-          `M ${xRightJoint} ${yEasy} Q ${xRightEnd} ${yEasy} ${xRightEnd} ${yEasy + dir*arcR}`
-        ].forEach(d => create('path',{d,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4',fill:'none'}));
-        currentParent = previousEasyParent;
-        const xDimEasy = xRightGEnd + 80;
-        if (easySide === 'prava'){ vDim(xDimEasy, yTop, yEasy, Math.round(easyOffset), 10, '#dc2626'); }
-        else { vDim(xDimEasy, yEasy, yBottom, Math.round(easyOffset), 10, '#dc2626'); }
-        const lenDimY = yEasy + (easySide==='prava' ? Math.max(24, Math.round(state.fontPx*2.0)) : -Math.max(24, Math.round(state.fontPx*2.0)));
-        hDim(xMid, lenDimY, xRightEnd, Math.round(halfSpan), 10, '#dc2626');
-        maxRight = Math.max(maxRight, xRightEnd + 40);
-        currentParent = easyMainGroup;
-      }
-    } else if (easyShape === 'zahnut' && easyOffset > 0){
-      const xMid = (xLeftGStart + xRightGEnd)/2;
-      let yEasy = (easySide === 'prava') ? (yTop + easyOffset) : (yBottom - easyOffset);
-      yEasy = clamp(yEasy, yTop, yBottom);
-      const leftLimit = offsetX;
-      const rightLimit = offsetX + totalWidth;
-      const maxHalfGeom = Math.min(xMid - leftLimit, rightLimit - xMid);
-      const halfSpan = Math.min(easyHalfLen, Math.max(0, maxHalfGeom));
-      if (halfSpan > 0){
-        const bendHoriz = Math.min(30, halfSpan);
-        const xLeftEnd = xMid - halfSpan;
-        const xRightEnd = xMid + halfSpan;
-        const xLeftJoint = xLeftEnd + bendHoriz;
-        const xRightJoint = xRightEnd - bendHoriz;
-        const dir = (easySide === 'prava') ? -1 : 1;
-        const dy = bendHoriz * Math.tan(Math.PI/3);
-        [
-          `M ${xLeftJoint} ${yEasy} L ${xRightJoint} ${yEasy}`,
-          `M ${xLeftJoint} ${yEasy} L ${xLeftEnd} ${yEasy + dir*dy}`,
-          `M ${xRightJoint} ${yEasy} L ${xRightEnd} ${yEasy + dir*dy}`
-        ].forEach(d => create('path',{d,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4',fill:'none'}));
-        currentParent = previousEasyParent;
-        const xDimEasy = xRightGEnd + 80;
-        if (easySide === 'prava'){ vDim(xDimEasy, yTop, yEasy, Math.round(easyOffset), 10, '#dc2626'); }
-        else { vDim(xDimEasy, yEasy, yBottom, Math.round(easyOffset), 10, '#dc2626'); }
-        const lenDimY = yEasy + (easySide==='prava' ? Math.max(24, Math.round(state.fontPx*2.0)) : -Math.max(24, Math.round(state.fontPx*2.0)));
-        hDim(xMid, lenDimY, xRightEnd, Math.round(halfSpan), 10, '#dc2626');
-        maxRight = Math.max(maxRight, xRightEnd + 40);
-        currentParent = easyMainGroup;
-      }
+      maxRight = Math.max(maxRight, easyGeom.xRightEnd + 40);
+      currentParent = easyMainGroup;
     }
     currentParent = previousEasyParent;
 
@@ -1158,40 +1168,6 @@
         y: foldedY + foldedH - (p.y - foldedY)
       };
     };
-    const clipSegmentToFoldRightL = (x1m, y1m, x2m, y2m) => {
-      const dx = x2m - x1m;
-      if (Math.abs(dx) < 1e-9) {
-        if (x1m < foldRightLMin || x1m > foldRightLMax) return null;
-        return {
-          x1: x1m,
-          y1: y1m,
-          x2: x2m,
-          y2: y2m
-        };
-      }
-      let t0 = 0;
-      let t1 = 1;
-      const txMin = (foldRightLMin - x1m) / dx;
-      const txMax = (foldRightLMax - x1m) / dx;
-      const enter = Math.min(txMin, txMax);
-      const exit = Math.max(txMin, txMax);
-      t0 = Math.max(t0, enter);
-      t1 = Math.min(t1, exit);
-      if (t1 < t0) return null;
-      return {
-        x1: x1m + dx * t0,
-        y1: y1m + (y2m - y1m) * t0,
-        x2: x1m + dx * t1,
-        y2: y1m + (y2m - y1m) * t1
-      };
-    };
-    const drawEasyFoldLine = (x1m, y1m, x2m, y2m) => {
-      const seg = clipSegmentToFoldRightL(x1m, y1m, x2m, y2m);
-      if (!seg) return;
-      const p1 = mapFoldRightL(seg.x1, seg.y1);
-      const p2 = mapFoldRightL(seg.x2, seg.y2);
-      create('line',{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4'});
-    };
     const drawEasyFoldOffsetDim = (yMain) => {
       const ref = mapFoldRightL(foldRightLMin, yMain);
       const yDim = foldedY + foldedH + 68;
@@ -1213,80 +1189,30 @@
       }
     }
 
-    if (easyShape === 'rovna' && easyOffset > 0){
-      const off = easyOffset;
-      const xEasyLeft = xLeftGStart - off;
-      const xEasyRight = xRightGEnd + off;
-      drawEasyFoldLine(xEasyLeft, yTop, xEasyLeft, yBottom);
-      drawEasyFoldLine(xEasyRight, yTop, xEasyRight, yBottom);
-      const easySeg = clipSegmentToFoldRightL(xEasyRight, yTop, xEasyRight, yBottom);
-      if (easySeg) {
-        const ep1 = mapFoldRightL(easySeg.x1, easySeg.y1);
-        const ep2 = mapFoldRightL(easySeg.x2, easySeg.y2);
-        const yEasyFold = (ep1.y + ep2.y) / 2;
-        currentParent = previousFoldEasyParent;
-        vDim(foldedX - 38, yEasyFold, foldedY + foldedH, Math.round(easyOffset), 8, '#dc2626');
-        currentParent = easyFoldGroup;
+    easyPrimitives.forEach((primitive) => {
+      if (primitive.kind === 'line'){
+        const p1 = mapFoldRightL(primitive.x1, primitive.y1);
+        const p2 = mapFoldRightL(primitive.x2, primitive.y2);
+        create('line',{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4'});
+      } else if (primitive.kind === 'quad'){
+        const p1 = mapFoldRightL(primitive.x1, primitive.y1);
+        const pc = mapFoldRightL(primitive.cx, primitive.cy);
+        const p2 = mapFoldRightL(primitive.x2, primitive.y2);
+        create('path',{d:`M ${p1.x} ${p1.y} Q ${pc.x} ${pc.y} ${p2.x} ${p2.y}`,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4',fill:'none'});
       }
-    } else if (easyShape === 'vodorovna' && easyOffset > 0){
-      const xMid = (xLeftGStart + xRightGEnd)/2;
-      let yEasy = (easySide === 'prava') ? (yTop + easyOffset) : (yBottom - easyOffset);
-      yEasy = clamp(yEasy, yTop, yBottom);
-      const leftLimit = offsetX;
-      const rightLimit = offsetX + totalWidth;
-      const maxHalfGeom = Math.min(xMid - leftLimit, rightLimit - xMid);
-      const halfSpan = Math.min(easyHalfLen, Math.max(0, maxHalfGeom));
-      if (halfSpan > 0){
-        drawEasyFoldLine(xMid - halfSpan, yEasy, xMid + halfSpan, yEasy);
-        currentParent = previousFoldEasyParent;
-        drawEasyFoldOffsetDim(yEasy);
-        currentParent = easyFoldGroup;
-      }
-    } else if (easyShape === 'U' && easyOffset > 0){
-      const xMid = (xLeftGStart + xRightGEnd)/2;
-      let yEasy = (easySide === 'prava') ? (yTop + easyOffset) : (yBottom - easyOffset);
-      yEasy = clamp(yEasy, yTop, yBottom);
-      const leftLimit = offsetX;
-      const rightLimit = offsetX + totalWidth;
-      const maxHalfGeom = Math.min(xMid - leftLimit, rightLimit - xMid);
-      const halfSpan = Math.min(easyHalfLen, Math.max(0, maxHalfGeom));
-      if (halfSpan > 0){
-        const bendHoriz = Math.min(30, halfSpan);
-        const xRightEnd = xMid + halfSpan;
-        const xRightJoint = xRightEnd - bendHoriz;
-        const dir = (easySide === 'prava') ? -1 : 1;
-        const arcR = 50;
-        drawEasyFoldLine(xMid, yEasy, xRightJoint, yEasy);
-        if (xRightJoint <= foldRightLMax) {
-          const pJoint = mapFoldRightL(xRightJoint, yEasy);
-          const pCtrl = mapFoldRightL(xRightEnd, yEasy);
-          const pEnd = mapFoldRightL(xRightEnd, yEasy + dir*arcR);
-          create('path',{d:`M ${pJoint.x} ${pJoint.y} Q ${pCtrl.x} ${pCtrl.y} ${pEnd.x} ${pEnd.y}`,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'6 4',fill:'none'});
-        }
-        currentParent = previousFoldEasyParent;
-        drawEasyFoldOffsetDim(yEasy);
-        currentParent = easyFoldGroup;
-      }
-    } else if (easyShape === 'zahnut' && easyOffset > 0){
-      const xMid = (xLeftGStart + xRightGEnd)/2;
-      let yEasy = (easySide === 'prava') ? (yTop + easyOffset) : (yBottom - easyOffset);
-      yEasy = clamp(yEasy, yTop, yBottom);
-      const leftLimit = offsetX;
-      const rightLimit = offsetX + totalWidth;
-      const maxHalfGeom = Math.min(xMid - leftLimit, rightLimit - xMid);
-      const halfSpan = Math.min(easyHalfLen, Math.max(0, maxHalfGeom));
-      if (halfSpan > 0){
-        const bendHoriz = Math.min(30, halfSpan);
-        const xRightEnd = xMid + halfSpan;
-        const xRightJoint = xRightEnd - bendHoriz;
-        const dir = (easySide === 'prava') ? -1 : 1;
-        const dy = bendHoriz * Math.tan(Math.PI/3);
-        drawEasyFoldLine(xMid, yEasy, xRightJoint, yEasy);
-        drawEasyFoldLine(xRightJoint, yEasy, xRightEnd, yEasy + dir*dy);
-        currentParent = previousFoldEasyParent;
-        drawEasyFoldOffsetDim(yEasy);
-        currentParent = easyFoldGroup;
-      }
+    });
+
+    if (easyGeom?.shape === 'rovna'){
+      const ep1 = mapFoldRightL(easyGeom.xEasyRight, yTop);
+      const ep2 = mapFoldRightL(easyGeom.xEasyRight, yBottom);
+      const yEasyFold = (ep1.y + ep2.y) / 2;
+      currentParent = previousFoldEasyParent;
+      vDim(foldedX - 38, yEasyFold, foldedY + foldedH, Math.round(easyGeom.offset), 8, '#dc2626');
+      currentParent = easyFoldGroup;
+    } else if (easyGeom){
+      currentParent = previousFoldEasyParent;
+      drawEasyFoldOffsetDim(easyGeom.y);
+      currentParent = easyFoldGroup;
     }
     currentParent = previousFoldEasyParent;
 
