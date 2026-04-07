@@ -13,7 +13,6 @@ const svgRoot = $('svgRoot');
   rollType:'std',
   rollEnabled:true,
   rollPrintEnabled:false,
-  rollAssemblyEnabled:false,
   printOps:1,
   lacquerNext:false,
   printSide:'bottom',
@@ -54,6 +53,12 @@ const svgRoot = $('svgRoot');
   orezShow:true,
   markEnabled:true,
   markText:'',
+  showCoronaLegend:true,
+  microEnabled:false,
+  microLeftTop:10,
+  microLeftEdge:10,
+  microRightTop:10,
+  microRightEdge:10,
   calibActive:false,
   calibPoints:[],
   measureMode:'off',
@@ -67,11 +72,12 @@ const svgRoot = $('svgRoot');
     'dimPos','dimOffset','dimPosH','dimOffsetH','units','decimals',
     'motivInput','refPartA','refPartB','porCislo',
     'repeatX','repeatY','gapX','gapY','repeatMode',
-    'orez','orezShow',
+    'orez','orezShow','showCoronaLegend',
     'templateOffsetX','templateOffsetY',
     'markEnabled','markText','markText2',
-  'rollEnabled','rollType','rollVariant','photoW','photoH','photoNote','exportOrient','bgWidth','bgHeight','bgOpacity','measureMode'
-].map(id=>$(id));
+    'rollEnabled','rollType','rollVariant','photoW','photoH','photoNote','exportOrient','bgWidth','bgHeight','bgOpacity','measureMode','rollPrint',
+    'microEnabled','microLeftTop','microLeftEdge','microRightTop','microRightEdge'
+  ].map(id=>$(id));
 const undoBtn = $('btn-undo');
 const redoBtn = $('btn-redo');
 const historyState = {
@@ -369,13 +375,12 @@ function draw(){
   state.units = $('units')?.value || 'none';
   state.decimals = parseInt($('decimals')?.value,10) || 0;
   const dimPos = $('dimPos')?.value || 'bottom';
-  let dimPosEff = (state.rollPrintEnabled || state.rollAssemblyEnabled) ? 'top' : dimPos;
+  let dimPosEff = state.rollPrintEnabled ? 'top' : dimPos;
   const dimOffsetVal = Math.max(0, num($('dimOffset'), 80));
   const dimPosH = $('dimPosH')?.value || 'right';
   const dimOffsetH = Math.max(0, num($('dimOffsetH'), 25));
   state.rollEnabled = !!$('rollEnabled')?.checked;
   state.rollPrintEnabled = !!$('rollPrint')?.checked;
-  state.rollAssemblyEnabled = !!$('rollAssembly')?.checked;
   {
     const parsedPrintOps = parseInt($('printOps')?.value,10);
     state.printOps = Number.isFinite(parsedPrintOps) ? parsedPrintOps : 1;
@@ -387,6 +392,12 @@ function draw(){
   state.photoW = numOrNull($('photoW'));
   state.photoH = numOrNull($('photoH'));
   state.photoNote = $('photoNote')?.value || '';
+  state.showCoronaLegend = !!$('showCoronaLegend')?.checked;
+  state.microEnabled = !!$('microEnabled')?.checked;
+  state.microLeftTop = num($('microLeftTop'), 10);
+  state.microLeftEdge = num($('microLeftEdge'), 10);
+  state.microRightTop = num($('microRightTop'), 10);
+  state.microRightEdge = num($('microRightEdge'), 10);
   state.motiv = $('motivInput')?.value || '';
   state.refPartA = $('refPartA')?.value || '';
   state.refPartB = $('refPartB')?.value || '';
@@ -426,23 +437,8 @@ function draw(){
     }
     const sideLetter = state.printSide === 'top' ? 'V' : 'S';
     $('rollPrintInfo').textContent = `Navin pri tlaci: ${effectiveCode}${effectiveVariant} - ${sideLetter}${effectiveCode}`;
-    $('rollAssemblyInfo').textContent = '';
-  } else if(state.rollAssemblyEnabled){
-    navinMode = 'montaz';
-    const isEven = (opsEffective % 2) === 0;
-    if(!isEven){
-      const mapped = printMap[`${finalCode}${finalVariant}`];
-      if(mapped){
-        effectiveCode = mapped.code;
-        effectiveVariant = mapped.variant;
-      }
-    }
-    const sideLetter = state.printSide === 'top' ? 'V' : 'S';
-    $('rollAssemblyInfo').textContent = `${sideLetter}${effectiveCode}`;
-    $('rollPrintInfo').textContent = '';
   } else {
     $('rollPrintInfo').textContent = '';
-    $('rollAssemblyInfo').textContent = '';
   }
     const rollTypeEffective = (['1','2','5','6'].includes(effectiveCode) ? 'std' : 'alt');
   const rollCodeDraw = effectiveCode;
@@ -460,13 +456,10 @@ function draw(){
   if(navinMode==='tlac'){
     const info = $('rollPrintInfo')?.textContent || '';
     if(info) navinLabelText = info;
-  } else if(navinMode==='montaz'){
-    const info = $('rollAssemblyInfo')?.textContent || '';
-    navinLabelText = `Navin: ${info} (montaz)`;
   } else if(navinMode==='finalny'){
     navinLabelText = `Finalny navin: ${rollCodeDraw}${rollVariantDraw}`;
   }
-  const mirrorABC = (navinMode==='montaz' && state.printSide==='bottom') || (navinMode==='tlac' && state.printSide==='bottom');
+  const mirrorABC = (navinMode==='tlac' && state.printSide==='bottom');
   const mirrorDims = (navinMode==='tlac' && state.printSide==='bottom');
   const dimPosHEff = mirrorDims ? (dimPosH === 'left' ? 'right' : 'left') : dimPosH;
   state.rollType = (['1','2','5','6'].includes(state.rollCode) ? 'std' : 'alt');
@@ -754,9 +747,9 @@ function draw(){
 
   let rollBounds = null;
   // navin (preberene z predchadzajucej verzie)
-  const rollActive = state.rollEnabled || state.rollPrintEnabled || state.rollAssemblyEnabled;
+  const rollActive = state.rollEnabled || state.rollPrintEnabled;
   const mirrorPrint = (navinMode==='tlac');
-  const mirrorMontage = (navinMode==='montaz');
+  const mirrorMontage = false;
   if(rollActive){
     ensureDefs();
     const rollR = Math.max(40, (totalH/10));
@@ -941,8 +934,24 @@ function draw(){
   if (photoText){
     textWithBg(photoText, offsetX, noteY, {anchor:'start', baseline:'middle', parent:footerGroup, color:'#0f172a', fontWeight:'700', fontSize:14});
   }
-  textWithBg(noteText, photoText ? (offsetX + 260) : offsetX, noteY, {anchor:'start', baseline:'middle', parent:footerGroup, color:'#0f172a', fontWeight:'400', fontSize:14});
+  textWithBg(noteText, photoText ? (offsetX + 260) : offsetX, noteY, {anchor:'start', baseline:'middle', parent:footerGroup, color:'#0f172a', fontWeight:'700', fontSize:16});
   textWithBg(stamp, offsetX, noteY + 18, {anchor:'start', baseline:'middle', parent:footerGroup, color:'#64748b', fontWeight:'400', fontSize:12});
+
+  // mikrobody (S&R)
+  if (state.microEnabled){
+    const ringR = 2; // 4mm priemer
+    const dotR = 0.25; // 0.5mm priemer
+    const ringStroke = '#fbbf24';
+    const dotFill = '#111';
+    const positions = [
+      {x: offsetX + state.microLeftEdge, y: offsetY + state.microLeftTop},
+      {x: offsetX + totalW - state.microRightEdge, y: offsetY + state.microRightTop}
+    ];
+    positions.forEach(pos=>{
+      create('circle',{cx:pos.x, cy:pos.y, r:ringR, fill:'none', stroke:ringStroke, 'stroke-width':0.6}, contentGroup);
+      create('circle',{cx:pos.x, cy:pos.y, r:dotR, fill:dotFill, stroke:dotFill, 'stroke-width':0.3}, contentGroup);
+    });
+  }
 
   // hlavicka nad vykresom (vlozene do allGroup, aby bola viditelna)
     if(rollBounds){
@@ -974,7 +983,7 @@ function draw(){
     const lacquerColor = state.lacquerNext ? '#dc2626' : '#0f172a';
     const headerMidY = headerY + headerH/2;
     textWithBg(navinLabelText, 10, headerMidY, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#dc2626', fontWeight:'700', fontSize:20});
-    drawCoronaLegendSvg(headerGroup, offsetX + totalW, headerMidY);
+    if (state.showCoronaLegend) drawCoronaLegendSvg(headerGroup, offsetX + totalW, headerMidY);
     const headerNote = (navinMode === 'tlac' && state.printSide === 'bottom') ? 'Pohlad cez montaz' : '';
     if (headerNote) {
       textWithBg(headerNote, headerW + 18, headerY + headerH/2, {anchor:'start', baseline:'middle', parent:headerGroup, color:'#0f172a', fontWeight:'700', fontSize:16});
@@ -1037,7 +1046,7 @@ function reset(){
   $('orezShow').checked = true;
   $('strokeWidth').value=1; $('dimPos').value='bottom'; $('dimOffset').value=25; $('dimPosH').value='right'; $('dimOffsetH').value=25; $('lineStyleH').value='solid';
   $('units').value='none'; $('decimals').value='0';
-  $('rollEnabled').checked=true; $('rollPrint').checked=false; $('rollAssembly').checked=false; $('rollType').value='1'; $('rollVariant').value='A';
+  $('rollEnabled').checked=true; $('rollPrint').checked=false; $('rollType').value='1'; $('rollVariant').value='A';
   $('printOps').value='1'; $('printSideBottom').checked=true;
   $('strokeWidth').value='0.8';
   if ($('lacquerNo')) $('lacquerNo').checked = true;
@@ -1048,6 +1057,7 @@ function reset(){
   if ($('markEnabled')) $('markEnabled').checked = true;
   if ($('markText')) $('markText').value = '';
   if ($('markText2')) $('markText2').value = '';
+  if ($('showCoronaLegend')) $('showCoronaLegend').checked = true;
   if ($('motivInput')) $('motivInput').value = '';
   if ($('refPartA')) $('refPartA').value = '';
   if ($('refPartB')) $('refPartB').value = '';
@@ -1060,6 +1070,7 @@ function reset(){
   $('templateFile').value=''; $('templateWidth').value=''; $('templateHeight').value=''; $('templateSide').value='none'; $('templateGap').value='0'; $('templateOffsetX').value='0'; $('templateOffsetY').value='0'; state.templateImageData=null; state.templateWidth=null; state.templateHeight=null; state.templateSide='none'; state.templateGap=0; state.templateOffsetX=0; state.templateOffsetY=0;
   $('measureMode').value='off'; state.measureMode='off'; state.measurePick=null; state.measures=[]; state.measurePreview=null;
   state.photoEnabled = true; state.photoOffsetTop = 5; state.photoOffsetRight = 10;
+  state.showCoronaLegend = true;
   state.markEnabled = true; state.markText = ''; state.markText2 = '';
   state.calibActive=false; state.calibPoints=[]; $('bg-calib-cancel').style.display='none'; $('bg-calib').style.display='inline-block'; svgRoot.style.cursor='';
   $('segments').innerHTML=''; state.segments.length=0; addSegmentInput('');
@@ -1143,23 +1154,11 @@ function exportPNG(){
         effectiveVariant = mapped.variant;
       }
     }
-  } else if(state.rollAssemblyEnabled){
-    navinMode = 'montaz';
-    if((opsEffective % 2) !== 0){
-      const mapped = printMap[`${finalCode}${finalVariant}`];
-      if(mapped){
-        effectiveCode = mapped.code;
-        effectiveVariant = mapped.variant;
-      }
-    }
   }
   let navinLabelText = `Finalny navin: ${effectiveCode}${effectiveVariant}`;
   if(navinMode === 'tlac'){
     const sideLetter = state.printSide === 'top' ? 'V' : 'S';
     navinLabelText = `Navin pri tlaci: ${effectiveCode}${effectiveVariant} - ${sideLetter}${effectiveCode}`;
-  } else if(navinMode === 'montaz'){
-    const sideLetter = state.printSide === 'top' ? 'V' : 'S';
-    navinLabelText = `Navin: ${sideLetter}${effectiveCode} (montaz)`;
   }
 
   const svgDraw = svgRoot.cloneNode(true);
@@ -1270,23 +1269,25 @@ function exportPNG(){
       ctx.fillStyle = red;
       ctx.font = `700 ${titleFont}px Arial, Helvetica, sans-serif`;
       ctx.fillText(navinLabelText, leftX, y);
-      ctx.font = `700 ${bodyFont}px Arial, Helvetica, sans-serif`;
-      ctx.textAlign = 'right';
-      ctx.fillStyle = CORONA_COLOR;
-      const coronaMetrics = ctx.measureText(CORONA_TEXT);
-      const coronaPadX = Math.round(bodyFont * 0.35);
-      const coronaPadY = Math.round(bodyFont * 0.2);
-      const coronaW = Math.ceil(coronaMetrics.width + coronaPadX * 2);
-      const coronaH = Math.ceil(bodyFont + coronaPadY * 2);
-      const coronaX = marginPx + usableW - coronaW;
-      const coronaY = Math.round(y - bodyFont + 2 - coronaPadY);
-      ctx.fillStyle = CORONA_BG;
-      ctx.globalAlpha = 0.3;
-      ctx.fillRect(coronaX, coronaY, coronaW, coronaH);
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = CORONA_COLOR;
-      ctx.fillText(CORONA_TEXT, marginPx + usableW - coronaPadX, y);
-      ctx.textAlign = 'left';
+      if (state.showCoronaLegend){
+        ctx.font = `700 ${bodyFont}px Arial, Helvetica, sans-serif`;
+        ctx.textAlign = 'right';
+        ctx.fillStyle = CORONA_COLOR;
+        const coronaMetrics = ctx.measureText(CORONA_TEXT);
+        const coronaPadX = Math.round(bodyFont * 0.35);
+        const coronaPadY = Math.round(bodyFont * 0.2);
+        const coronaW = Math.ceil(coronaMetrics.width + coronaPadX * 2);
+        const coronaH = Math.ceil(bodyFont + coronaPadY * 2);
+        const coronaX = marginPx + usableW - coronaW;
+        const coronaY = Math.round(y - bodyFont + 2 - coronaPadY);
+        ctx.fillStyle = CORONA_BG;
+        ctx.globalAlpha = 0.3;
+        ctx.fillRect(coronaX, coronaY, coronaW, coronaH);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = CORONA_COLOR;
+        ctx.fillText(CORONA_TEXT, marginPx + usableW - coronaPadX, y);
+        ctx.textAlign = 'left';
+      }
       y += Math.round(titleFont * 1.15);
 
       ctx.fillStyle = ink;
@@ -1315,7 +1316,9 @@ function exportPNG(){
         y = wrapCanvasText(photoText, leftX, y, usableW, lineStep, ink, `700 ${bodyFont}px Arial, Helvetica, sans-serif`);
       }
       if(noteText){
-        y = wrapCanvasText(noteText, leftX, y, usableW, lineStep, ink, `${bodyFont}px Arial, Helvetica, sans-serif`);
+        const noteFontPx = Math.max(bodyFont, Math.round(bodyFont * 1.1));
+        const noteFont = `${noteFontPx}px Arial, Helvetica, sans-serif`;
+        y = wrapCanvasText(noteText, leftX, y, usableW, lineStep, ink, noteFont);
       }
       ctx.fillStyle = muted;
       ctx.font = `${smallFont}px Arial, Helvetica, sans-serif`;
@@ -1369,7 +1372,6 @@ function collectState(){
     decimals:state.decimals,
     rollEnabled:state.rollEnabled,
     rollPrintEnabled:state.rollPrintEnabled,
-    rollAssemblyEnabled:state.rollAssemblyEnabled,
     printOps: state.printOps,
     lacquerNext: state.lacquerNext,
     printSide: state.printSide,
@@ -1406,6 +1408,12 @@ function collectState(){
     templateHeight:$('templateHeight')?.value || '',
     templateSide:state.templateSide,
     templateGap:state.templateGap,
+    showCoronaLegend: state.showCoronaLegend,
+    microEnabled: state.microEnabled,
+    microLeftTop: state.microLeftTop,
+    microLeftEdge: state.microLeftEdge,
+    microRightTop: state.microRightTop,
+    microRightEdge: state.microRightEdge,
     templateOffsetX: state.templateOffsetX,
     templateOffsetY: state.templateOffsetY,
     orez: state.orez,
@@ -1447,7 +1455,6 @@ function loadData(data){
   $('decimals').value = data.decimals ?? 0;
   $('rollEnabled').checked = !!data.rollEnabled;
   $('rollPrint').checked = !!data.rollPrintEnabled;
-  $('rollAssembly').checked = !!data.rollAssemblyEnabled;
   $('rollType').value = data.rollType ?? '1';
   $('rollVariant').value = data.rollVariant ?? 'A';
   $('printOps').value = data.printOps ?? 1;
@@ -1528,6 +1535,18 @@ function loadData(data){
   state.templateGap = num($('templateGap'), 0);
   state.templateOffsetX = num($('templateOffsetX'), 0);
   state.templateOffsetY = num($('templateOffsetY'), 0);
+  $('showCoronaLegend').checked = data.showCoronaLegend ?? true;
+  state.showCoronaLegend = !!$('showCoronaLegend')?.checked;
+  $('microEnabled').checked = data.microEnabled ?? false;
+  $('microLeftTop').value = data.microLeftTop ?? 10;
+  $('microLeftEdge').value = data.microLeftEdge ?? 10;
+  $('microRightTop').value = data.microRightTop ?? 10;
+  $('microRightEdge').value = data.microRightEdge ?? 10;
+  state.microEnabled = !!$('microEnabled')?.checked;
+  state.microLeftTop = num($('microLeftTop'), 10);
+  state.microLeftEdge = num($('microLeftEdge'), 10);
+  state.microRightTop = num($('microRightTop'), 10);
+  state.microRightEdge = num($('microRightEdge'), 10);
   state.measureMode = data.measureMode ?? 'off';
   $('measureMode').value = state.measureMode;
   state.measures = Array.isArray(data.measures)? data.measures : [];
@@ -1546,8 +1565,7 @@ function loadData(data){
 function syncRollChecks(changedId){
   const boxes = [
     {id:'rollEnabled', key:'rollEnabled'},
-    {id:'rollPrint', key:'rollPrintEnabled'},
-    {id:'rollAssembly', key:'rollAssemblyEnabled'}
+    {id:'rollPrint', key:'rollPrintEnabled'}
   ];
   const changed = $(changedId);
   if(!changed) return;
@@ -1561,7 +1579,6 @@ function syncRollChecks(changedId){
   }
   state.rollEnabled = !!$('rollEnabled')?.checked;
   state.rollPrintEnabled = !!$('rollPrint')?.checked;
-  state.rollAssemblyEnabled = !!$('rollAssembly')?.checked;
   draw();
 }
 
@@ -1707,11 +1724,16 @@ $('photoOffsetTop')?.addEventListener('input', ()=>{ state.photoOffsetTop = num(
 $('photoOffsetRight')?.addEventListener('input', ()=>{ state.photoOffsetRight = num($('photoOffsetRight'), 10); draw(); });
 $('markEnabled')?.addEventListener('change', ()=>{ state.markEnabled = !!$('markEnabled')?.checked; draw(); });
 $('markText')?.addEventListener('input', ()=>{ state.markText = $('markText')?.value || ''; draw(); });
+$('markText2')?.addEventListener('input', ()=>{ state.markText2 = $('markText2').value || ''; draw(); });
+$('microEnabled')?.addEventListener('change', ()=>{ state.microEnabled = !!$('microEnabled')?.checked; draw(); });
+$('microLeftTop')?.addEventListener('input', ()=>{ state.microLeftTop = num($('microLeftTop'), 10); draw(); });
+$('microLeftEdge')?.addEventListener('input', ()=>{ state.microLeftEdge = num($('microLeftEdge'), 10); draw(); });
+$('microRightTop')?.addEventListener('input', ()=>{ state.microRightTop = num($('microRightTop'), 10); draw(); });
+$('microRightEdge')?.addEventListener('input', ()=>{ state.microRightEdge = num($('microRightEdge'), 10); draw(); });
 document.querySelectorAll('input[name=\"lacquerStep\"]').forEach(el=> el.addEventListener('change', draw));
 document.querySelectorAll('input[name="printSide"]').forEach(el=> el.addEventListener('change', draw));
 $('rollEnabled')?.addEventListener('change', ()=> syncRollChecks('rollEnabled'));
 $('rollPrint')?.addEventListener('change', ()=> syncRollChecks('rollPrint'));
-$('rollAssembly')?.addEventListener('change', ()=> syncRollChecks('rollAssembly'));
 
 $('bgFile')?.addEventListener('change', (e)=>{
   const file = e.target.files && e.target.files[0];
@@ -1742,6 +1764,7 @@ $('templateOffsetX')?.addEventListener('input', ()=>{ state.templateOffsetX = nu
 $('templateOffsetY')?.addEventListener('input', ()=>{ state.templateOffsetY = num($('templateOffsetY'), 0); draw(); });
 $('template-clear')?.addEventListener('click', ()=>{ state.templateImageData=null; state.templateWidth=null; state.templateHeight=null; state.templateSide='none'; state.templateGap=0; state.templateOffsetX=0; state.templateOffsetY=0; $('templateFile').value=''; $('templateWidth').value=''; $('templateHeight').value=''; $('templateSide').value='none'; $('templateGap').value='0'; $('templateOffsetX').value='0'; $('templateOffsetY').value='0'; draw(); pushUndoSnapshot(true); });
 $('markText2')?.addEventListener('input', ()=>{ state.markText2 = $('markText2').value || ''; draw(); });
+$('showCoronaLegend')?.addEventListener('change', ()=>{ state.showCoronaLegend = !!$('showCoronaLegend')?.checked; draw(); });
 $('bg-calib')?.addEventListener('click', startCalib);
 $('bg-calib-cancel')?.addEventListener('click', cancelCalib);
 
