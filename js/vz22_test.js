@@ -63,6 +63,7 @@
   const bottomText2Bold = $('bottomText2Bold');
   const bottomText2Italic = $('bottomText2Italic');
   const bottomText2Color = $('bottomText2Color');
+  const sideClipColor = $('sideClipColor');
   const saveBtn = $('btn-save');
   const loadBtn = $('btn-load');
   const undoBtn = $('btn-undo');
@@ -75,7 +76,7 @@
   const rightSideTitleEl = $('rightSideTitle');
 
     const prefillableIds = [
-      'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirType','AirInGOnly',
+      'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','PoistneOffset','PoistneLen','AirEdge','AirXAbs','AirType','AirInGOnly','FlapNotchEdge','FlapNotchLen',
       'PerfEnabled','PerfOffset','PerfSide','EasyShape','EasySide','EasyOffset','EasyHalfLen','EasyFingerHole','printSide','SideClipView',
       'finalNavinNumber','finalNavinLetter','printOps',
       'porCislo','motivInput','bottomText1','bottomText2','refPartA','refPartB',
@@ -114,7 +115,7 @@
   };
 
     const inputs = [
-      'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','AirEdge','AirXAbs','AirType','AirInGOnly',
+      'W','L','G','K','BagWidth','Cpitch','AxisInK','NotchLen','PoistneOffset','PoistneLen','AirEdge','AirXAbs','AirType','AirInGOnly','FlapNotchEdge','FlapNotchLen',
       'PerfEnabled','PerfOffset','PerfSide','EasyShape','EasySide','EasyOffset','EasyHalfLen','EasyFingerHole','fontPx','toggle-grid','toggle-notches','toggle-notch-shift','NotchShift','SideClipView',
       'bgWidth','bgHeight','finalNavinNumber','finalNavinLetter','printOps'
     ].map(id => $(id));
@@ -385,7 +386,7 @@
     const perf = data.perforation || {};
     const clip = data.clip || {};
     const air = data.air || {};
-    const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', Cpitch:'Cpitch', AxisInK:'AxisInK', notchLen:'NotchLen', AirEdge:'AirEdge', AirXAbs:'AirXAbs', AirType:'AirType', AirInGOnly:'AirInGOnly', PerfOffset:'PerfOffset', PerfSide:'PerfSide' };
+      const map = { W:'W', L:'L', G:'G', K:'K', bagWidth:'BagWidth', Cpitch:'Cpitch', AxisInK:'AxisInK', notchLen:'NotchLen', PoistneOffset:'PoistneOffset', PoistneLen:'PoistneLen', AirEdge:'AirEdge', AirXAbs:'AirXAbs', AirType:'AirType', AirInGOnly:'AirInGOnly', PerfOffset:'PerfOffset', PerfSide:'PerfSide' };
     const perfEnabledEl = $('PerfEnabled');
     if (perfEnabledEl) perfEnabledEl.classList.remove('prefilled');
     const perfEnabledVal = (perf.enabled || '').toLowerCase();
@@ -400,8 +401,10 @@
     Object.entries(map).forEach(([key,id])=>{
       const el=$(id);
       let val=null;
-      if (key === 'notchLen') val = dims.notchLen;
-      else if (key === 'Cpitch') val = dims.Cpitch;
+        if (key === 'notchLen') val = dims.notchLen;
+        else if (key === 'PoistneOffset') val = dims.PoistneOffset;
+        else if (key === 'PoistneLen') val = dims.PoistneLen;
+        else if (key === 'Cpitch') val = dims.Cpitch;
       else if (key === 'AxisInK') val = (dims.AxisInK != null) ? dims.AxisInK : (dims.K != null ? dims.K/2 : null);
       else if (key === 'AirEdge') val = air.offsetFromEdge;
       else if (key === 'AirXAbs') val = air.fromBottom ?? air.offsetFromBottom ?? dims.AirXAbs;
@@ -491,12 +494,26 @@
   }
 
   function textWithBg(txt,x,y,opts={}){
-    const {color='#0f172a', anchor='middle', baseline='middle'} = opts;
-    const g = create('g',{class:'text-label'});
-    const t = create('text',{x,y,'text-anchor':anchor,'dominant-baseline':baseline,fill:color,'font-size':state.fontPx},g);
-    t.textContent = txt;
-    const bb = t.getBBox();
-    const pad = 3;
+      const {
+        color='#0f172a',
+        anchor='middle',
+        baseline='middle',
+        fontSize=state.fontPx,
+        fontWeight='400'
+      } = opts;
+      const g = create('g',{class:'text-label'});
+      const t = create('text',{
+        x,
+        y,
+        'text-anchor':anchor,
+        'dominant-baseline':baseline,
+        fill:color,
+        'font-size':fontSize,
+        'font-weight':fontWeight
+      },g);
+      t.textContent = txt;
+      const bb = t.getBBox();
+      const pad = 3;
     const r = create('rect',{x: bb.x - pad, y: bb.y - pad, width: bb.width + 2*pad, height: bb.height + 2*pad,
       fill: 'white', stroke: 'none', opacity:'0.9'
     }, g);
@@ -594,42 +611,7 @@
     create('line',{x1:cx-size,x2:cx+size,y1:cy,y2:cy,...common});
     create('line',{x1:cx,y1:cy-size,x2:cx,y2:cy+size,...common});
   }
-  function getRotatedBgCropDataUrl(srcRect){
-    if(!bgState.data || !bgState.image || !bgState.image.complete || !srcRect) return null;
-    const bw = num(bgWidthEl) || state.cachedDims.width;
-    const bh = num(bgHeightEl) || state.cachedDims.height;
-    const x = (state.cachedDims?.offsetX ?? 120) + bgState.offset.x;
-    const y = (state.cachedDims?.offsetY ?? 120) + bgState.offset.y;
-    const cx = x + bw/2;
-    const cy = y + bh/2;
-    const scale = 3;
-    const cropCanvas = document.createElement('canvas');
-    cropCanvas.width = Math.max(1, Math.round(srcRect.width * scale));
-    cropCanvas.height = Math.max(1, Math.round(srcRect.height * scale));
-    const cctx = cropCanvas.getContext('2d');
-    if (!cctx) return null;
-    cctx.scale(scale, scale);
-    cctx.translate(-srcRect.x, -srcRect.y);
-    cctx.save();
-    cctx.globalAlpha = bgState.opacity;
-    cctx.translate(cx, cy);
-    if(bgState.rotation){ cctx.rotate(bgState.rotation * Math.PI / 180); }
-    if(bgState.flip){ cctx.scale(-1, 1); }
-    cctx.translate(-cx, -cy);
-    cctx.drawImage(bgState.image, x, y, bw, bh);
-    cctx.restore();
-
-    const rotated = document.createElement('canvas');
-    rotated.width = cropCanvas.height;
-    rotated.height = cropCanvas.width;
-    const rctx = rotated.getContext('2d');
-    if (!rctx) return null;
-    rctx.translate(rotated.width / 2, rotated.height / 2);
-    rctx.rotate(Math.PI / 2);
-    rctx.drawImage(cropCanvas, -cropCanvas.width / 2, -cropCanvas.height / 2);
-    return rotated.toDataURL('image/png');
-  }
-  function drawSideClipSymbol(centerX, centerY, variant='zhora'){
+  function drawSideClipSymbol(centerX, centerY, variant='zhora', fillMode='gray'){
     const viewW = 121.9;
     const viewH = 57.9;
     const targetH = 20;
@@ -645,7 +627,17 @@
       {x:73.4,y:14,w:28.3,h:26.9},
       {x:10,y:11.2,w:56.7,h:32.6}
     ];
-    const attrs = {fill:'#000000','fill-opacity':0.15,stroke:'#0f172a','stroke-width':0.5};
+    const mode = String(fillMode || 'gray').toLowerCase();
+    const attrs = {stroke:'#0f172a','stroke-width':0.5};
+    if (mode === 'none') {
+      attrs.fill = 'none';
+    } else if (mode === 'red') {
+      attrs.fill = '#ff073a';
+      attrs['fill-opacity'] = 0.28;
+    } else {
+      attrs.fill = '#000000';
+      attrs['fill-opacity'] = 0.15;
+    }
     const group = create('g');
     group.setAttribute('transform', variant === 'zhora' ? `rotate(180 ${centerX} ${centerY})` : '');
     rects.forEach(r=>{
@@ -766,16 +758,20 @@
     const K = num($('K'),45);
     const C = Math.max(0,num($('Cpitch'),160));
     const axisInK = $('AxisInK').value==='' ? null : num($('AxisInK'), K/2);
-    const showNotches = $('toggle-notches').checked;
-    const notchLen = Math.max(1,num($('NotchLen'),7));
-    const notchShiftEnabled = !!$('toggle-notch-shift')?.checked;
-    const notchShiftRaw = num($('NotchShift'), 0);
+      const showNotches = $('toggle-notches').checked;
+      const notchLen = Math.max(1,num($('NotchLen'),7));
+      const poistneOffset = Math.max(0,num($('PoistneOffset'),10));
+      const poistneLen = Math.max(0,num($('PoistneLen'),12));
+      const notchShiftEnabled = !!$('toggle-notch-shift')?.checked;
+      const notchShiftRaw = num($('NotchShift'), 0);
     const bagWidth = Math.max(0,num($('BagWidth'), 0));
-    const airEnabled = (($('AirEnabled')?.value)||'').toLowerCase()==='ano';
-    const airEdge = Math.max(0,num($('AirEdge'),30));
-    const airType = $('AirType')?.value || '1';
-    const airInGOnly = !!$('AirInGOnly')?.checked;
-    const airXAbsRaw = num($('AirXAbs'), NaN);
+      const airEnabled = (($('AirEnabled')?.value)||'').toLowerCase()==='ano';
+      const airEdge = Math.max(0,num($('AirEdge'),30));
+      const airType = $('AirType')?.value || '1';
+      const airInGOnly = !!$('AirInGOnly')?.checked;
+      const airXAbsRaw = num($('AirXAbs'), NaN);
+      const flapNotchEdge = Math.max(0, num($('FlapNotchEdge'), 6));
+      const flapNotchLen = Math.max(0, num($('FlapNotchLen'), 5));
     const airCount = 2; // 4 otvory total (2 na kazdej strane)
       const airPitch = 40; // fixna roztec
       const perfEnabled = (($('PerfEnabled')?.value)||'').toLowerCase()==='ano';
@@ -877,10 +873,17 @@
     const rHole = 7;
     create('circle',{cx:xAxis, cy:y1, r:rHole, fill:'none', stroke:'#0f172a','stroke-width':1});
     create('circle',{cx:xAxis, cy:y2, r:rHole, fill:'none', stroke:'#0f172a','stroke-width':1});
-    textWithBg('Ø14', xAxis, y1 - rHole - Math.max(8, Math.round(state.fontPx*0.9)), {anchor:'middle', baseline:'middle'});
-
-    const yDimAxis = yBottom + 90;
-    create('line',{x1:xAxis,x2:xAxis,y1:yDimAxis,y2:y2,stroke:'#0f172a','stroke-width':1,'stroke-dasharray':'4 4'});
+    const yDimAxis = y1 - Math.max(28, Math.round(state.fontPx * 2.4));
+    hDim(xKstart, yDimAxis, xAxis, Math.round(axisVal), 10, '#dc2626');
+    create('line',{
+      x1:xAxis,
+      y1:yDimAxis,
+      x2:xAxis,
+      y2:y1,
+      stroke:'#dc2626',
+      'stroke-width':1,
+      'stroke-dasharray':'4 4'
+    });
 
     const xDim = xKstart - 25;
     const xDimW = xDim - 30;
@@ -958,6 +961,60 @@
       }
     }
 
+    const hasPoistne = poistneLen > 0;
+    if (hasPoistne) {
+      const xPoist = xKend + poistneOffset;
+      const xPoistMirror = rightOuter - poistneOffset;
+      const topPoistY2 = Math.min(yBottom, yTop + poistneLen);
+      const botPoistY1 = Math.max(yTop, yBottom - poistneLen);
+      create('line',{
+        x1:xPoist,
+        y1:yTop,
+        x2:xPoist,
+        y2:topPoistY2,
+        stroke:'#dc2626',
+        'stroke-width':2.2
+      });
+      create('line',{
+        x1:xPoist,
+        y1:botPoistY1,
+        x2:xPoist,
+        y2:yBottom,
+        stroke:'#dc2626',
+        'stroke-width':2.2
+      });
+      create('line',{
+        x1:xPoistMirror,
+        y1:yTop,
+        x2:xPoistMirror,
+        y2:topPoistY2,
+        stroke:'#dc2626',
+        'stroke-width':2.2
+      });
+      create('line',{
+        x1:xPoistMirror,
+        y1:botPoistY1,
+        x2:xPoistMirror,
+        y2:yBottom,
+        stroke:'#dc2626',
+        'stroke-width':2.2
+      });
+      const lowerPoistBaseY = yBottom + Math.max(18, Math.round(state.fontPx*1.5));
+      hDim(xKend, lowerPoistBaseY, xPoist, Math.round(poistneOffset), 10, '#dc2626');
+      create('line',{
+        x1:xPoist,
+        y1:lowerPoistBaseY,
+        x2:xPoist,
+        y2:yBottom,
+        stroke:'#dc2626',
+        'stroke-width':1,
+        'stroke-dasharray':'4 4',
+        opacity:0.8
+      });
+      const lowerLenX = xPoist - Math.max(18, Math.round(state.fontPx*1.5));
+      vDim(lowerLenX, yBottom - Math.max(1, poistneLen), yBottom, Math.round(poistneLen), 10, '#dc2626');
+    }
+
     const xBagDim = rightOuter + 40;
     const bagLabel = `sirka vrecka ${fmtVal(bagWidth)}`;
     let yBagStart = yTop + (W - bagWidth)/2;
@@ -986,11 +1043,59 @@
       });
 
       const yAirTop = yTop - Math.max(22, Math.round(state.fontPx*1.8));
+      const yAirPerf = yBottom + Math.max(16, Math.round(state.fontPx*1.6));
+      const perfRefX = perfEnabled && perfOffset > 0
+        ? (perfSide === 'prava' ? xRightGStart + perfOffset : xLeftGStart - perfOffset)
+        : null;
       vDim(xLeftGStart - 25, yTop, cyTop, Math.round(airEdge), 10, '#dc2626');
+      create('line',{
+        x1:xLeftGStart - 25,
+        y1:cyTop,
+        x2:xRefLeftG,
+        y2:cyTop,
+        stroke:'#dc2626',
+        'stroke-width':1,
+        'stroke-dasharray':'4 4',
+        opacity:0.7
+      });
       hDim(xLeftGStart, yAirTop, xRefLeftG, Math.round(X), 10, '#dc2626');
-      if(!airInGOnly){
+      if (!airInGOnly){
         hDim(xFirstLeft, yAirTop, xLeftGStart, Math.round(X), 10, '#dc2626');
       }
+      if (perfRefX != null){
+        if (perfSide === 'prava'){
+          hDim(perfRefX, yAirPerf, xRefRightG, Math.round(Math.abs(xRefRightG - perfRefX)), 10, '#dc2626');
+        } else {
+          hDim(xRefLeftG, yAirPerf, perfRefX, Math.round(Math.abs(perfRefX - xRefLeftG)), 10, '#dc2626');
+        }
+      }
+    }
+
+    if (flapNotchLen > 0) {
+      const flapCenterX = xRightGStart;
+      const flapHalf = flapNotchLen;
+      const xFlapStart = clamp(flapCenterX - flapHalf, xStart, rightOuter);
+      const xFlapEnd = clamp(flapCenterX + flapHalf, xStart, rightOuter);
+      const yFlapTop = yTop + flapNotchEdge;
+      const yFlapBottom = yBottom - flapNotchEdge;
+      create('line',{
+        x1:xFlapStart,
+        y1:yFlapTop,
+        x2:xFlapEnd,
+        y2:yFlapTop,
+        stroke:'#dc2626',
+        'stroke-width':2.2
+      });
+      create('line',{
+        x1:xFlapStart,
+        y1:yFlapBottom,
+        x2:xFlapEnd,
+        y2:yFlapBottom,
+        stroke:'#dc2626',
+        'stroke-width':2.2
+      });
+      const flapLenDimY = yFlapTop - Math.max(18, Math.round(state.fontPx*1.8));
+      hDim(xFlapStart, flapLenDimY, xFlapEnd, Math.round(flapNotchLen * 2), 10, '#dc2626');
     }
 
     let maxRight = Math.max(xStart + totalWidth + 40, xFirstRight + 40, xBagDim + 40);
@@ -1002,13 +1107,13 @@
       if (perfSide === 'prava'){
         const xPerf = xRightGStart + off;
         create('line',{x1:xPerf,y1:yTop,x2:xPerf,y2:yBottom,stroke:'#dc2626','stroke-width':1,'stroke-dasharray':'6 4'});
-        const yPerfDim = yBottom + Math.max(24, Math.round(state.fontPx*2.2));
+        const yPerfDim = yBottom + Math.max(16, Math.round(state.fontPx*1.6));
         hDim(xRightGStart, yPerfDim, xPerf, Math.round(off), 10, '#dc2626');
         maxRight = Math.max(maxRight, xPerf + 40);
       } else {
         const xPerf = xRightGStart - off;
         create('line',{x1:xPerf,y1:yTop,x2:xPerf,y2:yBottom,stroke:'#dc2626','stroke-width':1,'stroke-dasharray':'6 4'});
-        const yPerfDim = yBottom + Math.max(24, Math.round(state.fontPx*2.2));
+        const yPerfDim = yBottom + Math.max(16, Math.round(state.fontPx*1.6));
         hDim(xPerf, yPerfDim, xRightGStart, Math.round(off), 10, '#dc2626');
       }
     }
@@ -1063,8 +1168,6 @@
     widths.forEach(w=>{ hDim(sx, segY, sx+w, Math.round(w)); sx += w; });
     hDim(xStart, totalY, xStart + totalWidth, Math.round(totalWidth));
 
-    hDim(xKstart, yDimAxis, xAxis, Math.round(axisVal), 10, '#dc2626');
-
     if (mirrorTechnical){
       keepDimTextReadable(svgRoot);
     }
@@ -1082,23 +1185,6 @@
     const yK = foldedY + K;
     const yL = foldedY + foldedH;
     const gHiddenTop = yL - G;
-    const foldedClipId = 'vz22test-fold-clip';
-    const foldedPreviewData = getRotatedBgCropDataUrl({x:xKstart, y:yTop, width:K + L, height:W});
-    if (foldedPreviewData) {
-      const defs = create('defs');
-      const clipPath = create('clipPath',{id:foldedClipId},defs);
-      create('rect',{x:foldedX,y:foldedY,width:foldedW,height:foldedH}, clipPath);
-      create('image',{
-        href: foldedPreviewData,
-        x: foldedX,
-        y: foldedY,
-        width: foldedW,
-        height: foldedH,
-        preserveAspectRatio: 'none',
-        opacity: Math.min(1, Math.max(0.2, bgState.opacity)),
-        'clip-path': `url(#${foldedClipId})`
-      });
-    }
     create('rect',{x:foldedX,y:foldedY,width:foldedW,height:foldedH,fill:'none',stroke:'#0f172a','stroke-width':1});
     create('line',{x1:foldedX,y1:yK,x2:foldedX+foldedW,y2:yK,stroke:'#0f172a','stroke-width':1});
     create('line',{x1:foldedX,y1:gHiddenTop,x2:foldedX+foldedW,y2:gHiddenTop,stroke:'#64748b','stroke-width':1,'stroke-dasharray':'5 4'});
@@ -1114,6 +1200,7 @@
       const c2 = mapFold(xAxis, y2);
       create('circle',{cx:c1.x, cy:c1.y, r:rHole, fill:'none', stroke:'#0f172a','stroke-width':1});
       create('circle',{cx:c2.x, cy:c2.y, r:rHole, fill:'none', stroke:'#0f172a','stroke-width':1});
+      textWithBg('Ø14', c1.x - rHole - 16, c1.y, {anchor:'end', baseline:'middle'});
       hDim(c1.x, c2.y + 16, c2.x, Math.round(C), 8, '#dc2626');
     }
 
@@ -1126,7 +1213,7 @@
       create('line',{x1:n3.x,y1:n3.y,x2:n4.x,y2:n4.y,stroke:'#0f172a'});
     }
 
-    if (airEnabled) {
+      if (airEnabled) {
       const rawAirX = (airXInput?.value || '').trim();
       const hasAirX = !!airXInput?.dataset.userSet && rawAirX !== '' && Number.isFinite(airXAbsRaw);
       const autoX = G/2;
@@ -1138,13 +1225,24 @@
       const dash = airInGOnly ? '4 3' : '';
       drawAirMarkStyled(xLeftHoleFold, yHoleFold, airType, 3, '#dc2626', dash);
       drawAirMarkStyled(xRightHoleFold, yHoleFold, airType, 3, '#dc2626', dash);
-      vDim(foldedX - 18, yHoleFold, foldedY + foldedH, Math.round(fromBottom), 8, '#dc2626');
-      hDim(foldedX, yHoleFold - 20, xLeftHoleFold, Math.round(edgeFromLeft), 8, '#dc2626');
+
+      // Popis pri lavom otvore: od okraja / vypocitane od perforacie (ak je).
+      if (perfEnabled && perfOffset > 0) {
+        const off = Math.min(perfOffset, G);
+        const foldPerfY = gHiddenTop + off;
+        const fromPerf = Math.round(Math.abs(yHoleFold - foldPerfY));
+        const label = `${fmtVal(airEdge)} / ${fmtVal(fromPerf)}`;
+        const lx = xLeftHoleFold - 26;
+        const ly = yHoleFold - 18;
+        create('line',{x1:xLeftHoleFold,y1:yHoleFold,x2:lx,y2:ly,stroke:'#dc2626','stroke-width':1});
+        textWithBg(label, lx - 2, ly, {anchor:'end', baseline:'middle', color:'#dc2626'});
+      }
     }
 
     if (perfEnabled && perfOffset > 0){
       const off = Math.min(perfOffset, G);
-      const foldPerfY = foldedY + foldedH - off;
+      // Perforacia v zlozenom nahlade: offset od prerusovanej ciary (horna hrana spodnej zalozky).
+      const foldPerfY = gHiddenTop + off;
       create('line',{
         x1:foldedX,
         y1:foldPerfY,
@@ -1155,7 +1253,8 @@
         'stroke-dasharray':'8 2 1.5 2',
         opacity:0.65
       });
-      vDim(foldedX - 56, foldPerfY, foldedY + foldedH, Math.round(off), 8, '#dc2626');
+      const perfDimY = foldedY + foldedH + 48;
+      hDim(foldedX, perfDimY, foldedX + foldedW, Math.round(off), 8, '#dc2626');
     }
 
     const foldRightLMin = xRightGEnd;
@@ -1168,6 +1267,49 @@
         y: foldedY + foldedH - (p.y - foldedY)
       };
     };
+    if (hasPoistne) {
+      const xPoistLeft = xKend + poistneOffset;
+      const xPoistRight = rightOuter - poistneOffset;
+      const topPoistY2 = Math.min(yBottom, yTop + poistneLen);
+      const botPoistY1 = Math.max(yTop, yBottom - poistneLen);
+
+      // Poistne zaseky patria do viditelnej casti (K+L), preto mapovanie cez mapFold.
+      const buildPoistFold = (xPoist) => ({
+        top1: mapFold(xPoist, yTop),
+        top2: mapFold(xPoist, topPoistY2),
+        bot1: mapFold(xPoist, botPoistY1),
+        bot2: mapFold(xPoist, yBottom),
+      });
+
+      const leftP = buildPoistFold(xPoistLeft);
+      const rightP = buildPoistFold(xPoistRight);
+
+      // Vykresli tie poistne zaseky, ktore spadaju do zlozeneho nahladu.
+      const candidates = [
+        { p: leftP, xf: xPoistLeft },
+        { p: rightP, xf: xPoistRight },
+      ].filter((it) => inFold(it.xf));
+
+      candidates.forEach((it) => {
+        const p = it.p;
+        create('line',{x1:p.top1.x,y1:p.top1.y,x2:p.top2.x,y2:p.top2.y,stroke:'#dc2626','stroke-width':2.2});
+        create('line',{x1:p.bot1.x,y1:p.bot1.y,x2:p.bot2.x,y2:p.bot2.y,stroke:'#dc2626','stroke-width':2.2});
+      });
+
+      // Kotuj len dlzku a len na poistnom zaseku, ktory je najviac vlavo v zlozenom nahlade.
+      if (candidates.length) {
+        const dimTarget = candidates.reduce((best, cur) => (cur.p.top1.x < best.p.top1.x ? cur : best), candidates[0]).p;
+        const yPoistDim = clamp(dimTarget.top1.y + 22, foldedY + 10, foldedY + foldedH - 10);
+        hDim(dimTarget.top1.x, yPoistDim, dimTarget.top2.x, Math.round(poistneLen), 8, '#dc2626');
+
+        // Kota vzdialenosti od chlopne (K) po poistny zasek v zlozenom nahlade.
+        const kendFold = mapFold(xKend, yTop);
+        const yKendFold = kendFold.y;
+        const yPoistFold = dimTarget.top1.y;
+        const xPoistOffsetDim = foldedX - 22;
+        vDim(xPoistOffsetDim, yKendFold, yPoistFold, Math.round(poistneOffset), 8, '#dc2626');
+      }
+    }
     const drawEasyFoldOffsetDim = (yMain) => {
       const ref = mapFoldRightL(foldRightLMin, yMain);
       const yDim = foldedY + foldedH + 68;
@@ -1243,7 +1385,7 @@
       'stroke-width':0.45,
       'stroke-dasharray':'8 2 1.5 2'
     });
-    const sideClipBounds = drawSideClipSymbol((sideXLeft + sideXRight) / 2, sideClipCenterY, sideClipVariant);
+    const sideClipBounds = drawSideClipSymbol((sideXLeft + sideXRight) / 2, sideClipCenterY, sideClipVariant, sideClipColor?.value || 'gray');
 
     create('line',{x1:sideXLeft,y1:sideYTopLeft,x2:sideXLeft,y2:sideYBottom,stroke:'#0f172a','stroke-width':1.2});
     create('line',{x1:sideXRight,y1:sideYTopRight,x2:sideXRight,y2:sideYBottom,stroke:'#0f172a','stroke-width':1.2});
@@ -1290,7 +1432,7 @@
     el && el.addEventListener(ev, draw);
   });
   [bottomText1Size,bottomText1Bold,bottomText1Italic,bottomText1Color].forEach(el=> el && el.addEventListener('change', ()=>{ applyBottomTextStyle(1); draw(); }));
-  [bottomText2Size,bottomText2Bold,bottomText2Italic,bottomText2Color].forEach(el=> el && el.addEventListener('change', ()=>{ applyBottomTextStyle(2); draw(); }));
+  [bottomText2Size,bottomText2Bold,bottomText2Italic,bottomText2Color,sideClipColor].forEach(el=> el && el.addEventListener('change', ()=>{ applyBottomTextStyle(2); draw(); }));
   bottomText1?.addEventListener('input', ()=>{ applyBottomTextStyle(1); draw(); });
   bottomText2?.addEventListener('input', ()=>{ applyBottomTextStyle(2); draw(); });
   $('toggle-notch-shift')?.addEventListener('change', updateNotchShiftUiState);
@@ -1314,8 +1456,9 @@
     $('BagWidth').value=400;
     $('Cpitch').value=160; $('AxisInK').value=''; $('SideClipView').value='zhora';
     if ($('AirEnabled')) $('AirEnabled').value='ano';
-    $('NotchLen').value=7; $('toggle-notches').checked=false; $('toggle-notch-shift').checked=false; $('NotchShift').value=0;
+      $('NotchLen').value=7; $('PoistneOffset').value=10; $('PoistneLen').value=12; $('toggle-notches').checked=false; $('toggle-notch-shift').checked=false; $('NotchShift').value=0;
       $('AirEdge').value=30; $('AirXAbs').value=''; $('AirType').value='1'; $('AirInGOnly').checked=false;
+      $('FlapNotchEdge').value=6; $('FlapNotchLen').value=5;
       if (airXInput) airXInput.dataset.userSet='';
       if ($('PerfEnabled')) $('PerfEnabled').value='ano';
       $('PerfOffset').value=7;
@@ -1338,6 +1481,7 @@
     if (bottomText2Bold) bottomText2Bold.checked=true;
     if (bottomText2Italic) bottomText2Italic.checked=false;
     if (bottomText2Color) bottomText2Color.value='#0f172a';
+    if (sideClipColor) sideClipColor.value='gray';
     if(finalNavinNumber) finalNavinNumber.value='1';
     if(finalNavinLetter) finalNavinLetter.value='A';
     if(printOps) printOps.value='0';
@@ -1379,7 +1523,14 @@
         BagWidth:$('BagWidth').value,
           Cpitch:$('Cpitch').value, AxisInK:$('AxisInK').value,
           SideClipView:$('SideClipView').value,
-          NotchLen:$('NotchLen').value, toggleNotches:$('toggle-notches').checked, toggleNotchShift:$('toggle-notch-shift').checked, NotchShift:$('NotchShift').value,
+            NotchLen:$('NotchLen').value,
+            PoistneOffset:$('PoistneOffset').value,
+            PoistneLen:$('PoistneLen').value,
+            FlapNotchEdge:$('FlapNotchEdge').value,
+            FlapNotchLen:$('FlapNotchLen').value,
+            toggleNotches:$('toggle-notches').checked,
+            toggleNotchShift:$('toggle-notch-shift').checked,
+            NotchShift:$('NotchShift').value,
           AirEnabled:$('AirEnabled')?.value || '',
           AirEdge:$('AirEdge').value, AirXAbs:$('AirXAbs').value, AirType:$('AirType').value, AirInGOnly:$('AirInGOnly').checked,
           PerfEnabled:$('PerfEnabled')?.value || '',
@@ -1399,6 +1550,7 @@
           bottomText2:bottomText2.value,
           bottomText1Style:getBottomTextStyle(1),
           bottomText2Style:getBottomTextStyle(2),
+          sideClipColor: sideClipColor?.value || 'gray',
           measureMode:state.measureMode,
           finalNavinNumber:finalNavinNumber?.value || '',
           finalNavinLetter:finalNavinLetter?.value || '',
@@ -1435,8 +1587,12 @@
         $('SideClipView').value=i.SideClipView||'zhora';
       if(airXInput) airXInput.dataset.userSet = (i.AirXAbs!==undefined && i.AirXAbs!=='') ? '1' : '';
       if ($('PerfEnabled')) $('PerfEnabled').value = (i.PerfEnabled === undefined || i.PerfEnabled === null) ? 'ano' : String(i.PerfEnabled);
-      $('NotchLen').value=i.NotchLen||'';
-      $('toggle-notches').checked=!!i.toggleNotches;
+        $('NotchLen').value=i.NotchLen||'';
+        $('PoistneOffset').value=(i.PoistneOffset!==undefined && i.PoistneOffset!==null)?i.PoistneOffset:10;
+        $('PoistneLen').value=(i.PoistneLen!==undefined && i.PoistneLen!==null)?i.PoistneLen:12;
+        $('FlapNotchEdge').value=(i.FlapNotchEdge!==undefined && i.FlapNotchEdge!==null)?i.FlapNotchEdge:6;
+        $('FlapNotchLen').value=(i.FlapNotchLen!==undefined && i.FlapNotchLen!==null)?i.FlapNotchLen:5;
+        $('toggle-notches').checked=!!i.toggleNotches;
         $('toggle-notch-shift').checked=!!i.toggleNotchShift;
         $('NotchShift').value=(i.NotchShift!==undefined && i.NotchShift!==null)?i.NotchShift:0;
         $('PerfOffset').value=i.PerfOffset||'';
@@ -1467,6 +1623,7 @@
         if (bottomText2Bold) bottomText2Bold.checked=!!s2.bold;
         if (bottomText2Italic) bottomText2Italic.checked=!!s2.italic;
         if (bottomText2Color) bottomText2Color.value=s2.color || '#0f172a';
+        if (sideClipColor) sideClipColor.value = i.sideClipColor || 'gray';
         state.measureMode = i.measureMode || 'off';
         updateNavinTlac();
         updateMotivDisplay();
