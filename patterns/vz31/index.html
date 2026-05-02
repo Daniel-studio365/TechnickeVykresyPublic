@@ -2,9 +2,9 @@
 <html lang="sk">
 <head>
   <meta charset="utf-8">
-  <title>vz22_test</title>
+  <title>vz31</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="css/vz22_test.css">
+  <link rel="stylesheet" href="css/vz31.css">
 </head>
 <body>
     <div id="app">
@@ -14,12 +14,6 @@
         </div>
         <label for="motivInput">Motiv:
           <input id="motivInput" type="text" placeholder="Nazov motivu" maxlength="120">
-        </label>
-        <label for="noteMode">Typ textov hore:
-          <select id="noteMode">
-            <option value="hygiena" selected>hygiena</option>
-            <option value="chlieb">chlieb</option>
-          </select>
         </label>
         <div class="card" id="eps-header">
           <div class="field wide">
@@ -63,93 +57,74 @@
               <option value="1">1 - rezanie</option>
               <option value="2">2 - kasirka + rezanie</option>
             </select>
-            </div>
+          </div>
           <div class="row">
             <button id="btnOpenFirmManager" type="button" class="secondary">Firmy (sprava)</button>
           </div>
         </div>
-      <h3>Zakladne rozmery</h3>
+        <h3>Zakladne rozmery</h3>
       <label>Pozadovana sirka vrecka: <input type="number" id="BagWidth" value="400" step="0.1"></label>
       <label>Dlzka (L): <input type="number" id="L" value="600"></label>
       <label>Sek (W): <input type="number" id="W" value="400"></label>
-      <label>Spodna zalozka (G): <input type="number" id="G" value="50"></label>
+      <label>Rucka (G): <input type="number" id="G" value="50"></label>
       <label>Chlopna (K): <input type="number" id="K" value="45"></label>
       <span class="sep"></span>
 
-      <h3>Perforacia</h3>
-      <label>Perforacia:
-        <select id="PerfEnabled">
-          <option value="ano" selected>ano</option>
-          <option value="nie">nie</option>
+      <h3>Easy open</h3>
+      <label>Tvar easy open:
+        <select id="PerfShape">
+          <option value="none">bez easy open</option>
+          <option value="rovna">rovna</option>
+          <option value="vodorovna">vodorovna</option>
+          <option value="U" selected>U</option>
+          <option value="zahnut">zahnut</option>
         </select>
       </label>
-      <label>Strana perforacie:
+      <label>Strana easy open:
         <select id="PerfSide">
           <option value="prava" selected>prava</option>
           <option value="lava">lava</option>
         </select>
       </label>
-      <label>Vzdialenost od stredu: <input type="number" id="PerfOffset" value="7" min="0"></label>
-      <span class="sep"></span>
-
-      <h3>Easy open</h3>
-      <label>Tvar easy open:
-        <select id="EasyShape">
-          <option value="none" selected>bez easy open</option>
-          <option value="rovna">rovna</option>
-          <option value="vodorovna">vodorovna</option>
-          <option value="U">U</option>
-          <option value="zahnut">zahnut</option>
-        </select>
-      </label>
-      <label>Strana easy open:
-        <select id="EasySide">
-          <option value="prava" selected>prava (hore)</option>
-          <option value="lava">lava (dole)</option>
-        </select>
-      </label>
-      <label>Odsadenie easy open: <input type="number" id="EasyOffset" value="70"></label>
-      <label>Dlzka vodorovnej casti: <input type="number" id="EasyHalfLen" value="250"></label>
+      <label>Odsadenie easy open: <input type="number" id="PerfOffset" value="70"></label>
+      <label>Dlzka vodorovnej casti: <input type="number" id="PerfHalfLen" value="250"></label>
       <label>Otvor na prst:
-        <select id="EasyFingerHole">
+        <select id="FingerHole">
           <option value="nie" selected>nie</option>
           <option value="ano">ano</option>
         </select>
       </label>
-      <span class="sep"></span>
-
-      <h3>Zavesne otvory v chlopni</h3>
-      <label>Vzialenost zavesnych otvorov: <input type="number" id="Cpitch" value="160"></label>
-      <label>Umiestnenie stredu otvorov (z lavej strany chlopne): <input type="number" id="AxisInK" placeholder="K/2"></label>
       <label>Zavesna spona v bokoryse:
         <select id="SideClipView">
           <option value="zhora" selected>zhora</option>
           <option value="zdola">zdola</option>
         </select>
       </label>
+      <span class="sep"></span>
+
+      <h3>Zavesne otvory v chlopni</h3>
+      <label>Vzdialenost zavesnych otvorov: <input type="number" id="Cpitch" value="160"></label>
+      <label>Umiestnenie stredu otvorov (od vrecka): <input type="number" id="AxisInK" placeholder="K/2"></label>
       <div id="warnC">C je mimo W (zasahuje okraj)</div>
       <div id="warnAxis">Os je mimo 0..K</div>
       <span class="sep"></span>
 
-        <h3>Zaseky pri zavesnych otvoroch</h3>
-        <label>Dlzka zaseku: <input type="number" id="NotchLen" value="7"></label>
-        <label><input type="checkbox" id="toggle-notch-shift"> Zaseky posunute</label>
-        <label>Posun zasekov: <input type="number" id="NotchShift" value="0" step="0.1"></label>
-        <label>Mostik: <input type="number" id="Mostik" value="0" readonly tabindex="-1"></label>
+      <h3>Zaseky pri zavesnych otvoroch</h3>
+      <label>Dlzka zaseku: <input type="number" id="NotchLen" value="7"></label>
+      <label><input type="checkbox" id="toggle-notch-shift"> Zaseky posunute</label>
+      <label>Posun zasekov: <input type="number" id="NotchShift" value="0" step="0.1"></label>
+      <label>Mostik: <input type="number" id="Mostik" value="0" readonly tabindex="-1"></label>
       <label><input type="checkbox" id="toggle-notches"> Zobrazit zaseky</label>
-        <label>Poistne zaseky - vzdialenost od chlopne: <input type="number" id="PoistneOffset" value="10"></label>
-        <label>Poistne zaseky - dlzka: <input type="number" id="PoistneLen" value="12"></label>
       <span class="sep"></span>
 
       <h3>Vzduchove otvory</h3>
-      <label>Vzduchove otvory:
-        <select id="AirEnabled">
-          <option value="ano" selected>ano</option>
-          <option value="nie">nie</option>
+      <label>Vzduch. otvor od okraja: <input type="number" id="AirEdge" value="30"></label>
+      <label>Prvy vzduch. otvor od rucky: <input type="number" id="AirXAbs" value="25"></label>
+      <label>Pocet otvorov:
+        <select id="AirCount">
+          <option>2</option><option>4</option><option>6</option><option selected>8</option>
         </select>
       </label>
-      <label>Vzduch. otvor od okraja: <input type="number" id="AirEdge" value="30"></label>
-      <label>Vzduchovy otvor od zalozky: <input type="number" id="AirXAbs" value=""></label>
       <label>Typ vzduchovych otvorov:
         <select id="AirType">
           <option value="1" selected>1 - krizik</option>
@@ -157,15 +132,17 @@
           <option value="3">3 - rovny zarez</option>
         </select>
       </label>
-      <label><input type="checkbox" id="AirInGOnly"> Vzduchove otvory len v zalozke</label>
-      <label>Zaseky v zalozke - od kraja: <input type="number" id="FlapNotchEdge" value="6" readonly tabindex="-1"></label>
-      <label>Zaseky v zalozke - dlzka: <input type="number" id="FlapNotchLen" value="5"></label>
+      <label>Roztec otvorov: <input type="number" id="AirPitch" value="40"></label>
+      <span class="sep"></span>
+
+      <h3>Fotobunka</h3>
+      <label><input type="checkbox" id="PhotoMarkEnabled"> Zobrazit fotobunku 20 x 5 mm</label>
       <span class="sep"></span>
 
       <h3>Text / koty</h3>
       <label>Velkost textu:
         <div class="row">
-          <input type="range" id="fontPx" min="8" max="28" value="14">
+          <input type="range" id="fontPx" min="10" max="28" value="14">
           <span id="fontPxVal">14 px</span>
         </div>
       </label>
@@ -193,7 +170,7 @@
       <div class="row" style="gap:6px;flex-wrap:wrap;">
         <button type="button" id="bg-rot-left" class="secondary" style="flex:1;">Otocit -90</button>
         <button type="button" id="bg-rot-180" class="secondary" style="flex:1;">Otocit 180</button>
-        <button type="button" id="bg-flip" class="secondary" style="flex:1;">Zrkadlit horiz.</button>
+        <button type="button" id="bg-flip" class="secondary" style="flex:1;">Zrkadlit vertikal</button>
       </div>
       <label>Priehladnost podkladu:
         <div class="row">
@@ -243,14 +220,14 @@
     <section id="workarea">
       <div id="top-panels">
                 <div class="card" id="left-notes">
-          <div class="field wide">
-            <strong>Cislo referencneho vzoru:</strong>
-            <span id="refCodeText" class="pill">vz-22</span>
-          </div>
-          <div class="field wide">
-            <strong>Por. cislo vyrobku:</strong>
-            <span id="porCisloText" class="pill">-</span>
-          </div>
+        <div class="field wide">
+          <strong>Cislo referencneho vzoru:</strong>
+          <span id="refCodeText" class="pill">vz-31</span>
+        </div>
+        <div class="field wide">
+          <strong>Por. cislo vyrobku:</strong>
+          <span id="porCisloText" class="pill">-</span>
+        </div>
           <div class="field wide" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <strong>Finalny navin:</strong>
             <span id="finalNavinText" class="pill">1A</span>
@@ -263,20 +240,20 @@
             <strong>Navin tlac:</strong>
             <span id="navinTlacText" class="pill">1A / V1</span>
           </div>
-          <div class="wide"><span id="leftSideTitle" class="note">ZADNA STRANA</span></div>
+          <div class="wide"><span id="printSideHint" class="note">ZADNA STRANA <span id="printSideHintTail" class="note note-blue"></span></span></div>
         </div>
-        <div class="card" id="right-notes">
+<div class="card" id="right-notes">
           <div class="meta">
             <span>Casova peciatka:</span>
             <span id="stamp" class="badge">-</span>
             <span>Vzor:</span>
-              <span id="vzCode" class="badge">vz-22-test</span>
+            <span id="vzCode" class="badge">vz-31</span>
           </div>
           <div class="field">
             <span class="motif-label">Motiv</span>
             <div id="motivText" class="note note-black">-</div>
           </div>
-          <div id="rightSideTitle" class="note">PREDNA STRANA</div>
+          <div class="note">CHLOPNA/ ZS NA STRANE POHONU</div>
         </div>
       </div>
 
@@ -312,7 +289,7 @@
             </label>
           </div>
           <div class="bottom-box">
-            <textarea id="bottomText1" class="bottom-textarea" placeholder="Dopln text" rows="3"></textarea>
+            <textarea id="bottomText1" class="bottom-textarea" placeholder="Dopln text"></textarea>
           </div>
         </div>
         <div class="bottom-item">
@@ -335,16 +312,23 @@
                 <option value="#39ff14">zelena</option>
               </select>
             </label>
-            <label>Farba spony:
-              <select id="sideClipColor">
-                <option value="gray" selected>siva</option>
-                <option value="red">cervena</option>
-                <option value="none">transparentna</option>
-              </select>
-            </label>
-          </div>
+              <label>Podložný pas PE fólie:
+                <select id="peFoilBand">
+                  <option value="B" selected>B - bez</option>
+                  <option value="D">D - vnútri</option>
+                  <option value="E">E - zvonku</option>
+                </select>
+              </label>
+              <label>Farba spony:
+                <select id="sideClipColor">
+                  <option value="gray" selected>siva</option>
+                  <option value="red">cervena</option>
+                  <option value="none">transparentna</option>
+                </select>
+              </label>
+            </div>
           <div class="bottom-box">
-            <textarea id="bottomText2" class="bottom-textarea" placeholder="Dopln text" rows="3"></textarea>
+            <textarea id="bottomText2" class="bottom-textarea" placeholder="Dopln text"></textarea>
           </div>
         </div>
       </div>
@@ -352,15 +336,16 @@
   </div>
 
   <div id="log"></div>
-  <script src="js/eps_map.js"></script>
-  <script src="js/eps_import.js"></script>
-  <script src="help/help_vz22_test.js"></script>
-  <script src="js/help_tooltips.js"></script>
+  <script src="../../shared/eps/eps_map.js"></script>
+  <script src="../../shared/eps/eps_import.js"></script>
+  <script src="help/help_vz31.js"></script>
+  <script src="../../shared/ui/help_tooltips.js"></script>
+  <script src="js/vz31.js"></script>
   <script>
-    if (window.initHelpTooltips && window.HELP_VZ22_TEST) {
-      window.initHelpTooltips(window.HELP_VZ22_TEST);
+    if (window.initHelpTooltips && window.HELP_VZ31) {
+      window.initHelpTooltips(window.HELP_VZ31);
     }
   </script>
-  <script src="js/vz22_test.js"></script>
 </body>
 </html>
+

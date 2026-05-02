@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sprava firiem</title>
+  <link rel="stylesheet" href="../../css/main.css" />
+</head>
+<body class="entry">
+  <main class="page">
+    <section class="form-card">
+      <div class="brand">
+        <img class="logo-img" src="../../img/logo.svg" alt="Chemosvit Folie logo" />
+        <div class="brand-copy">
+          <div class="brand-name">Chemosvit Folie</div>
+          <div class="brand-sub">Sprava firiem pre <span id="currentVz">vz</span></div>
+        </div>
+      </div>
+
+      <div class="pairs">
+        <div class="pair">
+          <label for="firmSelect">Firma</label>
+          <select id="firmSelect"></select>
+        </div>
+        <div class="pair">
+          <label for="typeSelect">Specifikacia</label>
+          <select id="typeSelect"></select>
+        </div>
+      </div>
+
+      <div id="firmPreview" class="firm-preview" hidden>
+        <div class="firm-preview-header">
+          <div>
+            <div class="firm-preview-title">Zobrazena firma</div>
+            <div class="firm-preview-sub" id="firmPreviewMeta"></div>
+          </div>
+          <button type="button" class="icon-btn" id="btnClosePreview" aria-label="Zavriet zobrazenie">&times;</button>
+        </div>
+        <div class="firm-preview-body" id="firmPreviewBody"></div>
+      </div>
+
+      <div class="actions">
+        <button id="btnAddFirm" type="button">Pridaj firmu</button>
+        <button id="btnEditFirm" type="button" class="ghost">Opravit firmu</button>
+        <button id="btnViewFirm" type="button" class="ghost">Zobrazit firmu</button>
+        <button id="btnExportFirms" type="button">Export firiem</button>
+        <button id="btnGo" type="button" class="primary">Prejst na vybrany vykres</button>
+      </div>
+    </section>
+  </main>
+
+  <section class="firm-modal" id="firmModal" aria-hidden="true" hidden>
+    <div class="firm-modal-backdrop" data-close="modal"></div>
+    <div class="firm-modal-dialog">
+      <div class="panel-header">
+        <div>
+          <div class="modal-title">Nova firma / specifikacia - <span id="modalVzLabel">vz22</span></div>
+          <div class="modal-sub">Vypln aspon nazov firmy a specifikaciu. Ostatne polozky su volitelne.</div>
+        </div>
+        <button type="button" class="icon-btn" id="btnClosePanel" aria-label="Zavriet">&times;</button>
+      </div>
+      <form id="formAddFirm" class="panel-body">
+        <input id="newFirmVz" type="hidden" />
+        <div class="field-grid">
+          <label>
+            <span>Nazov firmy</span>
+            <input id="newFirmName" type="text" placeholder="EPICOM SP" required />
+          </label>
+          <label>
+            <span>Specifikacia</span>
+            <input id="newFirmTyp" type="text" placeholder="default alebo a/b/c..." required />
+          </label>
+        </div>
+
+        <div class="field-grid">
+          <label><span>Chlopna (K)</span><input id="newFirmK" type="number" step="0.1" /></label>
+          <label><span>Dlzka zaseku</span><input id="newNotchLen" type="number" step="0.1" /></label>
+        </div>
+
+        <div class="field-grid">
+          <label class="check-row"><input id="newNotchShiftEnabled" type="checkbox" /> <span>Zaseky posunute</span></label>
+          <label><span>Posun zasekov</span><input id="newNotchShift" type="number" step="0.1" /></label>
+        </div>
+
+        <div class="field-grid">
+          <label><span>Vzdialenost zavesnych otvorov</span><input id="newFirmCpitch" type="number" step="0.1" /></label>
+          <label><span>Umiestnenie stredu otvorov (z lavej strany chlopne)</span><input id="newFirmAxisInK" type="number" step="0.1" /></label>
+        </div>
+        <div class="field-grid">
+          <label>
+            <span>Perforacia (A/N)</span>
+            <select id="newPerfEnabled">
+              <option value="">-</option>
+              <option value="yes">ano</option>
+              <option value="no">nie</option>
+            </select>
+          </label>
+          <label>
+            <span>Strana perforacie</span>
+            <select id="newPerfSide">
+              <option value="">-</option>
+              <option value="lava">lava</option>
+              <option value="prava">prava</option>
+            </select>
+          </label>
+          <label>
+            <span>Tvar perforacie</span>
+            <select id="newPerfShape">
+              <option value="">-</option>
+              <option value="rovna">rovna</option>
+              <option value="vodorovna">vodorovna</option>
+              <option value="U">U</option>
+              <option value="zahnut">zahnut</option>
+            </select>
+          </label>
+          <label><span>Vzdialenost od stredu</span><input id="newPerfOffset" type="number" step="0.1" /></label>
+        </div>
+
+        <div class="field-grid">
+          <label><span>Pocet vzduchovych otvorov</span><input id="newAirCount" type="number" step="1" /></label>
+          <label>
+            <span>Typ vzduchovych otvorov</span>
+              <select id="newAirDiameter">
+                <option value="">-</option>
+                <option value="1">1 - krizik</option>
+                <option value="2">2 - Y</option>
+                <option value="3">3 - rovny zarez</option>
+              </select>
+            </label>
+          <label><span>Vzduch. otvory od okraja</span><input id="newAirOffsetEdge" type="number" step="0.1" /></label>
+          <label><span>Vzduchovy otvor od zalozky</span><input id="newAirFromBottom" type="number" step="0.1" /></label>
+          <label><span>Roztec vzduch. otvorov</span><input id="newAirPitch" type="number" step="0.1" /></label>
+          <label class="check-row"><input id="newAirOnlyInG" type="checkbox" /> <span>Vzduchove otvory len v zalozke</span></label>
+        </div>
+
+        <div class="field-grid">
+          <label class="check-row"><input name="clipImage" id="clipImgNone" type="radio" value="" checked /> <span>Bez nakresu</span></label>
+          <label class="check-row"><input name="clipImage" id="clipImgTop" type="radio" value="zhora" /> <span>Nakres spony - zhora</span></label>
+          <label class="check-row"><input name="clipImage" id="clipImgBottom" type="radio" value="zdola" /> <span>Nakres spony - zdola</span></label>
+        </div>
+
+        <div class="field-grid image-preview-row">
+          <div class="img-preview">
+            <div class="img-title">Nahlad zhora</div>
+            <img id="imgPreviewTop" alt="Nakres spony zhora" src="../assets/zhora.png" onerror="this.style.display='none';" />
+            <div class="muted small">Ak subor chyba, nahlad sa nezobrazi.</div>
+          </div>
+          <div class="img-preview">
+            <div class="img-title">Nahlad zdola</div>
+            <img id="imgPreviewBottom" alt="Nakres spony zdola" src="../assets/zdola.png" onerror="this.style.display='none';" />
+            <div class="muted small">Ak subor chyba, nahlad sa nezobrazi.</div>
+          </div>
+        </div>
+
+        <label class="block">
+          <span>Poznamky (riadky)</span>
+          <textarea id="newNotes" rows="2" placeholder="napr. Plastove spony 150 ks/blok"></textarea>
+        </label>
+        <label class="block">
+          <span>Poznamky technologa (riadky)</span>
+          <textarea id="newTechNotes" rows="2" placeholder="napr. specialne instrukcie k navinu"></textarea>
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" id="btnCancelPanel">Zrusit</button>
+          <button type="button" id="btnExportFirmsModal">Export firiem</button>
+          <button type="button" id="btnDeleteFirm" class="danger" style="display:none">Zmazat firmu</button>
+          <button type="submit" class="primary">Ulozit firmu</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <script src="index2.js"></script>
+</body>
+</html>

@@ -878,6 +878,6 @@
     updatePreview();
     highlightFieldsForTemplate();
   } else {
-    fieldsWrap.textContent = 'Nepodarilo sa nacitat js/eps_fields.js';
+    fieldsWrap.textContent = 'Nepodarilo sa nacitat shared/eps/eps_fields.js';
   }
 })();

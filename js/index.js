@@ -40,13 +40,13 @@
 
   function templateToFile(template) {
     const t = String(template || '').toLowerCase().trim();
-    if (t === 'folia') return 'folia.html';
-    if (t === 'montaz') return 'montaz.html';
-    if (t === 'vz22') return 'vz22.html';
-    if (t === 'vz22_test') return 'vz22_test.html';
-    if (t === 'vz31') return 'vz31.html';
-    if (t === 'vz34') return 'vz34.html';
-    if (t === 'vz108') return 'vz108.html';
+    if (t === 'folia') return 'patterns/folia/index.html';
+    if (t === 'montaz') return 'patterns/montaz/index.html';
+    if (t === 'vz22') return 'patterns/vz22/index.html';
+    if (t === 'vz22_test') return 'patterns/vz22/index.html';
+    if (t === 'vz31') return 'patterns/vz31/index.html';
+    if (t === 'vz34') return 'patterns/vz34/index.html';
+    if (t === 'vz108') return 'patterns/vz108/index.html';
     return '';
   }
 
@@ -160,11 +160,11 @@
   btnGo.addEventListener('click', () => {
     const selected = radios.find((r) => r.checked)?.value;
     if (selected === 'folia') {
-      window.location.href = toUrl('folia.html');
+      window.location.href = toUrl('patterns/folia/index.html');
       return;
     }
     if (selected === 'montaz') {
-      window.location.href = toUrl('montaz.html');
+      window.location.href = toUrl('patterns/montaz/index.html');
       return;
     }
 

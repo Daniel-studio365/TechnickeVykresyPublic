@@ -1,0 +1,257 @@
+window.EPS_FIELDS = [
+  {
+    "group": "Air holes",
+    "key": "air_enabled",
+    "desc": "Vzduchove otvory (ano/nie)"
+  },
+  {
+    "group": "Air holes",
+    "key": "air_count",
+    "desc": "VzduchOtvPocet"
+  },
+  {
+    "group": "Air holes",
+    "key": "air_edge",
+    "desc": "Vzduchovy otvor od okraja"
+  },
+  {
+    "group": "Air holes",
+    "key": "air_in_G_only",
+    "desc": "Vzduchove otvory len v zalozke"
+  },
+  {
+    "group": "Air holes",
+    "key": "air_pitch",
+    "desc": "Roztec otvorov"
+  },
+  {
+    "group": "Air holes",
+    "key": "air_x_abs",
+    "desc": "Vzduchovy otvor od zalozky / prvy vzduchovy otvor od zalozky"
+  },
+  {
+    "group": "Air holes",
+    "key": "air_x_auto",
+    "desc": "Vz. otvor v strede zalozky"
+  },
+  {
+    "group": "Holes/Notches",
+    "key": "axis_in_K",
+    "desc": "Umiestnenie stredu otvorov (od vrecka)"
+  },
+  {
+    "group": "Dimensions",
+    "key": "dim_bag_width",
+    "desc": "Pozadovana sirka vrecka"
+  },
+  {
+    "group": "Holes/Notches",
+    "key": "hole_pitch_C",
+    "desc": "Vzdialenost zavesnych otvorov"
+  },
+  {
+    "group": "Perforation",
+    "key": "perf_bottom_enabled",
+    "desc": "Perforacia dna (ano/nie)"
+  },
+  {
+    "group": "Easy open",
+    "key": "easy_open_finger_hole",
+    "desc": "Otvor na prst"
+  },
+  {
+    "group": "Dimensions",
+    "key": "dim_G",
+    "desc": "Spodna zalozka"
+  },
+  {
+    "group": "Dimensions",
+    "key": "dim_K",
+    "desc": "Chlopna"
+  },
+  {
+    "group": "Dimensions",
+    "key": "dim_L",
+    "desc": "Zakladny rozmer L (dlzka/sirka podla vzoru)"
+  },
+  {
+    "group": "Dimensions",
+    "key": "dim_C",
+    "desc": "Dno / kriz (C)"
+  },
+  {
+    "group": "Holes/Notches",
+    "key": "notch_length",
+    "desc": "Dlzka zaseku"
+  },
+  {
+    "group": "Easy open",
+    "key": "easy_open_bottom_offset",
+    "desc": "Vzdialenost easy open od spodnej zalozky"
+  },
+  {
+    "group": "Easy open",
+    "key": "easy_open_half_len",
+    "desc": "Dlzka vodorovnej casti"
+  },
+  {
+    "group": "Perforation",
+    "key": "perf_bottom_offset",
+    "desc": "Vzdialenost perforacie dna od stredu"
+  },
+  {
+    "group": "Easy open",
+    "key": "easy_open_offset",
+    "desc": "Vzdialenost easy open od stredu"
+  },
+  {
+    "group": "Easy open",
+    "key": "easy_open_shape",
+    "desc": "Tvar easy open"
+  },
+  {
+    "group": "Easy open",
+    "key": "easy_open_side",
+    "desc": "Strana easy open (P/L/prazdne)"
+  },
+  {
+    "group": "Easy open",
+    "key": "easy_open_height",
+    "desc": "Vyska easy open"
+  },
+  {
+    "group": "Perforation",
+    "key": "perf_bottom_side",
+    "desc": "Strana perforacie dna"
+  },
+  {
+    "group": "Dimensions",
+    "key": "dim_SEK",
+    "desc": "SEK (W + 60)"
+  },
+  {
+    "group": "Dimensions",
+    "key": "side_handle",
+    "desc": "Bocna rucka"
+  },
+  {
+    "group": "Dimensions",
+    "key": "dim_W",
+    "desc": "Zakladny rozmer W (sirka/vyska podla vzoru)"
+  },
+  {
+    "group": "vz108",
+    "key": "seam_mode",
+    "desc": "Zlep (stred/kraj)"
+  },
+  {
+    "group": "vz108",
+    "key": "seg_ps",
+    "desc": "PS (predna strana)"
+  },
+  {
+    "group": "vz108",
+    "key": "seg_bzp",
+    "desc": "BZP (bocna zalozka prava)"
+  },
+  {
+    "group": "Reference",
+    "key": "ref_code_a",
+    "desc": "Cislo referencneho vzoru (cast A)"
+  },
+  {
+    "group": "Reference",
+    "key": "ref_code_b",
+    "desc": "Cislo zmeny"
+  },
+  {
+    "group": "Printing",
+    "key": "lacquer_next_no",
+    "desc": "Lak v dalsom kroku = nie"
+  },
+  {
+    "group": "Printing",
+    "key": "lacquer_next_yes",
+    "desc": "Lak v dalsom kroku = ano"
+  },
+  {
+    "group": "Bottom panel",
+    "key": "bottom_text_1",
+    "desc": "Poznamky"
+  },
+  {
+    "group": "Bottom panel",
+    "key": "bottom_text_2",
+    "desc": "Poznamky technologa"
+  },
+  {
+    "group": "Order",
+    "key": "order_notes",
+    "desc": "Motiv / Ostatne poznamky"
+  },
+  {
+    "group": "Photo mark",
+    "key": "photo_height",
+    "desc": "Vyska fotoznaku"
+  },
+  {
+    "group": "Photo mark",
+    "key": "photo_note",
+    "desc": "Poznamka pod vykresom"
+  },
+  {
+    "group": "Photo mark",
+    "key": "photo_width",
+    "desc": "Sirka fotoznaku"
+  },
+  {
+    "group": "Order",
+    "key": "order_serial",
+    "desc": "Poradove cislo vyrobku"
+  },
+  {
+    "group": "Printing",
+    "key": "print_ops",
+    "desc": "Pocet operacii tlace"
+  },
+  {
+    "group": "Printing",
+    "key": "print_side_bottom",
+    "desc": "Sposob tlace = spodna"
+  },
+  {
+    "group": "Printing",
+    "key": "print_side_top",
+    "desc": "Sposob tlace = vrchna"
+  },
+  {
+    "group": "Production",
+    "key": "rezanie_yes",
+    "desc": "Rezanie = ano"
+  },
+  {
+    "group": "Production",
+    "key": "rezanie_no",
+    "desc": "Rezanie = nie"
+  },
+  {
+    "group": "Roll",
+    "key": "roll_final_toggle",
+    "desc": "Zobrazit finalny navin"
+  },
+  {
+    "group": "Roll",
+    "key": "roll_final_code",
+    "desc": "Finalny navin - cislo"
+  },
+  {
+    "group": "Roll",
+    "key": "roll_final_variant",
+    "desc": "Finalny navin - varianta"
+  },
+  {
+    "group": "Holes/Notches",
+    "key": "notch_toggle",
+    "desc": "Zobrazit zaseky"
+  }
+];
